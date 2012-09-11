@@ -1,14 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
-# Copyright (c) 2009, 2011, 2012.
-#
-# DMI
-# Lyngbyvej 100
-# DK-2100 Copenhagen
-# Denmark
+# Copyright (c) 2009-2012.
 #
 # Author(s): 
-#   Lars Orum Rasmussen
-#   Martin Raspaud
+#   Lars Ørum Rasmussen <ras@dmi.dk>
+#   Martin Raspaud      <martin.raspaud@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +20,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+
+"""The publisher module gives high-level tools to publish messages on a port.
+"""
 
 import zmq
 from posttroll.message_broadcaster import sendaddresstype
@@ -39,6 +39,27 @@ def get_own_ip():
 
 class Publisher(object):
     """The publisher class.
+
+    An example on how to use the :class:`Publisher`::
+    
+        from posttroll.publisher import Publisher, get_own_ip
+        import time
+
+        PUB_ADDRESS = "tcp://" + str(get_own_ip()) + ":9000"
+        PUB = Publisher(PUB_ADDRESS)
+
+        try:
+            counter = 0
+            while True:
+                counter += 1
+                print "publishing " + str(i)
+                PUB.send(str(i))
+                time.sleep(60)
+        except KeyboardInterrupt:
+            print "terminating publisher..."
+            PUB.stop()
+
+
     """
     def __init__(self, address):
         """Bind the publisher class to a port.
@@ -60,6 +81,29 @@ class Publisher(object):
         return self
 
 class Publish(object):
+    """The publishing context.
+
+    Broadcasts also the *name*, *data_types* and *port* (using
+    :class:`posttroll.message_broadcaster.MessageBroadcaster`).
+
+    Example on how to use the :class:`Publish` context::
+    
+            from posttroll.publisher import Publish
+            import time
+
+            try:
+                with Publish("my_module", "my_data_type", 9000) as pub:
+                    counter = 0
+                    while True:
+                        counter += 1
+                        print "publishing " + str(i)
+                        PUB.send(str(i))
+                        time.sleep(60)
+            except KeyboardInterrupt:
+                print "terminating publisher..."
+
+    """
+    
     def __init__(self, name, data_types, port, broadcast_interval=2):
         self._name = name
         

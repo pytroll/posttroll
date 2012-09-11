@@ -26,7 +26,6 @@
 import zmq
 import sys
 from posttroll.message import Message
-import np.nameclient as nc
 import time
 from datetime import datetime, timedelta
 from urlparse import urlsplit
@@ -36,6 +35,23 @@ class Subscriber(object):
 
     Subscribes to addresses for data_type, and perform address translation of
     *translate* is true.
+
+    Example::
+
+        from posttroll.subscriber import Subscriber, get_address
+        p1_addr = get_address('my_data_type', timeout=2)
+        SUB = Subscriber(p1_addr)
+
+        try:
+            for msg in SUB(timeout=2):
+                print "Consumer got", msg
+
+        except KeyboardInterrupt:
+            print "terminating consumer..."
+            SUB.close()
+
+
+    
     """
     def __init__(self, addresses, data_types, translate=False):
         self._context = zmq.Context()
@@ -123,9 +139,54 @@ class Subscriber(object):
             except:
                 pass
 
+class TimeoutException(BaseException):
+    """A timeout.
+    """
+    pass
 
+def get_address(data_type, timeout=2):
+    """Get the address of the publisher for a given *data_type*.
+    """
+
+    context = zmq.Context()
+
+    # Socket to talk to server
+    socket = context.socket(zmq.REQ)
+    try:
+        socket.connect("tcp://localhost:5555")
+
+        msg = Message("/oper/ns", "request", {"type": data_type})
+        socket.send(str(msg))
+
+
+        # Get the reply.
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
+        sock = poller.poll(timeout=timeout * 1000)
+        if sock:
+            if sock[0][0] == socket:
+                msg = Message.decode(socket.recv(zmq.NOBLOCK))
+                return msg.data
+            else:
+                raise RuntimeError("Unknown socket ?!?!?")
+        else:
+            raise TimeoutException("Didn't get an address after %d seconds."
+                                   %timeout)
+        print "Received reply to ", data_type, ": [", msg, "]"
+    finally:
+        socket.close()
+        
 class Subscribe(object):
     """Subscriber context.
+
+    Example::
+
+        from posttroll.subscriber import Subscribe
+
+        with Subscribe("my_data_type") as sub:
+            for msg in sub.recv():
+                print msg
+
     """
     def __init__(self, *data_types, **kwargs):
         self._data_types = data_types
@@ -138,7 +199,7 @@ class Subscribe(object):
         def _get_addr_loop(data_type, timeout):
             then = datetime.now() + timedelta(seconds=timeout)
             while(datetime.now() < then):
-                addr = nc.get_address(data_type)
+                addr = get_address(data_type)
                 if addr:
                     return addr["URI"]
                 time.sleep(1)
@@ -148,7 +209,7 @@ class Subscribe(object):
         for data_type in self._data_types:
             addr = _get_addr_loop(data_type, self._timeout)
             if not addr:
-                raise nc.TimeoutException("Can't get address for " + data_type)
+                raise TimeoutException("Can't get address for " + data_type)
             addresses.append(addr)
 
         # subscribe to those data types

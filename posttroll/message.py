@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2010-2012.
 
 # Author(s):
  
-#   Lars O. Rasmussen <ras@dmi.dk>
-#   Martin Raspaud <martin.raspaud@smhi.se>
+#   Lars Ø. Rasmussen <ras@dmi.dk>
+#   Martin Raspaud    <martin.raspaud@smhi.se>
 
 # This file is part of pytroll.
 
@@ -24,10 +25,13 @@
 """A Message goes like: 
 <subject> <type> <sender> <timestamp> <version> [mime-type data]
 
-Message('/DC/juhu', 'info', 'jhuuuu !!!')
-will be encoded as (at the right time and by the right user at the right host):
-pytroll://DC/juhu info henry@prodsat 2010-12-01T12:21:11.123456 v1.0 \
-application/json "jhuuuu !!!"
+::
+
+  Message('/DC/juhu', 'info', 'jhuuuu !!!')
+
+will be encoded as (at the right time and by the right user at the right host)::
+
+  pytroll://DC/juhu info henry@prodsat 2010-12-01T12:21:11.123456 v1.01 application/json "jhuuuu !!!"
 
 Note: It's not optimized for BIG messages.
 """
@@ -87,9 +91,12 @@ def is_valid_data(obj):
 class Message:
     """A Message.
 
-    - Has to be initialized with a 'subject', 'type' and optionally 'data'.
-    - It will add add few extra attributes.
-    - It will make a Message pickleable.
+    - Has to be initialized with a *rawstr* (encoded message to decode) OR
+    - Has to be initialized with a *subject*, *type* and optionally *data*, in
+      which case:
+      
+      - It will add add few extra attributes.
+      - It will make a Message pickleable.
     """
 
     def __init__(self, subject='', atype='', data='', binary=False, rawstr=None):
@@ -184,7 +191,7 @@ def _is_valid_version(version):
     return version == _VERSION
 
 def datetime_decoder(dct):
-    """decode datetimes to python objects.
+    """Decode datetimes to python objects.
     """
     if isinstance(dct, list):
         pairs = enumerate(dct)

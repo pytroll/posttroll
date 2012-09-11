@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2011.
+# Copyright (c) 2010-2012.
 
 # Author(s):
  
 #   Lars Ø. Rasmussen <ras@dmi.dk>
-#   Martin Raspaud <martin.raspaud@smhi.se>
+#   Martin Raspaud    <martin.raspaud@smhi.se>
 
 # This file is part of pytroll.
 
