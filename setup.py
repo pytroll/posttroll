@@ -29,7 +29,7 @@ requirements = ['pyzmq']
 if sys.version_info < (2, 6):
     requirements.append('simplejson')
 
-setup(name="pytroll",
+setup(name="posttroll",
       version=0.1,
       description='Messaging system for pytroll',
       author='The pytroll team',
