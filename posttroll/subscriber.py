@@ -105,8 +105,11 @@ class Subscriber(object):
                                 # Only accept pre-defined data types 
                                 try:
                                     if (self._data_types and
-                                        (m__.data['type'] not in
-                                         self._data_types)):
+                                        ((m__.data['format'] not in
+                                          self._data_types) or
+                                         ((m__.data["format"] + " "
+                                           + m__.data["level"])
+                                          not in self._data_types))):
                                         continue
                                 except (KeyError, TypeError):
                                     pass
