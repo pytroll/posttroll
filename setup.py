@@ -35,9 +35,10 @@ setup(name="posttroll",
       author='The pytroll team',
       author_email='martin.raspaud@smhi.se',
       packages=['posttroll'],
+      scripts = ['bin/nameserver'],
       zip_safe=False,
       install_requires=requirements,
-      classifiels=[
+      classifiers=[
           'Development Status :: 5 - Production/Stable',
           'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
           'Programming Language :: Python',

@@ -23,12 +23,15 @@
 """Simple library to subscribe to messages.
 """
 
+# TODO: make Subscriber/Subscribe autoupdatable when new producers arrive.
+
 import zmq
 import sys
 from posttroll.message import Message
 import time
 from datetime import datetime, timedelta
 from urlparse import urlsplit
+from posttroll.ns import TimeoutError, get_pub_address
 
 class Subscriber(object):
     """Subscriber
@@ -38,9 +41,9 @@ class Subscriber(object):
 
     Example::
 
-        from posttroll.subscriber import Subscriber, get_address
-        p1_addr = get_address('my_data_type', timeout=2)
-        SUB = Subscriber(p1_addr)
+        from posttroll.subscriber import Subscriber, get_pub_address
+        p1_addr = get_pub_address('my_data_type', timeout=2)
+        SUB = Subscriber([p1_addr])
 
         try:
             for msg in SUB(timeout=2):
@@ -142,42 +145,6 @@ class Subscriber(object):
             except:
                 pass
 
-class TimeoutException(BaseException):
-    """A timeout.
-    """
-    pass
-
-def get_address(data_type, timeout=2):
-    """Get the address of the publisher for a given *data_type*.
-    """
-
-    context = zmq.Context()
-
-    # Socket to talk to server
-    socket = context.socket(zmq.REQ)
-    try:
-        socket.connect("tcp://localhost:5555")
-
-        msg = Message("/oper/ns", "request", {"type": data_type})
-        socket.send(str(msg))
-
-
-        # Get the reply.
-        poller = zmq.Poller()
-        poller.register(socket, zmq.POLLIN)
-        sock = poller.poll(timeout=timeout * 1000)
-        if sock:
-            if sock[0][0] == socket:
-                msg = Message.decode(socket.recv(zmq.NOBLOCK))
-                return msg.data
-            else:
-                raise RuntimeError("Unknown socket ?!?!?")
-        else:
-            raise TimeoutException("Didn't get an address after %d seconds."
-                                   %timeout)
-        print "Received reply to ", data_type, ": [", msg, "]"
-    finally:
-        socket.close()
         
 class Subscribe(object):
     """Subscriber context.
@@ -202,9 +169,9 @@ class Subscribe(object):
         def _get_addr_loop(data_type, timeout):
             then = datetime.now() + timedelta(seconds=timeout)
             while(datetime.now() < then):
-                addr = get_address(data_type)
-                if addr:
-                    return addr["URI"]
+                addrs = get_pub_address(data_type)
+                if addrs:
+                    return [ addr["URI"] for addr in addrs]
                 time.sleep(1)
         
         # search for addresses corresponding to data types
@@ -212,8 +179,8 @@ class Subscribe(object):
         for data_type in self._data_types:
             addr = _get_addr_loop(data_type, self._timeout)
             if not addr:
-                raise TimeoutException("Can't get address for " + data_type)
-            addresses.append(addr)
+                raise TimeoutError("Can't get address for " + data_type)
+            addresses.extend(addr)
 
         # subscribe to those data types
         self._subscriber = Subscriber(addresses,
