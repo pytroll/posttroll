@@ -46,3 +46,9 @@ def strp_isoformat(strg):
         dat = datetime.strptime(dat, "%Y-%m-%dT%H:%M:%S")
         mis = int(float('.' + mis)*1000000)
         return dat.replace(microsecond=mis)
+
+class TimeoutError(BaseException):
+    """A timeout.
+    """
+    pass
+

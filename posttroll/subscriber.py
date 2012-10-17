@@ -31,7 +31,8 @@ from posttroll.message import Message
 import time
 from datetime import datetime, timedelta
 from urlparse import urlsplit
-from posttroll.ns import TimeoutError, get_pub_address
+from posttroll.ns import get_pub_address
+from posttroll import TimeoutError
 
 class Subscriber(object):
     """Subscriber

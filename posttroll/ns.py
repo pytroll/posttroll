@@ -23,13 +23,9 @@
 """Manage other's subscriptions.
 """
 
+from posttroll import TimeoutError
 from posttroll.message import Message
 import zmq
-
-class TimeoutError(BaseException):
-    """A timeout.
-    """
-    pass
 
 
 def get_pub_address(data_type, timeout=2):
