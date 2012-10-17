@@ -29,7 +29,7 @@ import sys
 import unittest
 from datetime import datetime
 
-from posttroll.message import (Message, _MAGICK,
+from posttroll.message import (Message, _MAGICK, _VERSION,
                                datetime_encoder, datetime_decoder)
 
 
@@ -66,7 +66,8 @@ class Test(unittest.TestCase):
         """Test the decoding of a message.
         """
         rawstr = (_MAGICK + 
-                  '/test/1/2/3 info ras@hawaii 2008-04-11T22:13:22.123000 v1.01'
+                  '/test/1/2/3 info ras@hawaii 2008-04-11T22:13:22.123000 '
+                  + _VERSION
                   + ' application/json "what\'s up doc"')
         msg = Message.decode(rawstr)
         print msg
