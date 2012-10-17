@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2011.
+# Copyright (c) 2010-2012.
 
 # Author(s):
  
@@ -27,8 +27,10 @@
 import os
 import sys
 import unittest
+from datetime import datetime
 
-from posttroll.message import Message, _MAGICK
+from posttroll.message import (Message, _MAGICK,
+                               datetime_encoder, datetime_decoder)
 
 
 HOME = os.path.dirname(__file__) or '.'
@@ -36,7 +38,7 @@ sys.path = [os.path.abspath(HOME + '/../..'),] + sys.path
 
 
 DATADIR = HOME + '/data'
-SOME_METADATA = {'timestamp': '2010-12-03T16:28:39',
+SOME_METADATA = {'timestamp': datetime(2010, 12, 03, 16, 28, 39),
                  'satellite': 'metop2',
                  'uri': 'file://data/my/path/to/hrpt/files/myfile',
                  'orbit': 1222,
@@ -85,8 +87,8 @@ class Test(unittest.TestCase):
                           sender + " " +
                           str(msg1.time.isoformat()) + " " +
                           msg1.version + " "
-                          + 'application/json' + " " +
-                          '"' + data + '"',
+                          + 'text/ascii' + " " +
+                          data,
                           msg1.encode())
 
     def test_pickle(self):
@@ -117,6 +119,8 @@ class Test(unittest.TestCase):
         msg = Message.decode(Message('/sat/polar/smb/level1', 'file',
                                    data=metadata).encode())
         print msg
+        print msg.data
+        print metadata
         self.assertTrue(msg.data == metadata,
                         msg='Messaging, metadata decoding / encoding failed')
         
@@ -134,10 +138,10 @@ class Test(unittest.TestCase):
         dump = fp_.read()
         fp_.close()
         # dumps differ ... maybe it's not a problem
-        self.assertTrue(dump == json.dumps(metadata),
+        self.assertTrue(dump == json.dumps(metadata, default=datetime_encoder),
                         msg='Messaging, JSON serialization has changed,'
                         ' dumps differ')
-        msg = json.loads(dump)
+        msg = json.loads(dump, object_hook=datetime_decoder)
         self.assertTrue(msg == metadata,
                         msg='Messaging, JSON serialization'
                         ' has changed, python objects differ')
