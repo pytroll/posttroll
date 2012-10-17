@@ -40,6 +40,8 @@ broadcast_port = 21200
 #-----------------------------------------------------------------------------
 class MessageBroadcaster(object):
     """Class to broadcast stuff.
+
+    If *interval* is 0 or negative, no broadcasting is done.
     """
     def __init__(self, msg, port, interval):
         # mcgroup = None or '<broadcast>' is broadcast
@@ -54,9 +56,10 @@ class MessageBroadcaster(object):
     def start(self):
         """Start the broadcasting.
         """
-        if not self._is_running:
-            self._do_run = True
-            self._thread.start()
+        if self._interval > 0:
+            if not self._is_running:
+                self._do_run = True
+                self._thread.start()
         return self
 
     def is_running(self):
