@@ -93,7 +93,7 @@ class MessageBroadcaster(object):
 #
 #-----------------------------------------------------------------------------
 class AddressBroadcaster(MessageBroadcaster):
-    """Class to broadcast stuff.
+    """Class to broadcast addresses.
     """
     def __init__(self, name, address, interval):
         msg = message.Message("/%s/address"%name, "info",
@@ -109,7 +109,7 @@ sendaddress = AddressBroadcaster
 #
 #-----------------------------------------------------------------------------
 class AddressTypeBroadcaster(MessageBroadcaster):
-    """Class to broadcast stuff.
+    """Class to broadcast addresses and types.
     """
     def __init__(self, name, address, data_type, interval=2):
         msg = message.Message("/%s/address"%name, "info",
