@@ -24,13 +24,18 @@
 
 from setuptools import setup
 import sys
+import imp
+
+version = imp.load_source('posttroll.version', 'posttroll/version.py')
+
 
 requirements = ['pyzmq']
 if sys.version_info < (2, 6):
     requirements.append('simplejson')
 
+
 setup(name="posttroll",
-      version=0.1,
+      version=version.__version__,
       description='Messaging system for pytroll',
       author='The pytroll team',
       author_email='martin.raspaud@smhi.se',
