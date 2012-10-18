@@ -11,7 +11,10 @@ PostTroll is a message system for pytroll_.
 A typical use is for event-driven production chains, using messages for
 notifications.
 
+To get the software, take a look on github_.
+
 .. _pytroll: http://www.pytroll.org
+.. _github: http://github.com/mraspaud/posttroll
 
 
 API

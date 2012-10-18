@@ -87,6 +87,8 @@ class Subscriber(object):
         self.sub_addr = dict(zip(self.subscribers, self._addresses))
         
     def recv(self, timeout=None):
+        """Receive messages, with a *timeout* in seconds.
+        """
         if timeout:
             timeout *= 1000.
 
@@ -96,10 +98,10 @@ class Subscriber(object):
         try:
             while(self._loop):
                 try:
-                    s = dict(self.poller.poll(timeout=timeout))
-                    if s:
+                    socks = dict(self.poller.poll(timeout=timeout))
+                    if socks:
                         for sub in self.subscribers:
-                            if sub in s and s[sub] == zmq.POLLIN:
+                            if sub in socks and socks[sub] == zmq.POLLIN:
                                 m__ = Message.decode(sub.recv(zmq.NOBLOCK))
                                 if self._translate:
                                     url = urlsplit(self.sub_addr[sub])
@@ -123,18 +125,22 @@ class Subscriber(object):
                         # timeout
                         yield None
                 except zmq.ZMQError:
-                    print >>sys.stderr, 'receive failed'
+                    print >> sys.stderr, 'receive failed'
         finally:
             for sub in self.subscribers:
                 self.poller.unregister(sub)
             
     def __call__(self, **kwargs):
-        self.messages(**kwargs)
+        self.recv(**kwargs)
     
     def stop(self):
+        """Stop the subscription.
+        """
         self._loop = False
 
     def close(self):
+        """Close the subscriber.
+        """
         self.stop()
         for sub in self.subscribers:
             sub.close()
@@ -168,6 +174,8 @@ class Subscribe(object):
     def __enter__(self):
         
         def _get_addr_loop(data_type, timeout):
+            """Get the addresses from the nameserver.
+            """
             then = datetime.now() + timedelta(seconds=timeout)
             while(datetime.now() < then):
                 addrs = get_pub_address(data_type)

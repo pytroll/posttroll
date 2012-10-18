@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""The nameserver. Port 5555 is used for communications.
+"""The nameserver. Port 5555 (hardcoded) is used for communications.
 """
 
 # TODO: make port configurable.
@@ -51,6 +51,7 @@ if __name__ == '__main__':
         pass
 
     finally:
-        print "terminating nameserver..."
         GC.stop()
         listener.close()
+        print ("Thanks for using pytroll/nameserver. "
+               "See you soon on www.pytroll.org!")
