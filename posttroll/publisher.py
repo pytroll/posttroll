@@ -122,7 +122,7 @@ class Publish(object):
         self._publisher = None
 
     def __enter__(self):
-        logger.debug("Entering publish")
+        logger.debug("Publishing " + str(self._data_types))
         addr = "tcp://" + str(get_own_ip()) + ":" + str(self._port)
         self._broadcaster = sendaddresstype(self._name, addr,
                                             self._data_types,
@@ -132,7 +132,7 @@ class Publish(object):
         return self._publisher
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        logger.debug("Exiting publish")
+        logger.debug("Stop publishing " + str(self._data_types))
         if self._publisher is not None:
             self._publisher.stop()
             self._publisher = None

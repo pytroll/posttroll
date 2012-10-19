@@ -67,7 +67,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--daemon", help="Run as a daemon", choices=["start", "stop", "restart", "status"])
+    parser.add_argument("-d", "--daemon", help="Run as a daemon", choices=["start", "stop", "restart"])
     parser.add_argument("-l", "--log", help="File to log to", default=None)
     args = parser.parse_args()
 
