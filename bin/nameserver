@@ -30,8 +30,15 @@ from posttroll.connections import GenericConnections
 from posttroll.message import Message
 from posttroll.ns import get_active_address
 
+import logging
 
-if __name__ == '__main__':
+LOOP = True
+
+logger = logging.getLogger(__name__)
+
+def main(*args):
+    del args
+    
     GC = GenericConnections("")
     GC.start()
     port = 5555
@@ -40,18 +47,80 @@ if __name__ == '__main__':
         context = zmq.Context()
         listener = context.socket(zmq.REP)
         listener.bind("tcp://*:"+str(port))
-        while True:
+        while LOOP:
             m = listener.recv()
-            print m
+            logger.debug("Replying to request: " + str(m))
             msg = Message.decode(m)
             listener.send_unicode(str(get_active_address(msg.data["type"], GC)))
 
     except KeyboardInterrupt:
         # this is needed for the reception to be interruptible
-        pass
+        raise
 
     finally:
         GC.stop()
         listener.close()
-        print ("Thanks for using pytroll/nameserver. "
-               "See you soon on www.pytroll.org!")
+
+
+if __name__ == '__main__':
+    
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--daemon", help="Run as a daemon", choices=["start", "stop", "restart", "status"])
+    parser.add_argument("-l", "--log", help="File to log to", default=None)
+    args = parser.parse_args()
+
+    if args.log:
+        import logging.handlers
+        handler = logging.handlers.TimedRotatingFileHandler(args.log,
+                                                            "midnight",
+                                                            backupCount = 7)
+        handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
+                                                    " %(name)s] %(message)s",
+                                                    '%Y-%m-%d %H:%M:%S'))
+        handler.setLevel(logging.DEBUG)
+        logging.getLogger('').setLevel(logging.DEBUG)
+        logging.getLogger('').addHandler(handler)
+        logger = logging.getLogger("nameserver")
+
+    if args.daemon is None:
+        try:
+            main()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            print ("Thanks for using pytroll/nameserver. "
+                   "See you soon on www.pytroll.org!")
+
+    else: # Running as a daemon
+        try:
+            import daemon.runner
+            import signal
+            import sys
+            
+            class App(object):
+                stdin_path = "/dev/null"
+                stdout_path = "/dev/null"
+                stderr_path = "/dev/null"
+                run = main
+                pidfile_path = "/tmp/nameserver.pid"
+                pidfile_timeout = 90
+
+            def _terminate(*args):
+                del args
+                LOOP = False
+
+
+            signal.signal(signal.SIGTERM, _terminate)
+
+
+            APP = App()
+            sys.argv = [sys.argv[0], args.daemon]
+            angel = daemon.runner.DaemonRunner(APP)
+            if args.log:
+                angel.daemon_context.files_preserve = [handler.stream]
+            angel.parse_args([sys.argv[0], args.daemon])
+            sys.exit(angel.do_action())
+        except ImportError:
+            print "Cannot run as a daemon, you need python-daemon installed."

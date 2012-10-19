@@ -32,6 +32,8 @@ version = imp.load_source('posttroll.version', 'posttroll/version.py')
 requirements = ['pyzmq']
 if sys.version_info < (2, 6):
     requirements.append('simplejson')
+if sys.version_info < (2, 7):
+    requirements.append('argparse')
 
 
 setup(name="posttroll",
@@ -51,5 +53,6 @@ setup(name="posttroll",
           'Intended Audience :: Science/Research',
           'Topic :: Scientific/Engineering',
           'Topic :: Communications'
-          ]
+          ],
+      extras_require={ 'daemon': ['python-daemon'],
       )
