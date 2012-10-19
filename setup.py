@@ -54,5 +54,5 @@ setup(name="posttroll",
           'Topic :: Scientific/Engineering',
           'Topic :: Communications'
           ],
-      extras_require={ 'daemon': ['python-daemon'],
+      extras_require={ 'daemon': ['python-daemon'],}
       )

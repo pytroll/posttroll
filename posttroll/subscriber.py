@@ -34,6 +34,10 @@ from urlparse import urlsplit
 from posttroll.ns import get_pub_address
 from posttroll import TimeoutError
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class Subscriber(object):
     """Subscriber
 
@@ -125,7 +129,7 @@ class Subscriber(object):
                         # timeout
                         yield None
                 except zmq.ZMQError:
-                    print >> sys.stderr, 'receive failed'
+                    logger.error('Receive failed.')
         finally:
             for sub in self.subscribers:
                 self.poller.unregister(sub)

@@ -28,6 +28,10 @@ import zmq
 from posttroll.message_broadcaster import sendaddresstype
 import socket
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def get_own_ip():
     """Get the host's ip number.
     """
@@ -118,7 +122,7 @@ class Publish(object):
         self._publisher = None
 
     def __enter__(self):
-        print "entering publish"
+        logger.debug("Entering publish")
         addr = "tcp://" + str(get_own_ip()) + ":" + str(self._port)
         self._broadcaster = sendaddresstype(self._name, addr,
                                             self._data_types,
@@ -128,7 +132,7 @@ class Publish(object):
         return self._publisher
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print "exiting publish"
+        logger.debug("Exiting publish")
         if self._publisher is not None:
             self._publisher.stop()
             self._publisher = None

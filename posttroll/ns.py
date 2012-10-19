@@ -27,6 +27,9 @@ from posttroll import TimeoutError
 from posttroll.message import Message
 import zmq
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_pub_address(data_type, timeout=2):
     """Get the address of the publisher for a given *data_type*.
@@ -56,7 +59,7 @@ def get_pub_address(data_type, timeout=2):
         else:
             raise TimeoutError("Didn't get an address after %d seconds."
                                %timeout)
-        print "Received reply to ", data_type, ": [", message, "]"
+        logger.debug("Received reply for " + data_type + ": [" + message + "]")
     finally:
         socket.close()
 
