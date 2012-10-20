@@ -37,10 +37,12 @@ LOOP = True
 logger = logging.getLogger(__name__)
 
 def main(*args):
+    """Run the listener and answer to requests.
+    """
     del args
     
-    GC = GenericConnections("")
-    GC.start()
+    gc_ = GenericConnections("")
+    gc_.start()
     port = 5555
 
     try:
@@ -48,17 +50,16 @@ def main(*args):
         listener = context.socket(zmq.REP)
         listener.bind("tcp://*:"+str(port))
         while LOOP:
-            m = listener.recv()
-            logger.debug("Replying to request: " + str(m))
-            msg = Message.decode(m)
-            listener.send_unicode(str(get_active_address(msg.data["type"], GC)))
-
+            msg = listener.recv()
+            logger.debug("Replying to request: " + str(msg))
+            msg = Message.decode(msg)
+            listener.send_unicode(str(get_active_address(msg.data["type"],
+                                                         gc_)))
     except KeyboardInterrupt:
-        # this is needed for the reception to be interruptible
-        raise
-
+        # Needed to stop the nameserver.
+        pass
     finally:
-        GC.stop()
+        gc_.stop()
         listener.close()
 
 
@@ -67,13 +68,14 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--daemon", help="Run as a daemon", choices=["start", "stop", "restart"])
+    parser.add_argument("-d", "--daemon", help="Run as a daemon",
+                        choices=["start", "stop", "restart"])
     parser.add_argument("-l", "--log", help="File to log to", default=None)
-    args = parser.parse_args()
+    opts = parser.parse_args()
 
-    if args.log:
+    if opts.log:
         import logging.handlers
-        handler = logging.handlers.TimedRotatingFileHandler(args.log,
+        handler = logging.handlers.TimedRotatingFileHandler(opts.log,
                                                             "midnight",
                                                             backupCount = 7)
         handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
@@ -84,11 +86,14 @@ if __name__ == '__main__':
         logging.getLogger('').addHandler(handler)
         logger = logging.getLogger("nameserver")
 
-    if args.daemon is None:
+    if opts.daemon is None:
         try:
             main()
         except KeyboardInterrupt:
             pass
+        except:
+            logger.exception("Something wrong happened...")
+            raise
         finally:
             print ("Thanks for using pytroll/nameserver. "
                    "See you soon on www.pytroll.org!")
@@ -100,6 +105,8 @@ if __name__ == '__main__':
             import sys
             
             class App(object):
+                """App object for running the nameserver as daemon.
+                """
                 stdin_path = "/dev/null"
                 stdout_path = "/dev/null"
                 stderr_path = "/dev/null"
@@ -108,7 +115,10 @@ if __name__ == '__main__':
                 pidfile_timeout = 90
 
             def _terminate(*args):
+                """terminate the nameserver.
+                """
                 del args
+                global LOOP
                 LOOP = False
 
 
@@ -116,11 +126,11 @@ if __name__ == '__main__':
 
 
             APP = App()
-            sys.argv = [sys.argv[0], args.daemon]
+            sys.argv = [sys.argv[0], opts.daemon]
             angel = daemon.runner.DaemonRunner(APP)
-            if args.log:
+            if opts.log:
                 angel.daemon_context.files_preserve = [handler.stream]
-            angel.parse_args([sys.argv[0], args.daemon])
+            angel.parse_args([sys.argv[0], opts.daemon])
             sys.exit(angel.do_action())
         except ImportError:
             print "Cannot run as a daemon, you need python-daemon installed."

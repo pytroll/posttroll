@@ -26,7 +26,6 @@
 # TODO: make Subscriber/Subscribe autoupdatable when new producers arrive.
 
 import zmq
-import sys
 from posttroll.message import Message
 import time
 from datetime import datetime, timedelta

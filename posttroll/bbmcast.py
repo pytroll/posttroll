@@ -28,7 +28,7 @@ This is based on python-examples Demo/sockets/mcast.py
 """
 
 __all__ = ('MulticastSender', 'MulticastReceiver', 'mcast_sender',
-           'mcast_receiver', 'SocketTimeout')
+           'mcast_receiver', 'socket_timeout')
 
 # 224.0.0.0 through 224.0.0.255 is reserved administrative tasks
 MC_GROUP = '225.0.0.212'
@@ -44,7 +44,7 @@ from socket import (socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR,
                     IP_MULTICAST_TTL, IP_MULTICAST_LOOP, SOL_IP, timeout,
                     gethostbyname)
 
-SocketTimeout = timeout # for easy access to socket.timeout
+socket_timeout = timeout # for easy access to socket.timeout
 
 #-----------------------------------------------------------------------------
 #
@@ -52,6 +52,8 @@ SocketTimeout = timeout # for easy access to socket.timeout
 #
 #-----------------------------------------------------------------------------
 class MulticastSender(object):
+    """Send multicasts.
+    """
 
     def __init__(self, port, mcgroup=MC_GROUP):
         self.port = port
@@ -62,10 +64,14 @@ class MulticastSender(object):
         self.socket.sendto(data, (self.group, self.port))
 
     def close(self):
+        """Stop multicasting.
+        """
         self.socket.close()
 
 # Allow non-object interface
 def mcast_sender(mcgroup=MC_GROUP):
+    """Create a socket for sending multicasts.
+    """
     sock = socket(AF_INET, SOCK_DGRAM)
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     if _is_broadcast_group(mcgroup):
@@ -86,7 +92,8 @@ def mcast_sender(mcgroup=MC_GROUP):
 #
 #-----------------------------------------------------------------------------
 class MulticastReceiver(object):
-    
+    """Receive multicasts.
+    """
     BUFSIZE = 1024
     def __init__(self, port, mcgroup=MC_GROUP):
         # Note: a multicast receiver will also receive broadcast on same port.
@@ -94,6 +101,8 @@ class MulticastReceiver(object):
         self.socket, self.group = mcast_receiver(port, mcgroup)
         
     def settimeout(self, tout=None):
+        """Set the timeout to *tout* (expressed in seconds).
+        """
         # A timeout will throw a 'socket.timeout'
         self.socket.settimeout(tout)
         return self
@@ -103,10 +112,14 @@ class MulticastReceiver(object):
         return data, sender
 
     def close(self):
+        """Stop receiving multicasts.
+        """
         self.socket.close()
 
 # Allow non-object interface
 def mcast_receiver(port, mcgroup=MC_GROUP):
+    """Create a socket for receiving multicasts.
+    """
     # Open a UDP socket, bind it to a port and select a multicast group
  
     if _is_broadcast_group(mcgroup):
@@ -153,6 +166,8 @@ def mcast_receiver(port, mcgroup=MC_GROUP):
 #
 #-----------------------------------------------------------------------------
 def _is_broadcast_group(group):
+    """Check if the *group* is a valid group address.
+    """
     if not group or gethostbyname(group) in ('0.0.0.0', '255.255.255.255'):
         return True
     return False
@@ -166,6 +181,8 @@ if __name__ == '__main__':
     import getopt
 
     def usage():
+        """The usual usage message printer.
+        """
         print """Usage: bbmcast [-m|b] [send|recv]
        -m, using multicast <default>
        -b, using broadcast"""
@@ -173,6 +190,8 @@ if __name__ == '__main__':
 
     # Sender subroutine (only one per local area network ... NOT)
     def do_send(mcgroup):
+        """send to *mcgroup*.
+        """
         send = MulticastSender(PORT, mcgroup)
         while 1:
             data = repr(time.time())
@@ -183,6 +202,8 @@ if __name__ == '__main__':
 
     # Receiver subroutine (as many as you like)
     def do_receive(mcgroup):
+        """receive from *mcgroup*.
+        """
         # Open and initialize the socket
         recv = MulticastReceiver(PORT, mcgroup)
         # Loop, printing any data we receive

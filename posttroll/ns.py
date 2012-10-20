@@ -64,13 +64,13 @@ def get_pub_address(data_type, timeout=2):
         socket.close()
 
 
-def get_active_address(data_type, gc):
+def get_active_address(data_type, gc_):
     """Get the addresses of the active modules for a given *data_type*.
     """
     if data_type == "":
-        return Message("/oper/ns", "info", gc.get_addresses())
+        return Message("/oper/ns", "info", gc_.get_addresses())
     addrs = []
-    for addr in gc.get_addresses():
+    for addr in gc_.get_addresses():
         if data_type in addr["type"]:
             addrs.append(addr)
     if addrs:

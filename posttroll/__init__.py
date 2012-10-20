@@ -21,6 +21,9 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Utilities.
+"""
+
 import sys
 assert sys.version[0:3] >= '2.5', 'Python version 2.5 or above is required.'
 from datetime import datetime

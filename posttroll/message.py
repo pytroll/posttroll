@@ -22,7 +22,9 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
-"""A Message goes like: 
+"""The Message module. Formats and reads pytroll messages.
+
+A Message goes like: 
 <subject> <type> <sender> <timestamp> <version> [mime-type data]
 
 ::
@@ -88,7 +90,7 @@ def is_valid_data(obj):
 # Message class.
 #
 #-----------------------------------------------------------------------------
-class Message:
+class Message(object):
     """A Message.
 
     - Has to be initialized with a *rawstr* (encoded message to decode) OR
@@ -99,7 +101,8 @@ class Message:
       - It will make a Message pickleable.
     """
 
-    def __init__(self, subject='', atype='', data='', binary=False, rawstr=None):
+    def __init__(self, subject='', atype='', data='',
+                 binary=False, rawstr=None):
         """Initialize a Message from a subject, type and data ... 
         or from a raw string.
         """

@@ -21,6 +21,9 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Module to broadcast (multicast) messages.
+"""
+
 import os
 import time
 import threading

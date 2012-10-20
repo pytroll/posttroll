@@ -33,7 +33,7 @@ import threading
 import copy
 
 from posttroll.message import Message
-from posttroll.bbmcast import MulticastReceiver, SocketTimeout
+from posttroll.bbmcast import MulticastReceiver, socket_timeout
 from posttroll.publisher import Publish
 
 __all__ = ('AddressReceiver', 'getaddress')
@@ -49,6 +49,8 @@ default_publish_port = 16543
 #
 #-----------------------------------------------------------------------------
 class AddressReceiver(object):
+    """General thread to receive broadcast addresses.
+    """
     def __init__(self, name="", max_age=timedelta(hours=1), port=None):
         self._max_age = max_age
         self._port = port or default_publish_port 
@@ -61,19 +63,27 @@ class AddressReceiver(object):
         self._thread = threading.Thread(target=self._run)        
 
     def start(self):
+        """Start the reception.
+        """
         if not self._is_running:
             self._do_run = True
             self._thread.start()
         return self
 
     def stop(self):
+        """Stop the reception.
+        """
         self._do_run = False
         return self
 
     def is_running(self):
+        """Check if the reception thread is on.
+        """
         return self._is_running
 
     def get(self, name=""):
+        """Get an address.
+        """
         now = datetime.utcnow()
         addrs = []
         name = name or self._name
@@ -94,6 +104,8 @@ class AddressReceiver(object):
         return addrs
 
     def _run(self):
+        """The main function.
+        """
         port = broadcast_port
         recv = MulticastReceiver(port).settimeout(2.0)
         self._is_running = True
@@ -103,7 +115,7 @@ class AddressReceiver(object):
                     try:
                         data, fromaddr = recv()
                         del fromaddr
-                    except SocketTimeout:
+                    except socket_timeout:
                         continue
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
@@ -124,6 +136,8 @@ class AddressReceiver(object):
                 recv.close()
 
     def _add(self, adr, metadata):
+        """Add an address.
+        """
         self._address_lock.acquire()
         try:
             metadata["receive_time"] = datetime.utcnow()
