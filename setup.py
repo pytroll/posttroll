@@ -44,6 +44,7 @@ setup(name="posttroll",
       packages=['posttroll'],
       scripts = ['bin/nameserver'],
       zip_safe=False,
+      license="GPLv3",
       install_requires=requirements,
       classifiers=[
           'Development Status :: 5 - Production/Stable',
