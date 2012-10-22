@@ -17,6 +17,24 @@ To get the software, take a look on github_.
 .. _github: http://github.com/mraspaud/posttroll
 
 
+The main use of this library is the :class:`posttroll.message.Message`,
+:class:`posttroll.subscriber.Subscribe` and
+:class:`posttroll.publisher.Publish` classes, but the `nameserver` script can
+be usefull too.
+
+The `namesever` scripts allows to register data publishers and then for the
+subscribers to find them. Here is the usage of the `nameserver` script::
+
+  usage: nameserver [-h] [-d {start,stop,restart}] [-l LOG]
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -d {start,stop,restart}, --daemon {start,stop,restart}
+                          Run as a daemon
+    -l LOG, --log LOG     File to log to
+
+
+
 API
 ---
 
