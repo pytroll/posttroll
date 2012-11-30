@@ -306,10 +306,10 @@ def _getsender():
     and is unreliable.
     """
     import os
-    import pwd
+    import getpass
     import socket
     host = socket.gethostname()
-    user = pwd.getpwuid(os.getuid())[0]
+    user = getpass.getuser()
     return "%s@%s" % (user, host)
 
 #-----------------------------------------------------------------------------
