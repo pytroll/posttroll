@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2009-2012.
+# Copyright (c) 2009-2013.
 #
 # Author(s): 
 #   Lars Ørum Rasmussen <ras@dmi.dk>
@@ -56,9 +56,9 @@ class Publisher(object):
             counter = 0
             while True:
                 counter += 1
-                print "publishing " + str(i)
-                PUB.send(str(i))
-                time.sleep(60)
+                print "publishing " + str(counter)
+                PUB.send(str(counter))
+                time.sleep(3)
         except KeyboardInterrupt:
             print "terminating publisher..."
             PUB.stop()
@@ -100,9 +100,9 @@ class Publish(object):
                     counter = 0
                     while True:
                         counter += 1
-                        print "publishing " + str(i)
-                        PUB.send(str(i))
-                        time.sleep(60)
+                        print "publishing " + str(counter)
+                        PUB.send(str(counter))
+                        time.sleep(3)
             except KeyboardInterrupt:
                 print "terminating publisher..."
 
