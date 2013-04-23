@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011, 2012 SMHI
+# Copyright (c) 2011, 2012, 2013 SMHI
 
 # Author(s):
 
@@ -26,6 +26,8 @@
 # TODO: make Subscriber/Subscribe autoupdatable when new producers arrive.
 
 import zmq
+from threading import Thread
+
 from posttroll.message import Message
 import time
 from datetime import datetime, timedelta
@@ -63,7 +65,7 @@ class Subscriber(object):
     def __init__(self, addresses, data_types, translate=False):
         self._context = zmq.Context()
         self._addresses = addresses
-        self._data_types = data_types
+        self._data_types = list(data_types)
         self._translate = translate
         self.subscribers = []
         for a__ in self._addresses:
@@ -80,6 +82,8 @@ class Subscriber(object):
     def add(self, address, data_types):
         """Adds the *address* to the subscribing list for *data_types*.
         """
+        if address in self._addresses:
+            return
         subscriber = self._context.socket(zmq.SUB)
         subscriber.setsockopt(zmq.SUBSCRIBE, "pytroll")
         subscriber.connect(address)
@@ -155,7 +159,31 @@ class Subscriber(object):
             except:
                 pass
 
+
+class AddressListener(Thread):
+
+    def __init__(self, subscriber):
+        Thread.__init__(self)
+        self._external_subscriber = subscriber
+        self.loop = True
+        self._address_subscriber = Subscriber(["tcp://localhost:16543"],
+                                              ["addresses"])
         
+    def run(self):
+        for msg in self._address_subscriber.recv(timeout=2):
+            if not self.loop:
+                break
+
+            if msg is None:
+                continue
+
+            addr = msg.data["URI"]
+            
+            self._external_subscriber.add(addr, msg.data["type"])
+
+    def stop(self):
+        self.loop = False
+
 class Subscribe(object):
     """Subscriber context.
 
@@ -173,6 +201,7 @@ class Subscribe(object):
         self._timeout = kwargs.get("timeout", 2)
         self._translate = kwargs.get("translate", False)
         self._subscriber = None
+        self._addr_listener = None
 
     def __enter__(self):
         
@@ -198,10 +227,16 @@ class Subscribe(object):
         self._subscriber = Subscriber(addresses,
                                       self._data_types,
                                       self._translate)
+
+        self._addr_listener = AddressListener(self._subscriber)
+        self._addr_listener.start()
+        
         return self._subscriber
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._subscriber is not None:
             self._subscriber.close()
             self._subscriber = None
-
+        if self._addr_listener is not None:
+            self._addr_listener.stop()
+            self._addr_listener = None
