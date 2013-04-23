@@ -36,9 +36,14 @@ def get_own_ip():
     """Get the host's ip number.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.connect(('smhi.se', 0))
-    ip_ = sock.getsockname()[0]
-    sock.close()
+    try:
+        sock.connect(('smhi.se', 0))
+    except socket.gaierror:
+        ip_ = "127.0.0.1"
+    else:
+        ip_ = sock.getsockname()[0]
+    finally:
+        sock.close()
     return ip_
 
 class Publisher(object):
