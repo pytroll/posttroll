@@ -93,15 +93,17 @@ class Publish(object):
     Example on how to use the :class:`Publish` context::
     
             from posttroll.publisher import Publish
+            from posttroll.message import Message
             import time
 
             try:
-                with Publish("my_module", "my_data_type", 9000) as pub:
+                with Publish("my_module", ["my_data_type"], 9000) as pub:
                     counter = 0
                     while True:
                         counter += 1
-                        print "publishing " + str(counter)
-                        PUB.send(str(counter))
+                        message = Message("/counter", "info", str(counter))
+                        print "publishing", message
+                        pub.send(str(message))
                         time.sleep(3)
             except KeyboardInterrupt:
                 print "terminating publisher..."
