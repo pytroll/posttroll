@@ -24,9 +24,9 @@
 """
 
 # TODO: make Subscriber/Subscribe autoupdatable when new producers arrive.
-
+#pylint: disable-msg=E1101
 import zmq
-from threading import Thread
+from threading import Thread, Semaphore
 
 from posttroll.message import Message
 import time
@@ -79,20 +79,45 @@ class Subscriber(object):
         self.poller = zmq.Poller()
         self._loop = True
 
+        self._semaphore = Semaphore()
+
     def add(self, address, data_types):
         """Adds the *address* to the subscribing list for *data_types*.
         """
         if address in self._addresses:
             return
+        self._semaphore.acquire()
         subscriber = self._context.socket(zmq.SUB)
         subscriber.setsockopt(zmq.SUBSCRIBE, "pytroll")
+        self.poller.register(subscriber, zmq.POLLIN)
         subscriber.connect(address)
         self._addresses.append(address)
         self._data_types.extend(data_types)
-        self.poller.register(subscriber, zmq.POLLIN)
         self.subscribers.append(subscriber)
         self.sub_addr = dict(zip(self.subscribers, self._addresses))
+        self._semaphore.release()
         
+    def reset(self, addr):
+        """Resets a subscriber.
+        """
+        for sub, value in self.sub_addr.items():
+            if value == addr:
+                self._semaphore.acquire()
+                del self.sub_addr[sub]
+                self.poller.unregister(sub)
+                index = self.subscribers.index(sub)
+                self.subscribers.remove(sub)
+                sub.setsockopt(zmq.LINGER, 0)
+                sub.close()
+                sub = self._context.socket(zmq.SUB)
+                sub.setsockopt(zmq.SUBSCRIBE, "pytroll")
+                self.poller.register(sub, zmq.POLLIN)
+                sub.connect(addr)
+                self.sub_addr[sub] = addr
+                self.subscribers.insert(index, sub)
+                self._semaphore.release()
+                break
+
     def recv(self, timeout=None):
         """Receive messages, with a *timeout* in seconds.
         """
@@ -105,11 +130,15 @@ class Subscriber(object):
         try:
             while(self._loop):
                 try:
+                    self._semaphore.acquire()
                     socks = dict(self.poller.poll(timeout=timeout))
+                    self._semaphore.release()
                     if socks:
                         for sub in self.subscribers:
                             if sub in socks and socks[sub] == zmq.POLLIN:
+                                self._semaphore.acquire()
                                 m__ = Message.decode(sub.recv(zmq.NOBLOCK))
+                                self._semaphore.release()
                                 if self._translate:
                                     url = urlsplit(self.sub_addr[sub])
                                     host = url[1].split(":")[0]
