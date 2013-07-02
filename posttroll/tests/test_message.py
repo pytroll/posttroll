@@ -27,6 +27,8 @@
 import os
 import sys
 import unittest
+import copy
+from datetime import datetime
 
 from posttroll.message import Message, _MAGICK
 
@@ -36,7 +38,7 @@ sys.path = [os.path.abspath(HOME + '/../..'),] + sys.path
 
 
 DATADIR = HOME + '/data'
-SOME_METADATA = {'timestamp': '2010-12-03T16:28:39',
+SOME_METADATA = {'timestamp': datetime(2010, 12, 3, 16, 28, 39),
                  'satellite': 'metop2',
                  'uri': 'file://data/my/path/to/hrpt/files/myfile',
                  'orbit': 1222,
@@ -69,7 +71,7 @@ class Test(unittest.TestCase):
         msg = Message.decode(rawstr)
         print msg
         self.assertTrue(str(msg) == rawstr,
-                        msg='Messaging, decoding of msec failed')
+                        msg='Messaging, decoding of message failed')
 
     def test_encode(self):
         """Test the encoding of a message.
@@ -85,8 +87,8 @@ class Test(unittest.TestCase):
                           sender + " " +
                           str(msg1.time.isoformat()) + " " +
                           msg1.version + " "
-                          + 'application/json' + " " +
-                          '"' + data + '"',
+                          + 'text/ascii' + " " +
+                          data,
                           msg1.encode())
 
     def test_pickle(self):
@@ -113,7 +115,7 @@ class Test(unittest.TestCase):
     def test_metadata(self):
         """Test metadata encoding/decoding.
         """
-        metadata = SOME_METADATA
+        metadata = copy.copy(SOME_METADATA)
         msg = Message.decode(Message('/sat/polar/smb/level1', 'file',
                                    data=metadata).encode())
         print msg
@@ -129,7 +131,8 @@ class Test(unittest.TestCase):
         except ImportError:
             import simplejson as json
             compare_file += '.simplejson'
-        metadata = SOME_METADATA
+        metadata = copy.copy(SOME_METADATA)
+        metadata['timestamp'] = metadata['timestamp'].isoformat()
         fp_ = open(DATADIR + compare_file)
         dump = fp_.read()
         fp_.close()
