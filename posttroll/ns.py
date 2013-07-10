@@ -32,8 +32,8 @@ class TimeoutError(BaseException):
     pass
 
 
-def get_pub_address(data_type, timeout=2):
-    """Get the address of the publisher for a given *data_type*.
+def get_pub_address(name, timeout=2):
+    """Get the address of the publisher for a given publisher *name*.
     """
 
     ctxt = zmq.Context()
@@ -43,7 +43,7 @@ def get_pub_address(data_type, timeout=2):
     try:
         socket.connect("tcp://localhost:5555")
 
-        message = Message("/oper/ns", "request", {"type": data_type})
+        message = Message("/oper/ns", "request", {"type": name})
         socket.send(str(message))
 
 
@@ -60,19 +60,19 @@ def get_pub_address(data_type, timeout=2):
         else:
             raise TimeoutError("Didn't get an address after %d seconds."
                                %timeout)
-        print "Received reply to ", data_type, ": [", message, "]"
+        print "Received reply to ", name, ": [", message, "]"
     finally:
         socket.close()
 
 
-def get_active_address(data_type, gc):
-    """Get the addresses of the active modules for a given *data_type*.
+def get_active_address(name, gc):
+    """Get the addresses of the active modules for a given publiser *name*.
     """
-    if data_type == "":
+    if name == "":
         return Message("/oper/ns", "info", gc.get_addresses())
     addrs = []
     for addr in gc.get_addresses():
-        if data_type in addr["type"]:
+        if name in addr["type"]:
             addrs.append(addr)
     if addrs:
         return Message("/oper/ns", "info", addrs)
