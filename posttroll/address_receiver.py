@@ -95,15 +95,18 @@ class AddressReceiver(object):
 
     def _run(self):
         port = broadcast_port
-        recv = MulticastReceiver(port).settimeout(2.0)
+        # Only timeout=1 works ???
+        recv = MulticastReceiver(port).settimeout(1.)
         self._is_running = True
-        with Publish("address_receiver", ["addresses"], self._port) as pub:
+        with Publish("address_receiver", self._port, ["addresses"]) as pub:
             try:
+                heartbeat = _WAKOHeartbeat(pub)
                 while self._do_run:
                     try:
                         data, fromaddr = recv()
                         del fromaddr
                     except SocketTimeout:
+                        heartbeat()
                         continue
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
@@ -130,6 +133,20 @@ class AddressReceiver(object):
             self._addresses[adr] = metadata
         finally:
             self._address_lock.release()
+
+class _WAKOHeartbeat(object):
+    _enable = True
+    def __init__(self, publisher, dtime=29):
+        self.publisher = publisher
+        self.subject = '/heartbeat/' + publisher._name
+        self.deltabeat = timedelta(seconds=dtime)
+        self.lastbeat = datetime.utcnow() - timedelta(seconds=2*dtime)
+
+    def __call__(self):
+        if self._enable and (datetime.utcnow() - self.lastbeat > self.deltabeat):
+            self.lastbeat = datetime.utcnow()
+            self.publisher.send(Message(self.subject, "beat").encode())
+        
 
 #-----------------------------------------------------------------------------
 # default
