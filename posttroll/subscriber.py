@@ -27,7 +27,7 @@
 
 import zmq
 import sys
-from posttroll.message import Message
+from posttroll.message import Message, _MAGICK
 import time
 from datetime import datetime, timedelta
 from urlparse import urlsplit
@@ -36,14 +36,14 @@ from posttroll.ns import TimeoutError, get_pub_address
 class Subscriber(object):
     """Subscriber
 
-    Subscribes to addresses for data_type, and perform address translation of
+    Subscribes to addresses for topics, and perform address translation of
     *translate* is true.
 
     Example::
 
         from posttroll.subscriber import Subscriber, get_pub_address
-        p1_addr = get_pub_address('my_data_type', timeout=2)
-        SUB = Subscriber([p1_addr])
+        p1_addr = get_pub_address(pub_name, timeout=2)
+        SUB = Subscriber([p1_addr], 'my_topic')
 
         try:
             for msg in SUB(timeout=2):
@@ -52,19 +52,20 @@ class Subscriber(object):
         except KeyboardInterrupt:
             print "terminating consumer..."
             SUB.close()
-
-
     
     """
-    def __init__(self, addresses, data_types, translate=False):
+    def __init__(self, addresses, topics='', message_filter=None,
+                 translate=False):
         self._context = zmq.Context()
         self._addresses = addresses
-        self._data_types = data_types
+        self._topics = self._magickfy_topics(topics)
+        self._filter = message_filter
         self._translate = translate
         self.subscribers = []
         for a__ in self._addresses:
             subscriber = self._context.socket(zmq.SUB)
-            subscriber.setsockopt(zmq.SUBSCRIBE, "pytroll")
+            for t__ in self._topics:
+                subscriber.setsockopt(zmq.SUBSCRIBE, t__)
             subscriber.connect(a__)
             self.subscribers.append(subscriber)
 
@@ -73,14 +74,16 @@ class Subscriber(object):
         self.poller = zmq.Poller()
         self._loop = True
 
-    def add(self, address, data_types):
-        """Adds the *address* to the subscribing list for *data_types*.
+    def add(self, address, topics):
+        """Adds the *address* to the subscribing list for *topics*.
         """
+        topics = _magickfy_topics(topics)
         subscriber = self._context.socket(zmq.SUB)
-        subscriber.setsockopt(zmq.SUBSCRIBE, "pytroll")
+        for t__ in topics:
+            subscriber.setsockopt(zmq.SUBSCRIBE, t__)
         subscriber.connect(address)
         self._addresses.append(address)
-        self._data_types.extend(data_types)
+        self._topics.extend(topics)
         self.poller.register(subscriber, zmq.POLLIN)
         self.subscribers.append(subscriber)
         self.sub_addr = dict(zip(self.subscribers, self._addresses))
@@ -100,24 +103,13 @@ class Subscriber(object):
                         for sub in self.subscribers:
                             if sub in s and s[sub] == zmq.POLLIN:
                                 m__ = Message.decode(sub.recv(zmq.NOBLOCK))
-                                if self._translate:
-                                    url = urlsplit(self.sub_addr[sub])
-                                    host = url[1].split(":")[0]
-                                    m__.sender = (m__.sender.split("@")[0]
-                                                  + "@" + host)
-                                # Only accept pre-defined data types 
-                                try:
-                                    if (self._data_types and
-                                        (m__.data['format'] not in
-                                         self._data_types) and
-                                         (m__.data["format"] + " "
-                                          + m__.data["level"])
-                                          not in self._data_types):
-                                        continue
-                                except (KeyError, TypeError):
-                                    pass
-
-                                yield m__
+                                if not self._filter or self._filter(m__):
+                                    if self._translate:
+                                        url = urlsplit(self.sub_addr[sub])
+                                        host = url[1].split(":")[0]
+                                        m__.sender = (m__.sender.split("@")[0]
+                                                      + "@" + host)
+                                    yield m__
                     else:
                         # timeout
                         yield None
@@ -128,7 +120,7 @@ class Subscriber(object):
                 self.poller.unregister(sub)
             
     def __call__(self, **kwargs):
-        self.messages(**kwargs)
+        return self.recv(**kwargs)
     
     def stop(self):
         self._loop = False
@@ -137,6 +129,22 @@ class Subscriber(object):
         self.stop()
         for sub in self.subscribers:
             sub.close()
+
+    @staticmethod
+    def _magickfy_topics(topics):
+        # If topic does not start with messages._MAGICK (pytroll:/), it will be
+        # prepended.
+        if isinstance(topics, (str, unicode)):
+            topics = [topics,]
+        ts_ = []
+        for t__ in topics:
+            if not t__.startswith(_MAGICK):
+                if t__[0] == '/':
+                    t__ = _MAGICK + t__
+                else:
+                    t__ = _MAGICK + '/' + t__
+            ts_.append(t__)
+        return ts_                
 
     def __del__(self):
         for sub in self.subscribers:
@@ -153,38 +161,47 @@ class Subscribe(object):
 
         from posttroll.subscriber import Subscribe
 
-        with Subscribe("my_data_type") as sub:
+        with Subscribe("my_topic",) as sub:
             for msg in sub.recv():
                 print msg
 
     """
-    def __init__(self, *data_types, **kwargs):
-        self._data_types = data_types
+    def __init__(self, pub_names, topics='pytroll', **kwargs):
+        if isinstance(pub_names, (str, unicode)):
+            self._pub_names = [pub_names,]
+        else:
+            self._pub_names = pub_names
+        if isinstance(topics, (str, unicode)):
+            self._topics = [topics,]
+        else:
+            self._topics = topics        
         self._timeout = kwargs.get("timeout", 2)
         self._translate = kwargs.get("translate", False)
+            
         self._subscriber = None
 
     def __enter__(self):
         
-        def _get_addr_loop(data_type, timeout):
+        def _get_addr_loop(pub_name, timeout):
             then = datetime.now() + timedelta(seconds=timeout)
             while(datetime.now() < then):
-                addrs = get_pub_address(data_type)
+                addrs = get_pub_address(pub_name)
                 if addrs:
                     return [ addr["URI"] for addr in addrs]
                 time.sleep(1)
         
         # search for addresses corresponding to data types
         addresses = []
-        for data_type in self._data_types:
-            addr = _get_addr_loop(data_type, self._timeout)
+        for pub_name in self._pub_names:
+            addr = _get_addr_loop(pub_name, self._timeout)
             if not addr:
-                raise TimeoutError("Can't get address for " + data_type)
+                raise TimeoutError("Can't get address for " + pub_name)
+            print "GOT address", pub_name, addr
             addresses.extend(addr)
 
         # subscribe to those data types
         self._subscriber = Subscriber(addresses,
-                                      self._data_types,
+                                      self._topics,
                                       self._translate)
         return self._subscriber
 

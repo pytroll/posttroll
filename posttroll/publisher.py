@@ -28,11 +28,13 @@ import zmq
 from posttroll.message_broadcaster import sendaddresstype
 import socket
 
+TEST_HOST = 'dmi.dk'
+
 def get_own_ip():
     """Get the host's ip number.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.connect(('smhi.se', 0))
+    sock.connect((TEST_HOST, 0))
     ip_ = sock.getsockname()[0]
     sock.close()
     return ip_
@@ -61,9 +63,10 @@ class Publisher(object):
 
 
     """
-    def __init__(self, address):
+    def __init__(self, address, name=""):
         """Bind the publisher class to a port.
         """
+        self._name = name
         self.destination = address
         self.context = zmq.Context()
         self.publish = self.context.socket(zmq.PUB)
@@ -72,6 +75,7 @@ class Publisher(object):
     def send(self, msg):
         """Send the given message.
         """
+        #print "SENDING", msg
         self.publish.send(msg)
         return self
 
@@ -92,7 +96,7 @@ class Publish(object):
             import time
 
             try:
-                with Publish("my_module", "my_data_type", 9000) as pub:
+                with Publish("my_publisher", 9000) as pub:
                     counter = 0
                     while True:
                         counter += 1
@@ -104,13 +108,15 @@ class Publish(object):
 
     """
     
-    def __init__(self, name, data_types, port, broadcast_interval=2):
+    def __init__(self, name, port, aliases=[], broadcast_interval=2):
         self._name = name
-        
-        if isinstance(data_types, str):
-            self._data_types = [data_types,]
+        if aliases:
+            if isinstance(aliases, (str, unicode)):
+                self._aliases = [aliases]
+            else:
+                self._aliases = aliases
         else:
-            self._data_types = data_types
+            self._aliases = [name]
         
         self._port = port
         self._broadcast_interval = broadcast_interval
@@ -121,10 +127,10 @@ class Publish(object):
         print "entering publish"
         addr = "tcp://" + str(get_own_ip()) + ":" + str(self._port)
         self._broadcaster = sendaddresstype(self._name, addr,
-                                            self._data_types,
+                                            self._aliases,
                                             self._broadcast_interval).start()
         pub_addr = "tcp://*:" + str(self._port)
-        self._publisher = Publisher(pub_addr)
+        self._publisher = Publisher(pub_addr, self._name)
         return self._publisher
 
     def __exit__(self, exc_type, exc_val, exc_tb):
