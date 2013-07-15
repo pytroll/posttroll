@@ -22,6 +22,7 @@
 
 """Manage other's subscriptions.
 """
+from datetime import datetime, timedelta 
 
 from posttroll.message import Message
 import zmq
@@ -31,6 +32,18 @@ class TimeoutError(BaseException):
     """
     pass
 
+def get_pub_addresses(names=["",], timeout=10):
+    """Get the address of the publisher for a given list of publisher *name*.
+    """
+    addrs = []
+    for name in names:
+        then = datetime.now() + timedelta(seconds=timeout)
+        while(datetime.now() < then):
+            addrs += get_pub_address(name)
+            if addrs:
+                break
+            time.sleep(.5)
+    return addrs
 
 def get_pub_address(name, timeout=10):
     """Get the address of the publisher for a given publisher *name*.
