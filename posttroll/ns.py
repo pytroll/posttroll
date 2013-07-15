@@ -32,7 +32,7 @@ class TimeoutError(BaseException):
     pass
 
 
-def get_pub_address(name, timeout=2):
+def get_pub_address(name, timeout=10):
     """Get the address of the publisher for a given publisher *name*.
     """
 
