@@ -25,6 +25,7 @@
 
 # TODO: make Subscriber/Subscribe autoupdatable when new producers arrive.
 
+import os
 import zmq
 import sys
 from posttroll.message import Message, _MAGICK
@@ -32,6 +33,8 @@ import time
 from datetime import datetime, timedelta
 from urlparse import urlsplit
 from posttroll.ns import TimeoutError, get_pub_address
+
+debug = os.environ.get('DEBUG', False)
 
 class Subscriber(object):
     """Subscriber
@@ -42,9 +45,9 @@ class Subscriber(object):
     Example::
 
         from posttroll.subscriber import Subscriber, get_pub_address
-        p1_addr = get_pub_address(pub_name, timeout=2)
-        SUB = Subscriber([p1_addr], 'my_topic')
 
+        addr = get_pub_address(service, timeout=2)
+        SUB = Subscriber([addr], 'my_topic')
         try:
             for msg in SUB(timeout=2):
                 print "Consumer got", msg
@@ -57,43 +60,77 @@ class Subscriber(object):
     def __init__(self, addresses, topics='', message_filter=None,
                  translate=False):
         self._context = zmq.Context()
-        self._addresses = addresses
         self._topics = self._magickfy_topics(topics)
         self._filter = message_filter
         self._translate = translate
         self.subscribers = []
-        for a__ in self._addresses:
+        self.poller = zmq.Poller()
+
+        self._addresses = []
+        self.add(addresses)
+
+        self._loop = True
+
+    def add(self, addresses):
+        """Add the *addresses* to the subscribing list for *topics*.
+        """
+        if isinstance(addresses, (str, unicode)):
+            addresses = [addresses,]
+        status_ = False
+        for a__ in addresses:
+            if a__ in self._addresses:
+                continue
+            print >> sys.stderr, "Adding address", a__
             subscriber = self._context.socket(zmq.SUB)
             for t__ in self._topics:
                 subscriber.setsockopt(zmq.SUBSCRIBE, t__)
             subscriber.connect(a__)
+            self._addresses.append(a__)
             self.subscribers.append(subscriber)
+            self.poller.register(subscriber, zmq.POLLIN)
+            status_ = True
+        if status_:
+            self.sub_addr = dict(zip(self.subscribers, self._addresses))
+            self.addr_sub = dict(zip(self._addresses, self.subscribers))
+        return status_
 
-        self.sub_addr = dict(zip(self.subscribers, addresses))
-
-        self.poller = zmq.Poller()
-        self._loop = True
-
-    def add(self, address, topics):
-        """Adds the *address* to the subscribing list for *topics*.
+    def remove(self, addresses):
+        """Remove the *addresses* from the subscribing list for *topics*.
         """
-        topics = _magickfy_topics(topics)
-        subscriber = self._context.socket(zmq.SUB)
-        for t__ in topics:
-            subscriber.setsockopt(zmq.SUBSCRIBE, t__)
-        subscriber.connect(address)
-        self._addresses.append(address)
-        self._topics.extend(topics)
-        self.poller.register(subscriber, zmq.POLLIN)
-        self.subscribers.append(subscriber)
-        self.sub_addr = dict(zip(self.subscribers, self._addresses))
-        
+        if isinstance(addresses, (str, unicode)):
+            addresses = [addresses,]
+        status_ = False
+        for a__ in addresses:
+            if a__ not in self._addresses:
+                continue
+            print >> sys.stderr, "Removing address", a__
+            subscriber = self.addr_sub[a__]
+            self.poller.unregister(subscriber)
+            self._addresses.remove(a__)
+            self.subscribers.remove(subscriber)
+            subscriber.close()
+            status_ = True
+        if status_:
+            self.sub_addr = dict(zip(self.subscribers, self._addresses))
+            self.addr_sub = dict(zip(self._addresses, self.subscribers))
+        return status_
+
+    def update(self, addresses):
+        """Updating with a new set of addresses.
+        """
+        s0_, s1_ = set(self._addresses), set(addresses)
+        sr_, sa_ = s0_.difference(s1_), s1_.difference(s0_)
+        if sr_:
+            self.remove(sr_)
+        if sa_:
+            self.add(sa_)
+
     def recv(self, timeout=None):
         if timeout:
             timeout *= 1000.
 
-        for sub in self.subscribers:
-            self.poller.register(sub, zmq.POLLIN)
+        #for sub in self.subscribers:
+        #    self.poller.register(sub, zmq.POLLIN)
         self._loop = True
         try:
             while(self._loop):
@@ -116,8 +153,9 @@ class Subscriber(object):
                 except zmq.ZMQError:
                     print >>sys.stderr, 'receive failed'
         finally:
-            for sub in self.subscribers:
-                self.poller.unregister(sub)
+            pass
+            #for sub in self.subscribers:
+            #    self.poller.unregister(sub)
             
     def __call__(self, **kwargs):
         return self.recv(**kwargs)
@@ -128,6 +166,7 @@ class Subscriber(object):
     def close(self):
         self.stop()
         for sub in self.subscribers:
+            self.poller.unregister(sub)
             sub.close()
 
     @staticmethod
@@ -161,45 +200,46 @@ class Subscribe(object):
 
         from posttroll.subscriber import Subscribe
 
-        with Subscribe("my_topic",) as sub:
+        with Subscribe("a_service, ""my_topic",) as sub:
             for msg in sub.recv():
                 print msg
 
     """
-    def __init__(self, pub_names, topics='pytroll', **kwargs):
-        if isinstance(pub_names, (str, unicode)):
-            self._pub_names = [pub_names,]
+    def __init__(self, services, topics='pytroll', **kwargs):
+        if isinstance(services, (str, unicode)):
+            self._services = [services,]
         else:
-            self._pub_names = pub_names
+            self._services = services
         if isinstance(topics, (str, unicode)):
             self._topics = [topics,]
         else:
             self._topics = topics        
-        self._timeout = kwargs.get("timeout", 2)
+        self._timeout = kwargs.get("timeout", 5)
         self._translate = kwargs.get("translate", False)
             
         self._subscriber = None
 
     def __enter__(self):
         
-        def _get_addr_loop(pub_name, timeout):
+        def _get_addr_loop(service, timeout):
             then = datetime.now() + timedelta(seconds=timeout)
             while(datetime.now() < then):
-                addrs = get_pub_address(pub_name)
+                addrs = get_pub_address(service)
                 if addrs:
                     return [ addr["URI"] for addr in addrs]
                 time.sleep(1)
         
-        # search for addresses corresponding to data types
+        # Search for addresses corresponding to service.
         addresses = []
-        for pub_name in self._pub_names:
-            addr = _get_addr_loop(pub_name, self._timeout)
+        for service in self._services:
+            addr = _get_addr_loop(service, self._timeout)
             if not addr:
-                raise TimeoutError("Can't get address for " + pub_name)
-            print "GOT address", pub_name, addr
+                raise TimeoutError("Can't get address for " + service)
+            if debug:
+                print >> sys.stderr, "GOT address", service, addr
             addresses.extend(addr)
 
-        # subscribe to those data types
+        # Subscribe to those services and topics.
         self._subscriber = Subscriber(addresses,
                                       self._topics,
                                       self._translate)
