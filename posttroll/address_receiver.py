@@ -49,13 +49,15 @@ default_publish_port = 16543
 #
 #-----------------------------------------------------------------------------
 class AddressReceiver(object):
-    def __init__(self, name="", max_age=timedelta(hours=1), port=None):
+    def __init__(self, name="", max_age=timedelta(minutes=15), port=None,
+                 do_heartbeat=True):
         self._max_age = max_age
         self._port = port or default_publish_port 
         self._address_lock = thread.allocate_lock()
         self._addresses = {}
         self._subject = '/address'
         self._name = name
+        self._do_heartbeat = do_heartbeat
         self._do_run = False
         self._is_running = False
         self._thread = threading.Thread(target=self._run)        
@@ -95,19 +97,19 @@ class AddressReceiver(object):
 
     def _run(self):
         port = broadcast_port
-        # Only timeout=1 works ???
-        recv = MulticastReceiver(port).settimeout(1.)
+        recv = MulticastReceiver(port).settimeout(2.)
         self._is_running = True
         with Publish("address_receiver", self._port, ["addresses"]) as pub:
             try:
-                heartbeat = _WAKOHeartbeat(pub)
                 while self._do_run:
                     try:
                         data, fromaddr = recv()
                         del fromaddr
                     except SocketTimeout:
-                        heartbeat()
                         continue
+                    finally:
+                        if self._do_heartbeat:
+                            pub.heartbeat(min_interval=29)
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
                     if(msg.type == 'info' and
@@ -133,20 +135,6 @@ class AddressReceiver(object):
             self._addresses[adr] = metadata
         finally:
             self._address_lock.release()
-
-class _WAKOHeartbeat(object):
-    _enable = True
-    def __init__(self, publisher, dtime=29):
-        self.publisher = publisher
-        self.subject = '/heartbeat/' + publisher._name
-        self.deltabeat = timedelta(seconds=dtime)
-        self.lastbeat = datetime.utcnow() - timedelta(seconds=2*dtime)
-
-    def __call__(self):
-        if self._enable and (datetime.utcnow() - self.lastbeat > self.deltabeat):
-            self.lastbeat = datetime.utcnow()
-            self.publisher.send(Message(self.subject, "beat").encode())
-        
 
 #-----------------------------------------------------------------------------
 # default

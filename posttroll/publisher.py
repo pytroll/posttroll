@@ -24,7 +24,9 @@
 """The publisher module gives high-level tools to publish messages on a port.
 """
 
+from datetime import datetime, timedelta
 import zmq
+from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddresstype
 import socket
 
@@ -70,7 +72,20 @@ class Publisher(object):
         self.destination = address
         self.context = zmq.Context()
         self.publish = self.context.socket(zmq.PUB)
-        self.publish.bind(self.destination)
+
+        # Check for port 0 (random port)
+        i__ = self.destination.split(':')
+        dest = ':'.join(i__[:-1])
+        port = int(i__[-1])
+        if port == 0:
+            self._port_number = self.publish.bind_to_random_port(dest)
+            self.destination = dest + ':' + str(self._port_number)
+        else:
+            self.publish.bind(self.destination)
+            self._port_number = port
+
+        # Initialize no heartbeat
+        self._heartbeat = None
     
     def send(self, msg):
         """Send the given message.
@@ -83,6 +98,31 @@ class Publisher(object):
         """Stop the publisher.
         """
         return self
+
+    def heartbeat(self, min_interval=0):
+        """Send a heartbeat ... but only if *min_interval* seconds has passed
+        since last beat.
+        """
+        if not self._heartbeat:
+            self._heartbeat = _PublisherHeartbeat(self)
+        self._heartbeat(min_interval)
+
+class _PublisherHeartbeat(object):
+    def __init__(self, publisher):
+        self.publisher = publisher
+        self.subject = '/heartbeat/' + publisher._name
+        self.lastbeat = datetime.utcnow() - timedelta(days=31)
+        self.min_interval = timedelta(seconds=0)
+
+    def __call__(self, min_interval=0):
+        if min_interval != self.min_interval.seconds:
+            self.min_interval = timedelta(seconds=min_interval)
+        if not self.min_interval or \
+                (datetime.utcnow() - self.lastbeat >= self.min_interval):
+            self.lastbeat = datetime.utcnow()
+            self.publisher.send(Message(self.subject, "beat").encode())
+
+
 
 class Publish(object):
     """The publishing context.
@@ -124,13 +164,13 @@ class Publish(object):
         self._publisher = None
 
     def __enter__(self):
-        print "entering publish"
-        addr = "tcp://" + str(get_own_ip()) + ":" + str(self._port)
+        pub_addr = "tcp://*:" + str(self._port)
+        self._publisher = Publisher(pub_addr, self._name)
+        print "entering publish", self._publisher.destination
+        addr = "tcp://" + str(get_own_ip()) + ":" + str(self._publisher._port_number)
         self._broadcaster = sendaddresstype(self._name, addr,
                                             self._aliases,
                                             self._broadcast_interval).start()
-        pub_addr = "tcp://*:" + str(self._port)
-        self._publisher = Publisher(pub_addr, self._name)
         return self._publisher
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -140,5 +180,6 @@ class Publish(object):
             self._publisher = None
         if self._broadcaster is not None:
             self._broadcaster.stop()
-            self._broadcaster = None
+            self._broadcaster = None        
+
         
