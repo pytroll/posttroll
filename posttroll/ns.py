@@ -33,7 +33,7 @@ class TimeoutError(BaseException):
     pass
 
 def get_pub_addresses(names=["",], timeout=10):
-    """Get the address of the publisher for a given list of publisher *name*.
+    """Get the address of the publisher for a given list of publisher *names*.
     """
     addrs = []
     for name in names:
