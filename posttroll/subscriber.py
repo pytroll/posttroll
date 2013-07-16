@@ -61,84 +61,83 @@ class Subscriber(object):
                  translate=False):
         self._context = zmq.Context()
         self._topics = self._magickfy_topics(topics)
+        print "TOPICS", self._topics
         self._filter = message_filter
         self._translate = translate
-        self.subscribers = []
+        self.sub_addr = {}
+        self.addr_sub = {}
+        self.poller = None
+        for a__ in addresses:
+            self.add(a__)
         self.poller = zmq.Poller()
-
-        self._addresses = []
-        self.add(addresses)
-
         self._loop = True
 
-    def add(self, addresses):
-        """Add the *addresses* to the subscribing list for *topics*.
+    def add(self, address):
+        """Add *address* to the subscribing list for *topics*.
         """
-        if isinstance(addresses, (str, unicode)):
-            addresses = [addresses,]
-        status_ = False
-        for a__ in addresses:
-            if a__ in self._addresses:
-                continue
-            print >> sys.stderr, "Adding address", a__
-            subscriber = self._context.socket(zmq.SUB)
-            for t__ in self._topics:
-                subscriber.setsockopt(zmq.SUBSCRIBE, t__)
-            subscriber.connect(a__)
-            self._addresses.append(a__)
-            self.subscribers.append(subscriber)
+        if address in self.addresses:
+            return False
+        if debug:
+            print >> sys.stderr, "Subscriber adding address", address
+        subscriber = self._context.socket(zmq.SUB)
+        for t__ in self._topics:
+            subscriber.setsockopt(zmq.SUBSCRIBE, t__)
+        subscriber.connect(address)
+        self.sub_addr[subscriber] = address
+        self.addr_sub[address] = subscriber
+        if self.poller:
             self.poller.register(subscriber, zmq.POLLIN)
-            status_ = True
-        if status_:
-            self.sub_addr = dict(zip(self.subscribers, self._addresses))
-            self.addr_sub = dict(zip(self._addresses, self.subscribers))
-        return status_
+        return True
 
-    def remove(self, addresses):
-        """Remove the *addresses* from the subscribing list for *topics*.
+    def remove(self, address):
+        """Remove *address* from the subscribing list for *topics*.
         """
-        if isinstance(addresses, (str, unicode)):
-            addresses = [addresses,]
-        status_ = False
-        for a__ in addresses:
-            if a__ not in self._addresses:
-                continue
-            print >> sys.stderr, "Removing address", a__
-            subscriber = self.addr_sub[a__]
+        try:
+            subscriber = self.addr_sub[address]
+        except KeyError:
+            return False
+        if debug:
+            print >> sys.stderr, "Subscriber removing address", address
+        if self.poller:
             self.poller.unregister(subscriber)
-            self._addresses.remove(a__)
-            self.subscribers.remove(subscriber)
-            subscriber.close()
-            status_ = True
-        if status_:
-            self.sub_addr = dict(zip(self.subscribers, self._addresses))
-            self.addr_sub = dict(zip(self._addresses, self.subscribers))
-        return status_
+        del self.addr_sub[address]
+        del self.sub_addr[subscriber]
+        subscriber.close()
+        return True
 
     def update(self, addresses):
-        """Updating with a new set of addresses.
+        """Updating with a set of addresses.
         """
-        s0_, s1_ = set(self._addresses), set(addresses)
+        s0_, s1_ = set(self.addresses), set(addresses)
         sr_, sa_ = s0_.difference(s1_), s1_.difference(s0_)
-        if sr_:
-            self.remove(sr_)
-        if sa_:
-            self.add(sa_)
+        for a__ in sr_:
+            self.remove(a__)
+        for a__ in sa_:
+            self.add(a__)
+        return bool(sr_ or sa_)
+
+    @property
+    def addresses(self):
+        return self.sub_addr.values()
+
+    @property
+    def subscribers(self):
+        return self.sub_addr.keys()
 
     def recv(self, timeout=None):
         if timeout:
             timeout *= 1000.
 
-        #for sub in self.subscribers:
-        #    self.poller.register(sub, zmq.POLLIN)
+        for sub in self.subscribers:
+            self.poller.register(sub, zmq.POLLIN)
         self._loop = True
         try:
             while(self._loop):
                 try:
-                    s = dict(self.poller.poll(timeout=timeout))
-                    if s:
+                    socks = dict(self.poller.poll(timeout=timeout))
+                    if socks:
                         for sub in self.subscribers:
-                            if sub in s and s[sub] == zmq.POLLIN:
+                            if sub in socks and socks[sub] == zmq.POLLIN:
                                 m__ = Message.decode(sub.recv(zmq.NOBLOCK))
                                 if not self._filter or self._filter(m__):
                                     if self._translate:
@@ -153,9 +152,8 @@ class Subscriber(object):
                 except zmq.ZMQError:
                     print >>sys.stderr, 'receive failed'
         finally:
-            pass
-            #for sub in self.subscribers:
-            #    self.poller.unregister(sub)
+            for sub in self.subscribers:
+                self.poller.unregister(sub)
             
     def __call__(self, **kwargs):
         return self.recv(**kwargs)
@@ -166,7 +164,6 @@ class Subscriber(object):
     def close(self):
         self.stop()
         for sub in self.subscribers:
-            self.poller.unregister(sub)
             sub.close()
 
     @staticmethod
@@ -178,7 +175,7 @@ class Subscriber(object):
         ts_ = []
         for t__ in topics:
             if not t__.startswith(_MAGICK):
-                if t__[0] == '/':
+                if t__ and t__[0] == '/':
                     t__ = _MAGICK + t__
                 else:
                     t__ = _MAGICK + '/' + t__
