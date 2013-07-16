@@ -25,7 +25,7 @@
 Receive broadcasted addresses in a standard pytroll Message:
 /<server-name>/address info ... host:port
 """
-
+import sys
 import os
 from datetime import datetime, timedelta
 import thread
@@ -113,16 +113,15 @@ class AddressReceiver(object):
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
                     if(msg.type == 'info' and
-                       msg.subject.lower().endswith(self._subject)):
+                       msg.subject.lower().startswith(self._subject)):
                         addr = msg.data["URI"]
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
                         if debug:
                             print 'receiving address', addr, name, metadata
                         if addr not in self._addresses:
-                            pub.send(str(msg))
-                            if debug:
-                                print 'publishing address', addr, name, metadata
+                            print >> sys.stderr, "nameserver: publish '%s'" % str(msg)
+                            pub.send(msg.encode())
                         self._add(addr, metadata)
             finally:
                 self._is_running = False
