@@ -61,7 +61,6 @@ class Subscriber(object):
                  translate=False):
         self._context = zmq.Context()
         self._topics = self._magickfy_topics(topics)
-        print "TOPICS", self._topics
         self._filter = message_filter
         self._translate = translate
         self.sub_addr = {}
@@ -149,8 +148,8 @@ class Subscriber(object):
                     else:
                         # timeout
                         yield None
-                except zmq.ZMQError:
-                    print >>sys.stderr, 'receive failed'
+                except zmq.ZMQError, e:
+                    print >>sys.stderr, 'receive failed', str(e)
         finally:
             for sub in self.subscribers:
                 self.poller.unregister(sub)
