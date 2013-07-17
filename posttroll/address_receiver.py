@@ -79,21 +79,31 @@ class AddressReceiver(object):
         now = datetime.utcnow()
         addrs = []
         name = name or self._name
+        self._cleanup_addresses()
         self._address_lock.acquire()
         try:
             for addr, metadata in self._addresses.items():
                 atime = metadata["receive_time"]
-                if now - atime < self._max_age:
-                    mda = copy.copy(metadata)
-                    mda["receive_time"] = mda["receive_time"].isoformat()
-                    addrs.append(mda)
-                else:
-                    del self._addresses[addr]
+                mda = copy.copy(metadata)
+                mda["receive_time"] = mda["receive_time"].isoformat()
+                addrs.append(mda)
         finally:
             self._address_lock.release()
         if debug:
             print 'return address', addrs
         return addrs
+
+    def _cleanup_addresses(self):
+        now = datetime.utcnow()
+        self._address_lock.acquire()
+        try:
+            for addr, mda in self._addresses.items():
+                if now - mda["receive_time"] >= self._max_age:
+                    if debug:
+                        print 'removing address', addrs
+                    del self._addresses[addr]
+        finally:
+            self._address_lock.release()
 
     def _run(self):
         port = broadcast_port
@@ -117,6 +127,7 @@ class AddressReceiver(object):
                         addr = msg.data["URI"]
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
+                        msg.data['status'] = True
                         if debug:
                             print 'receiving address', addr, name, metadata
                         if addr not in self._addresses:
