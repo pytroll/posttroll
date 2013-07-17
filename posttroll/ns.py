@@ -22,6 +22,7 @@
 
 """Manage other's subscriptions.
 """
+import time
 from datetime import datetime, timedelta 
 
 from posttroll.message import Message
