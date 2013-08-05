@@ -55,6 +55,7 @@ def get_pub_address(name, timeout=10):
     # Socket to talk to server
     socket = ctxt.socket(zmq.REQ)
     try:
+        socket.setsockopt(zmq.LINGER, timeout*1000)
         socket.connect("tcp://localhost:5555")
 
         message = Message("/oper/ns", "request", {"type": name})

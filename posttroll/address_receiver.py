@@ -49,7 +49,7 @@ default_publish_port = 16543
 #
 #-----------------------------------------------------------------------------
 class AddressReceiver(object):
-    def __init__(self, name="", max_age=timedelta(minutes=15), port=None,
+    def __init__(self, name="", max_age=timedelta(minutes=10), port=None,
                  do_heartbeat=True):
         self._max_age = max_age
         self._port = port or default_publish_port 
@@ -58,6 +58,7 @@ class AddressReceiver(object):
         self._subject = '/address'
         self._name = name
         self._do_heartbeat = do_heartbeat
+        self._last_age_check = datetime(1900, 1, 1)
         self._do_run = False
         self._is_running = False
         self._thread = threading.Thread(target=self._run)        
@@ -79,11 +80,9 @@ class AddressReceiver(object):
         now = datetime.utcnow()
         addrs = []
         name = name or self._name
-        self._cleanup_addresses()
         self._address_lock.acquire()
         try:
             for addr, metadata in self._addresses.items():
-                atime = metadata["receive_time"]
                 mda = copy.copy(metadata)
                 mda["receive_time"] = mda["receive_time"].isoformat()
                 addrs.append(mda)
@@ -92,16 +91,27 @@ class AddressReceiver(object):
         if debug:
             print 'return address', addrs
         return addrs
-
-    def _cleanup_addresses(self):
+    
+    def _check_age(self, pub, min_interval=0):
         now = datetime.utcnow()
+        if (now - self._last_age_check) <= timedelta(seconds=min_interval):
+            return
+        
+        if debug:
+            print datetime.utcnow(), "checking addresses"
+        self._last_age_check = now
         self._address_lock.acquire()
         try:
-            for addr, mda in self._addresses.items():
-                if now - mda["receive_time"] >= self._max_age:
-                    if debug:
-                        print 'removing address', addrs
+            for addr, metadata in self._addresses.items():
+                atime = metadata["receive_time"]
+                if now - atime > self._max_age:
+                    mda = {'status': False,
+                           'URI': addr,
+                           'type': metadata['type']}
+                    msg = Message('/address/' + metadata['name'], 'info', mda)
                     del self._addresses[addr]
+                    print >> sys.stderr, "nameserver: publish remove '%s'" % str(msg)
+                    pub.send(msg.encode())
         finally:
             self._address_lock.release()
 
@@ -118,6 +128,7 @@ class AddressReceiver(object):
                     except SocketTimeout:
                         continue
                     finally:
+                        self._check_age(pub, min_interval=29)
                         if self._do_heartbeat:
                             pub.heartbeat(min_interval=29)
                     msg = Message.decode(data)
@@ -125,13 +136,13 @@ class AddressReceiver(object):
                     if(msg.type == 'info' and
                        msg.subject.lower().startswith(self._subject)):
                         addr = msg.data["URI"]
+                        msg.data['status'] = True
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
-                        msg.data['status'] = True
                         if debug:
                             print 'receiving address', addr, name, metadata
                         if addr not in self._addresses:
-                            print >> sys.stderr, "nameserver: publish '%s'" % str(msg)
+                            print >> sys.stderr, "nameserver: publish add '%s'" % str(msg)
                             pub.send(msg.encode())
                         self._add(addr, metadata)
             finally:

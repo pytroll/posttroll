@@ -23,12 +23,15 @@
 
 """The publisher module gives high-level tools to publish messages on a port.
 """
-
+import sys
+import os
 from datetime import datetime, timedelta
 import zmq
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddresstype
 import socket
+
+debug = os.environ.get('DEBUG', False)
 
 TEST_HOST = 'dmi.dk'
 
@@ -111,15 +114,15 @@ class _PublisherHeartbeat(object):
     def __init__(self, publisher):
         self.publisher = publisher
         self.subject = '/heartbeat/' + publisher._name
-        self.lastbeat = datetime.utcnow() - timedelta(days=31)
-        self.min_interval = timedelta(seconds=0)
+        self.lastbeat = datetime(1900, 1, 1)
 
     def __call__(self, min_interval=0):
-        if min_interval != self.min_interval.seconds:
-            self.min_interval = timedelta(seconds=min_interval)
-        if not self.min_interval or \
-                (datetime.utcnow() - self.lastbeat >= self.min_interval):
+        if not min_interval or (
+            (datetime.utcnow() - self.lastbeat >= 
+             timedelta(seconds=min_interval))):
             self.lastbeat = datetime.utcnow()
+            if debug:
+                print >> sys.stderr, "Publish heartbeat"
             self.publisher.send(Message(self.subject, "beat").encode())
 
 
@@ -166,7 +169,8 @@ class Publish(object):
     def __enter__(self):
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = Publisher(pub_addr, self._name)
-        print "entering publish", self._publisher.destination
+        if debug:
+            print "entering publish", self._publisher.destination
         addr = "tcp://" + str(get_own_ip()) + ":" + str(self._publisher._port_number)
         self._broadcaster = sendaddresstype(self._name, addr,
                                             self._aliases,
@@ -174,12 +178,11 @@ class Publish(object):
         return self._publisher
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print "exiting publish"
+        if debug:
+            print "exiting publish"
         if self._publisher is not None:
             self._publisher.stop()
             self._publisher = None
         if self._broadcaster is not None:
             self._broadcaster.stop()
-            self._broadcaster = None        
-
-        
+            self._broadcaster = None
