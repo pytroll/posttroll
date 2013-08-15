@@ -25,6 +25,7 @@
 """
 import sys
 import os
+from urlparse import urlsplit
 from datetime import datetime, timedelta
 import zmq
 from posttroll.message import Message
@@ -77,9 +78,14 @@ class Publisher(object):
         self.publish = self.context.socket(zmq.PUB)
 
         # Check for port 0 (random port)
-        i__ = self.destination.split(':')
-        dest = ':'.join(i__[:-1])
-        port = int(i__[-1])
+        u__ = urlsplit(self.destination)
+        port = None
+        if ':' in u__.netloc:
+            try:
+                port = int(u__.netloc.split(':')[-1])
+            except ValueError:
+                pass
+
         if port == 0:
             self._port_number = self.publish.bind_to_random_port(dest)
             self.destination = dest + ':' + str(self._port_number)
@@ -150,7 +156,9 @@ class Publish(object):
                 print "terminating publisher..."
 
     """
-    
+    # Make this one subclassable with another publisher.
+    _publisher_class = Publisher
+
     def __init__(self, name, port, aliases=[], broadcast_interval=2):
         self._name = name
         if aliases:
@@ -168,7 +176,7 @@ class Publish(object):
 
     def __enter__(self):
         pub_addr = "tcp://*:" + str(self._port)
-        self._publisher = Publisher(pub_addr, self._name)
+        self._publisher = self._publisher_class(pub_addr, self._name)
         if debug:
             print "entering publish", self._publisher.destination
         addr = "tcp://" + str(get_own_ip()) + ":" + str(self._publisher._port_number)
