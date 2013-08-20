@@ -249,7 +249,7 @@ class Subscribe(object):
                 print msg
 
     """
-    def __init__(self, services, topics='pytroll', addr_listener=False,
+    def __init__(self, services, topics=_MAGICK, addr_listener=False,
                  **kwargs):
         if isinstance(services, (str, unicode)):
             self._services = [services,]
