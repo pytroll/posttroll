@@ -250,12 +250,15 @@ class Subscribe(object):
                 print msg
 
     """
-    def __init__(self, services, topics=_MAGICK, addr_listener=False,
+    def __init__(self, services=None, topics=_MAGICK, addr_listener=False,
                  addresses=None, timeout=10, translate=False):
+        """ Note: services = None, means no services
+                  services = "", means all services
+        """
 
-        self._services = _an_array_please(services)
-        self._topics = _an_array_please(topics)
-        self._addresses = _an_array_please(addresses)
+        self._services = _to_array(services)
+        self._topics = _to_array(topics)
+        self._addresses = _to_array(addresses)
 
         self._timeout = timeout
         self._translate = translate
@@ -275,13 +278,12 @@ class Subscribe(object):
         
         # Search for addresses corresponding to service.
         for service in self._services:
-            if service:
-                addr = _get_addr_loop(service, self._timeout)
-                if not addr:
-                    raise TimeoutError("Can't get address for " + service)
-                if debug:
-                    print >> sys.stderr, "GOT address", service, addr
-                self._addresses.extend(addr)
+            addr = _get_addr_loop(service, self._timeout)
+            if not addr:
+                raise TimeoutError("Can't get address for " + service)
+            if debug:
+                print >> sys.stderr, "GOT address", service, addr
+            self._addresses.extend(addr)
 
         # Subscribe to those services and topics.
         self._subscriber = Subscriber(self._addresses,
@@ -299,7 +301,7 @@ class Subscribe(object):
             self._subscriber.close()
             self._subscriber = None
 
-def _an_array_please(obj):
+def _to_array(obj):
     if isinstance(obj, (str, unicode)):
         return [obj,]
     if obj == None:
