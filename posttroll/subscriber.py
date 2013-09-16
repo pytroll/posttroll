@@ -83,7 +83,8 @@ class Subscriber(object):
         It topics is None we will subscibe to already specified topics.
         """
         if address in self.addresses:
-            return False        
+            return False
+            
         topics = self._magickfy_topics(topics) or self._topics
         print >> sys.stderr, "Subscriber adding address", address, topics
         subscriber = self._context.socket(zmq.SUB)
@@ -236,7 +237,7 @@ class Subscriber(object):
             except:
                 pass
 
-        
+
 class Subscribe(object):
     """Subscriber context.
 
@@ -250,17 +251,14 @@ class Subscribe(object):
 
     """
     def __init__(self, services, topics=_MAGICK, addr_listener=False,
-                 **kwargs):
-        if isinstance(services, (str, unicode)):
-            self._services = [services,]
-        else:
-            self._services = services
-        if isinstance(topics, (str, unicode)):
-            self._topics = [topics,]
-        else:
-            self._topics = topics        
-        self._timeout = kwargs.get("timeout", 10)
-        self._translate = kwargs.get("translate", False)
+                 addresses=None, timeout=10, translate=False):
+
+        self._services = _an_array_please(services)
+        self._topics = _an_array_please(topics)
+        self._addresses = _an_array_please(addresses)
+
+        self._timeout = timeout
+        self._translate = translate
             
         self._subscriber = None
         self._addr_listener = addr_listener
@@ -276,19 +274,19 @@ class Subscribe(object):
                 time.sleep(1)
         
         # Search for addresses corresponding to service.
-        addresses = []
         for service in self._services:
-            addr = _get_addr_loop(service, self._timeout)
-            if not addr:
-                raise TimeoutError("Can't get address for " + service)
-            if debug:
-                print >> sys.stderr, "GOT address", service, addr
-            addresses.extend(addr)
+            if service:
+                addr = _get_addr_loop(service, self._timeout)
+                if not addr:
+                    raise TimeoutError("Can't get address for " + service)
+                if debug:
+                    print >> sys.stderr, "GOT address", service, addr
+                self._addresses.extend(addr)
 
         # Subscribe to those services and topics.
-        self._subscriber = Subscriber(addresses,
+        self._subscriber = Subscriber(self._addresses,
                                       self._topics,
-                                      self._translate)
+                                      translate=self._translate)
                                       
         if self._addr_listener:
             self._addr_listener = _AddressListener(self._subscriber,
@@ -300,7 +298,13 @@ class Subscribe(object):
         if self._subscriber is not None:
             self._subscriber.close()
             self._subscriber = None
-            
+
+def _an_array_please(obj):
+    if isinstance(obj, (str, unicode)):
+        return [obj,]
+    if obj == None:
+        return []
+    return obj
 
 class _AddressListener(object):
 
