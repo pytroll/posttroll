@@ -87,7 +87,7 @@ class TestNS(unittest.TestCase):
         with Subscribe("this_data", "counter", True) as sub:
             time.sleep(11)
             self.assertEquals(len(sub.sub_addr), 0)
-            with Publish("data_provider", 0, ["this_data"]) as pub:
+            with Publish("data_provider", 0, ["this_data"]):
                 time.sleep(4)
                 sub.recv(2).next()
                 self.assertEquals(len(sub.sub_addr), 1)
