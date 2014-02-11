@@ -82,16 +82,14 @@ def get_pub_address(name, timeout=10):
             if sock[0][0] == socket:
                 message = Message.decode(socket.recv(NOBLOCK))
                 return message.data
-            else:
-                raise RuntimeError("Unknown socket ?!?!?")
         else:
             raise TimeoutError("Didn't get an address after %d seconds."
                                %timeout)
-        logger.info("Received reply to " + str(name)
-                    + ": [" + str(message) + "]")
     finally:
         socket.close()
         ctxt.term()
+
+### Server part.
 
 def get_active_address(name, arec):
     """Get the addresses of the active modules for a given publisher *name*.
@@ -103,21 +101,20 @@ def get_active_address(name, arec):
         return Message("/oper/ns", "info", "")
 
 
-### Server part.
-
 class NameServer(object):
     """The name server.
     """
-    def __init__(self):
+    def __init__(self, max_age=timedelta(minutes=10)):
         self.loop = True
         self.listener = None
+        self._max_age = max_age
 
     def run(self, *args):
         """Run the listener and answer to requests.
         """
         del args
 
-        arec = AddressReceiver()
+        arec = AddressReceiver(max_age=self._max_age)
         arec.start()
         port = 5555
 
