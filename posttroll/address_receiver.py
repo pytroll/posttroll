@@ -103,11 +103,11 @@ class AddressReceiver(object):
         logger.debug('return address ' + str(addrs))
         return addrs
     
-    def _check_age(self, pub, min_interval=0):
+    def _check_age(self, pub, min_interval=timedelta(seconds=0)):
         """Check the age of the receiver.
         """
         now = datetime.utcnow()
-        if (now - self._last_age_check) <= timedelta(seconds=min_interval):
+        if (now - self._last_age_check) <= min_interval:
             return
         
         
@@ -143,7 +143,7 @@ class AddressReceiver(object):
                     except SocketTimeout:
                         continue
                     finally:
-                        self._check_age(pub, min_interval=29)
+                        self._check_age(pub, min_interval=self._max_age/20)
                         if self._do_heartbeat:
                             pub.heartbeat(min_interval=29)
                     msg = Message.decode(data)
