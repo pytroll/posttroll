@@ -38,7 +38,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--daemon", help="Run as a daemon",
                         choices=["start", "stop", "status", "restart"])
-    parser.add_argument("-l", "--log", help="File to log to", default=None)
+    parser.add_argument("-l", "--log", help="File to log to (defaults to stdout)",
+                        default=None)
+    parser.add_argument("-v", "--verbose", help="debug mode",
+                        action="store_true")
     opts = parser.parse_args()
 
     if opts.log:
@@ -46,13 +49,19 @@ if __name__ == '__main__':
         handler = logging.handlers.TimedRotatingFileHandler(opts.log,
                                                             "midnight",
                                                             backupCount = 7)
-        handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
-                                                    " %(name)s] %(message)s",
-                                                    '%Y-%m-%d %H:%M:%S'))
-        handler.setLevel(logging.DEBUG)
-        logging.getLogger('').setLevel(logging.DEBUG)
-        logging.getLogger('').addHandler(handler)
-        logger = logging.getLogger("nameserver")
+    else:
+        handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
+                                                " %(name)s] %(message)s",
+                                                '%Y-%m-%d %H:%M:%S'))
+    if opts.verbose:
+        loglevel = logging.DEBUG
+    else:
+        loglevel = logging.INFO
+    handler.setLevel(loglevel)
+    logging.getLogger('').setLevel(loglevel)
+    logging.getLogger('').addHandler(handler)
+    logger = logging.getLogger("nameserver")
 
     ns = NameServer()
 
