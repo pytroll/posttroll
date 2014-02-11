@@ -26,7 +26,7 @@
 # TODO: make Subscriber/Subscribe autoupdatable when new producers arrive.
 #pylint: disable-msg=E1101
 import zmq
-from threading import Thread, Semaphore
+from threading import Thread, Lock
 
 from posttroll.message import Message
 import time
@@ -68,25 +68,27 @@ class Subscriber(object):
         self._data_types = list(data_types)
         self._translate = translate
         self.subscribers = []
+        self.poller = zmq.Poller()
         for a__ in self._addresses:
             subscriber = self._context.socket(zmq.SUB)
             subscriber.setsockopt(zmq.SUBSCRIBE, "pytroll")
+            self.poller.register(subscriber, zmq.POLLIN)
             subscriber.connect(a__)
             self.subscribers.append(subscriber)
 
         self.sub_addr = dict(zip(self.subscribers, addresses))
 
-        self.poller = zmq.Poller()
+
         self._loop = True
 
-        self._semaphore = Semaphore()
+        self._lock = Lock()
 
     def add(self, address, data_types):
         """Adds the *address* to the subscribing list for *data_types*.
         """
         if address in self._addresses:
             return
-        self._semaphore.acquire()
+        self._lock.acquire()
         subscriber = self._context.socket(zmq.SUB)
         subscriber.setsockopt(zmq.SUBSCRIBE, "pytroll")
         self.poller.register(subscriber, zmq.POLLIN)
@@ -95,27 +97,32 @@ class Subscriber(object):
         self._data_types.extend(data_types)
         self.subscribers.append(subscriber)
         self.sub_addr = dict(zip(self.subscribers, self._addresses))
-        self._semaphore.release()
+        self._lock.release()
         
     def reset(self, addr):
         """Resets a subscriber.
         """
         for sub, value in self.sub_addr.items():
             if value == addr:
-                self._semaphore.acquire()
-                del self.sub_addr[sub]
-                self.poller.unregister(sub)
-                index = self.subscribers.index(sub)
-                self.subscribers.remove(sub)
-                sub.setsockopt(zmq.LINGER, 0)
-                sub.close()
-                sub = self._context.socket(zmq.SUB)
-                sub.setsockopt(zmq.SUBSCRIBE, "pytroll")
-                self.poller.register(sub, zmq.POLLIN)
-                sub.connect(addr)
-                self.sub_addr[sub] = addr
-                self.subscribers.insert(index, sub)
-                self._semaphore.release()
+                try:
+                    self._lock.acquire()
+                    try:
+                        self.poller.unregister(sub)
+                    except KeyError:
+                        pass
+                    index = self.subscribers.index(sub)
+                    self.subscribers.remove(sub)
+                    sub.setsockopt(zmq.LINGER, 0)
+                    sub.close()
+                    del self.sub_addr[sub]
+                    sub = self._context.socket(zmq.SUB)
+                    sub.setsockopt(zmq.SUBSCRIBE, "pytroll")
+                    self.poller.register(sub, zmq.POLLIN)
+                    sub.connect(addr)
+                    self.sub_addr[sub] = addr
+                    self.subscribers.insert(index, sub)
+                finally:
+                    self._lock.release()
                 break
 
     def recv(self, timeout=None):
@@ -124,21 +131,19 @@ class Subscriber(object):
         if timeout:
             timeout *= 1000.
 
-        for sub in self.subscribers:
-            self.poller.register(sub, zmq.POLLIN)
         self._loop = True
         try:
             while(self._loop):
                 try:
-                    self._semaphore.acquire()
+                    self._lock.acquire()
                     socks = dict(self.poller.poll(timeout=timeout))
-                    self._semaphore.release()
+                    self._lock.release()
                     if socks:
                         for sub in self.subscribers:
                             if sub in socks and socks[sub] == zmq.POLLIN:
-                                self._semaphore.acquire()
+                                self._lock.acquire()
                                 m__ = Message.decode(sub.recv(zmq.NOBLOCK))
-                                self._semaphore.release()
+                                self._lock.release()
                                 if self._translate:
                                     url = urlsplit(self.sub_addr[sub])
                                     host = url[1].split(":")[0]
@@ -163,6 +168,10 @@ class Subscriber(object):
                 except zmq.ZMQError:
                     logger.error('Receive failed.')
         finally:
+            try:
+                self._lock.release()
+            except:
+                pass
             for sub in self.subscribers:
                 self.poller.unregister(sub)
             
