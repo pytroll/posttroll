@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012.
+# Copyright (c) 2010-2012, 2014.
 
 # Author(s):
  
@@ -157,53 +157,3 @@ def _is_broadcast_group(group):
         return True
     return False
 
-#-----------------------------------------------------------------------------
-#
-# Test
-#
-#-----------------------------------------------------------------------------
-if __name__ == '__main__':
-    import getopt
-
-    def usage():
-        print """Usage: bbmcast [-m|b] [send|recv]
-       -m, using multicast <default>
-       -b, using broadcast"""
-        sys.exit(2)
-
-    # Sender subroutine (only one per local area network ... NOT)
-    def do_send(mcgroup):
-        send = MulticastSender(PORT, mcgroup)
-        while 1:
-            data = repr(time.time())
-            print data
-            send(data)
-            time.sleep(1)
-
-
-    # Receiver subroutine (as many as you like)
-    def do_receive(mcgroup):
-        # Open and initialize the socket
-        recv = MulticastReceiver(PORT, mcgroup)
-        # Loop, printing any data we receive
-        while 1:
-            data, sender = recv()
-            while data[-1:] == '\0':
-                data = data[:-1] # Strip trailing \0's
-            print sender, ':', repr(data)
-
-    PORT = 21200
-    grp = MC_GROUP
-    opts, args = getopt.getopt(sys.argv[1:], "mb")
-    for k, v in opts:
-        if k == '-b':
-            grp = None
-    if not args:
-        usage()
-    what = args[0]
-    if what == 'send':
-        do_send(grp)
-    elif what == 'recv':
-        do_receive(grp)
-    else:
-        usage()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2010-2012.
+# Copyright (c) 2010-2012, 2014.
 
 # Author(s):
  
@@ -35,6 +35,7 @@ will be encoded as (at the right time and by the right user at the right host)::
 
 Note: It's not optimized for BIG messages.
 """
+
 import re
 from datetime import datetime
 try:
@@ -309,26 +310,3 @@ def _getsender():
     user = pwd.getpwuid(os.getuid())[0]
     return "%s@%s" % (user, host)
 
-#-----------------------------------------------------------------------------
-if __name__ == '__main__':
-    msg_ = Message('/test/1/2/3/nodata', 'heartbeat')
-    print msg_
-
-    msg1_ = Message('/test/whatup/doc', 'info', data='not much to say')
-    sender_ = '%s@%s' % (msg1_.user, msg1_.host)
-    print sender_
-    if sender_ != msg1_.sender:
-        print 'OOPS 1 ... deconding sender failed'
-    msg2_ = Message.decode(msg1_.encode())
-    print msg2_
-    if str(msg2_) != str(msg1_):
-        print 'OOPS 2 ... decoding/encoding message failed'  
-
-    raws = _MAGICK + \
-        '/test/what/todo info ras@hawaii 2008-04-11T22:13:22.123456 ' + \
-        _VERSION + ' application/json "what\'s up doc"'
-    msg_ = Message.decode(raws)
-    print msg_.head
-    print msg_
-    if str(msg_) != raws:
-        print 'OOPS 3 ... decoding/encoding message failed'  
