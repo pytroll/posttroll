@@ -22,16 +22,19 @@
 
 """Simple library to subscribe to messages.
 """
-
-import zmq
-import time
+import logging
 from datetime import datetime, timedelta
 from urlparse import urlsplit
 
+import time
+# pylint: disable=E0611
+from zmq import (SUB, Context, Poller,
+                 POLLIN, SUBSCRIBE, PULL, NOBLOCK, ZMQError)
+# pylint: enable=E0611
 from posttroll.message import Message, _MAGICK
 from posttroll.ns import TimeoutError, get_pub_address
 
-import logging
+
 logger = logging.getLogger(__name__)
 
 class Subscriber(object):
@@ -57,7 +60,7 @@ class Subscriber(object):
     """
     def __init__(self, addresses, topics='', message_filter=None,
                  translate=False):
-        self._context = zmq.Context()
+        self._context = Context()
         self._topics = self._magickfy_topics(topics)
         self._filter = message_filter
         self._translate = translate
@@ -71,7 +74,7 @@ class Subscriber(object):
 
         self.update(addresses)
         
-        self.poller = zmq.Poller()
+        self.poller = Poller()
         self._loop = True
 
     def add(self, address, topics=None):
@@ -85,14 +88,14 @@ class Subscriber(object):
         topics = self._magickfy_topics(topics) or self._topics
         logger.info("Subscriber adding address " + str(address)
                     + " with topics " + str(topics))
-        subscriber = self._context.socket(zmq.SUB)
+        subscriber = self._context.socket(SUB)
         for t__ in topics:
-            subscriber.setsockopt(zmq.SUBSCRIBE, t__)
+            subscriber.setsockopt(SUBSCRIBE, t__)
         subscriber.connect(address)
         self.sub_addr[subscriber] = address
         self.addr_sub[address] = subscriber
         if self.poller:
-            self.poller.register(subscriber, zmq.POLLIN)        
+            self.poller.register(subscriber, POLLIN)        
         return True
     
     def remove(self, address):
@@ -133,9 +136,9 @@ class Subscriber(object):
         """
         logger.info("Subscriber adding SUB hook " + str(address)
                     + " for topics " + str(topics))
-        socket = self._context.socket(zmq.SUB)
+        socket = self._context.socket(SUB)
         for t__ in self._magickfy_topics(topics):
-            socket.setsockopt(zmq.SUBSCRIBE, t__)
+            socket.setsockopt(SUBSCRIBE, t__)
         socket.connect(address)
         self._add_hook(socket, callback)
 
@@ -144,7 +147,7 @@ class Subscriber(object):
         (e.g good for pushed 'inproc' messages from another thread).
         """
         logger("Subscriber adding PULL hook " + str(address))
-        socket = self._context.socket(zmq.PULL)
+        socket = self._context.socket(PULL)
         socket.connect(address)
         self._add_hook(socket, callback)
 
@@ -154,22 +157,28 @@ class Subscriber(object):
         self._hooks.append(socket)
         self._hooks_cb[socket] = callback
         if self.poller:
-            self.poller.register(socket, zmq.POLLIN)        
+            self.poller.register(socket, POLLIN)        
         
     @property
     def addresses(self):
+        """Get the addresses
+        """
         return self.sub_addr.values()
 
     @property
     def subscribers(self):
+        """Get the subscribers
+        """
         return self.sub_addr.keys()
 
     def recv(self, timeout=None):
+        """Receive, optionally with *timeout* in seconds.
+        """
         if timeout:
             timeout *= 1000.
 
         for sub in self.subscribers + self._hooks:
-            self.poller.register(sub, zmq.POLLIN)
+            self.poller.register(sub, POLLIN)
         self._loop = True
         try:
             while(self._loop):
@@ -177,8 +186,8 @@ class Subscriber(object):
                     socks = dict(self.poller.poll(timeout=timeout))
                     if socks:
                         for sub in self.subscribers:
-                            if sub in socks and socks[sub] == zmq.POLLIN:
-                                m__ = Message.decode(sub.recv(zmq.NOBLOCK))
+                            if sub in socks and socks[sub] == POLLIN:
+                                m__ = Message.decode(sub.recv(NOBLOCK))
                                 if not self._filter or self._filter(m__):
                                     if self._translate:
                                         url = urlsplit(self.sub_addr[sub])
@@ -188,14 +197,14 @@ class Subscriber(object):
                                     yield m__
 
                         for sub in self._hooks:
-                            if sub in socks and socks[sub] == zmq.POLLIN:
-                                m__ = Message.decode(sub.recv(zmq.NOBLOCK))
+                            if sub in socks and socks[sub] == POLLIN:
+                                m__ = Message.decode(sub.recv(NOBLOCK))
                                 self._hooks_cb[sub](m__)
                     else:
                         # timeout
                         yield None
-                except zmq.ZMQError, e:
-                    logger.exception("Receive failed " + str(e))
+                except ZMQError, err:
+                    logger.exception("Receive failed " + str(err))
         finally:
             for sub in self.subscribers + self._hooks:
                 self.poller.unregister(sub)
@@ -204,15 +213,21 @@ class Subscriber(object):
         return self.recv(**kwargs)
     
     def stop(self):
+        """Stop the subscriber.
+        """
         self._loop = False
 
     def close(self):
+        """Close the subscriber: stop it and close the local subscribers.
+        """
         self.stop()
         for sub in self.subscribers + self._hooks:
             sub.close()
 
     @staticmethod
     def _magickfy_topics(topics):
+        """Add the magick to the topics if missing.
+        """
         # If topic does not start with messages._MAGICK (pytroll:/), it will be
         # prepended.
         if topics == None:
@@ -269,12 +284,15 @@ class Subscribe(object):
     def __enter__(self):
         
         def _get_addr_loop(service, timeout):
+            """Try to get the address of *service* until for *timeout* seconds.
+            """
             then = datetime.now() + timedelta(seconds=timeout)
             while(datetime.now() < then):
                 addrs = get_pub_address(service)
                 if addrs:
                     return [addr["URI"] for addr in addrs]
                 time.sleep(1)
+            return []
         
         # Search for addresses corresponding to service.
         for service in self._services:
@@ -302,6 +320,8 @@ class Subscribe(object):
             self._subscriber = None
 
 def _to_array(obj):
+    """Convert *obj* to list if not already one.
+    """
     if isinstance(obj, (str, unicode)):
         return [obj,]
     if obj == None:
@@ -309,7 +329,8 @@ def _to_array(obj):
     return obj
 
 class _AddressListener(object):
-
+    """Listener for new addresses of interest.
+    """
     def __init__(self, subscriber, services=""):
         if isinstance(services, (str, unicode)):
             services = [services,]
@@ -320,6 +341,8 @@ class _AddressListener(object):
                                      self.handle_msg)
         
     def handle_msg(self, msg):
+        """handle the message *msg*.
+        """
         addr_ = msg.data["URI"]
         status = msg.data.get('status', True)
         if (status):

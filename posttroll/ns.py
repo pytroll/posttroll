@@ -22,13 +22,17 @@
 
 """Manage other's subscriptions.
 """
-import time
+import logging
 from datetime import datetime, timedelta 
 
-from posttroll.connections import GenericConnections
+import time
+# pylint: disable=E0611
+from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK, Poller, Context
+# pylint: enable=E0611
+
+from posttroll.address_receiver import AddressReceiver
 from posttroll.message import Message
-import zmq
-import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +41,14 @@ class TimeoutError(BaseException):
     """
     pass
 
-def get_pub_addresses(names=["",], timeout=10):
+### Client functions.
+
+def get_pub_addresses(names=None, timeout=10):
     """Get the address of the publisher for a given list of publisher *names*.
     """
     addrs = []
+    if names is None:
+        names = ["", ]
     for name in names:
         then = datetime.now() + timedelta(seconds=timeout)
         while(datetime.now() < then):
@@ -54,12 +62,12 @@ def get_pub_address(name, timeout=10):
     """Get the address of the publisher for a given publisher *name*.
     """
 
-    ctxt = zmq.Context()
+    ctxt = Context()
 
     # Socket to talk to server
-    socket = ctxt.socket(zmq.REQ)
+    socket = ctxt.socket(REQ)
     try:
-        socket.setsockopt(zmq.LINGER, timeout*1000)
+        socket.setsockopt(LINGER, timeout*1000)
         socket.connect("tcp://localhost:5555")
 
         message = Message("/oper/ns", "request", {"type": name})
@@ -67,12 +75,12 @@ def get_pub_address(name, timeout=10):
 
 
         # Get the reply.
-        poller = zmq.Poller()
-        poller.register(socket, zmq.POLLIN)
+        poller = Poller()
+        poller.register(socket, POLLIN)
         sock = poller.poll(timeout=timeout * 1000)
         if sock:
             if sock[0][0] == socket:
-                message = Message.decode(socket.recv(zmq.NOBLOCK))
+                message = Message.decode(socket.recv(NOBLOCK))
                 return message.data
             else:
                 raise RuntimeError("Unknown socket ?!?!?")
@@ -85,23 +93,21 @@ def get_pub_address(name, timeout=10):
         socket.close()
         ctxt.term()
 
-def get_active_address(name, gc):
+def get_active_address(name, arec):
     """Get the addresses of the active modules for a given publisher *name*.
     """
-    if name == "":
-        return Message("/oper/ns", "info", gc.get_addresses())
-    addrs = []
-    for addr in gc.get_addresses():
-        if name in addr["type"]:
-            addrs.append(addr)
+    addrs = arec.get(name)
     if addrs:
         return Message("/oper/ns", "info", addrs)
     else:
         return Message("/oper/ns", "info", "")
 
 
-class NameServer(object):
+### Server part.
 
+class NameServer(object):
+    """The name server.
+    """
     def __init__(self):
         self.loop = True
         self.listener = None
@@ -111,36 +117,37 @@ class NameServer(object):
         """
         del args
 
-        gc_ = GenericConnections("")
-        gc_.start()
+        arec = AddressReceiver()
+        arec.start()
         port = 5555
 
         try:
-            context = zmq.Context()
-            # pylint: disable=E1101
-            self.listener = context.socket(zmq.REP)
+            context = Context()
+            self.listener = context.socket(REP)
             self.listener.bind("tcp://*:"+str(port))
-            poller = zmq.Poller()
-            poller.register(self.listener, zmq.POLLIN)
+            poller = Poller()
+            poller.register(self.listener, POLLIN)
             while self.loop:
                 socks = dict(poller.poll(1000))
                 if socks:
-                    if socks.get(self.listener) == zmq.POLLIN:
+                    if socks.get(self.listener) == POLLIN:
                         msg = self.listener.recv()
                 else:
                     continue
                 logger.debug("Replying to request: " + str(msg))
                 msg = Message.decode(msg)
-                self.listener.send_unicode(str(get_active_address(msg.data["type"],
-                                                                  gc_)))
+                self.listener.send_unicode(str(get_active_address(
+                    msg.data["type"], arec)))
         except KeyboardInterrupt:
             # Needed to stop the nameserver.
             pass
         finally:
-            gc_.stop()
+            arec.stop()
             self.listener.close()
             context.term()
 
     def stop(self):
-        self.listener.setsockopt(zmq.LINGER, 0)
+        """Stop the name server.
+        """
+        self.listener.setsockopt(LINGER, 0)
         self.loop = False

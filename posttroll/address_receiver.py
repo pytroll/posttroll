@@ -25,17 +25,17 @@
 Receive broadcasted addresses in a standard pytroll Message:
 /<server-name>/address info ... host:port
 """
-import sys
-import os
-from datetime import datetime, timedelta
-import thread
-import threading
 import copy
 import logging
+import os
+import thread
+import threading
+from datetime import datetime, timedelta
 
-from posttroll.message import Message
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
+from posttroll.message import Message
 from posttroll.publisher import Publish
+
 
 __all__ = ('AddressReceiver', 'getaddress')
 
@@ -52,14 +52,15 @@ default_publish_port = 16543
 #
 #-----------------------------------------------------------------------------
 class AddressReceiver(object):
-    def __init__(self, name="", max_age=timedelta(minutes=10), port=None,
+    """General thread to receive broadcast addresses.
+    """
+    def __init__(self, max_age=timedelta(minutes=10), port=None,
                  do_heartbeat=True):
         self._max_age = max_age
         self._port = port or default_publish_port 
         self._address_lock = thread.allocate_lock()
         self._addresses = {}
         self._subject = '/address'
-        self._name = name
         self._do_heartbeat = do_heartbeat
         self._last_age_check = datetime(1900, 1, 1)
         self._do_run = False
@@ -67,34 +68,44 @@ class AddressReceiver(object):
         self._thread = threading.Thread(target=self._run)        
 
     def start(self):
+        """Start the receiver.
+        """
         if not self._is_running:
             self._do_run = True
             self._thread.start()
         return self
 
     def stop(self):
+        """Stop the receiver.
+        """
         self._do_run = False
         return self
 
     def is_running(self):
+        """Check if the receiver is alive.
+        """
         return self._is_running
 
     def get(self, name=""):
-        now = datetime.utcnow()
+        """Get the address(es).
+        """
         addrs = []
-        name = name or self._name
+
         self._address_lock.acquire()
         try:
-            for addr, metadata in self._addresses.items():
-                mda = copy.copy(metadata)
-                mda["receive_time"] = mda["receive_time"].isoformat()
-                addrs.append(mda)
+            for metadata in self._addresses.values():
+                if name and name in metadata["type"]:
+                    mda = copy.copy(metadata)
+                    mda["receive_time"] = mda["receive_time"].isoformat()
+                    addrs.append(mda)
         finally:
             self._address_lock.release()
         logger.debug('return address ' + str(addrs))
         return addrs
     
     def _check_age(self, pub, min_interval=0):
+        """Check the age of the receiver.
+        """
         now = datetime.utcnow()
         if (now - self._last_age_check) <= timedelta(seconds=min_interval):
             return
@@ -118,6 +129,8 @@ class AddressReceiver(object):
             self._address_lock.release()
 
     def _run(self):
+        """Run the receiver.
+        """
         port = broadcast_port
         recv = MulticastReceiver(port).settimeout(2.)
         self._is_running = True
@@ -154,6 +167,8 @@ class AddressReceiver(object):
                 recv.close()
 
     def _add(self, adr, metadata):
+        """Add an address.
+        """
         self._address_lock.acquire()
         try:
             metadata["receive_time"] = datetime.utcnow()
