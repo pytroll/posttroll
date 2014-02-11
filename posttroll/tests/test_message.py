@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2011.
+# Copyright (c) 2010-2011, 2014.
 
 # Author(s):
  
@@ -53,7 +53,7 @@ class Test(unittest.TestCase):
         """Test the encoding/decoding of the message class.
         """
         msg1 = Message('/test/whatup/doc', 'info', data='not much to say')
-        #print msg1.__dict__
+
         sender = '%s@%s' % (msg1.user, msg1.host)
         self.assertTrue(sender == msg1.sender,
                         msg='Messaging, decoding user, host from sender failed')
@@ -69,7 +69,7 @@ class Test(unittest.TestCase):
                   '/test/1/2/3 info ras@hawaii 2008-04-11T22:13:22.123000 v1.01'
                   + ' application/json "what\'s up doc"')
         msg = Message.decode(rawstr)
-        print msg
+
         self.assertTrue(str(msg) == rawstr,
                         msg='Messaging, decoding of message failed')
 
@@ -102,7 +102,7 @@ class Test(unittest.TestCase):
             fp_.close()
             fp_ = open("pickle.message")
             msg2 = pickle.load(fp_)
-            print msg2
+
             fp_.close()
             self.assertTrue(str(msg1) == str(msg2),
                             msg='Messaging, pickle failed')
@@ -118,7 +118,7 @@ class Test(unittest.TestCase):
         metadata = copy.copy(SOME_METADATA)
         msg = Message.decode(Message('/sat/polar/smb/level1', 'file',
                                    data=metadata).encode())
-        print msg
+
         self.assertTrue(msg.data == metadata,
                         msg='Messaging, metadata decoding / encoding failed')
         
@@ -145,5 +145,12 @@ class Test(unittest.TestCase):
                         msg='Messaging, JSON serialization'
                         ' has changed, python objects differ')
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The suite for test_message.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(Test))
+    
+    return mysuite
+

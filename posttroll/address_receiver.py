@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012.
+# Copyright (c) 2010-2012, 2014.
 
 # Author(s):
  
@@ -31,12 +31,15 @@ from datetime import datetime, timedelta
 import thread
 import threading
 import copy
+import logging
 
 from posttroll.message import Message
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
 from posttroll.publisher import Publish
 
 __all__ = ('AddressReceiver', 'getaddress')
+
+logger = logging.getLogger(__name__)
 
 debug = os.environ.get('DEBUG', False)
 broadcast_port = 21200
@@ -88,8 +91,7 @@ class AddressReceiver(object):
                 addrs.append(mda)
         finally:
             self._address_lock.release()
-        if debug:
-            print 'return address', addrs
+        logger.debug('return address ' + str(addrs))
         return addrs
     
     def _check_age(self, pub, min_interval=0):
@@ -97,8 +99,8 @@ class AddressReceiver(object):
         if (now - self._last_age_check) <= timedelta(seconds=min_interval):
             return
         
-        if debug:
-            print datetime.utcnow(), "checking addresses"
+        
+        logger.debug(str(datetime.utcnow()) + " checking addresses")
         self._last_age_check = now
         self._address_lock.acquire()
         try:
@@ -110,7 +112,7 @@ class AddressReceiver(object):
                            'type': metadata['type']}
                     msg = Message('/address/' + metadata['name'], 'info', mda)
                     del self._addresses[addr]
-                    print >> sys.stderr, "nameserver: publish remove '%s'" % str(msg)
+                    logger.info("publish remove '%s'" % str(msg))
                     pub.send(msg.encode())
         finally:
             self._address_lock.release()
@@ -139,10 +141,12 @@ class AddressReceiver(object):
                         msg.data['status'] = True
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
-                        if debug:
-                            print 'receiving address', addr, name, metadata
+                        
+                        logger.debug('receiving address ' + str(addr)
+                                     + " " + str(name) + " " + str(metadata))
                         if addr not in self._addresses:
-                            print >> sys.stderr, "nameserver: publish add '%s'" % str(msg)
+                            logger.info("nameserver: publish add '%s'"
+                                        % str(msg))
                             pub.send(msg.encode())
                         self._add(addr, metadata)
             finally:

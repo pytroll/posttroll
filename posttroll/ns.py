@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011, 2012 SMHI
+# Copyright (c) 2011, 2012, 2014 SMHI
 
 # Author(s):
 
@@ -25,8 +25,12 @@
 import time
 from datetime import datetime, timedelta 
 
+from posttroll.connections import GenericConnections
 from posttroll.message import Message
 import zmq
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TimeoutError(BaseException):
     """A timeout.
@@ -75,13 +79,14 @@ def get_pub_address(name, timeout=10):
         else:
             raise TimeoutError("Didn't get an address after %d seconds."
                                %timeout)
-        print "Received reply to ", name, ": [", message, "]"
+        logger.info("Received reply to " + str(name)
+                    + ": [" + str(message) + "]")
     finally:
         socket.close()
-
+        ctxt.term()
 
 def get_active_address(name, gc):
-    """Get the addresses of the active modules for a given publiser *name*.
+    """Get the addresses of the active modules for a given publisher *name*.
     """
     if name == "":
         return Message("/oper/ns", "info", gc.get_addresses())
@@ -94,3 +99,38 @@ def get_active_address(name, gc):
     else:
         return Message("/oper/ns", "info", "")
 
+
+class NameServer(object):
+
+    def __init__(self):
+        self.loop = True
+
+    def run(self, *args):
+        """Run the listener and answer to requests.
+        """
+        del args
+
+        gc_ = GenericConnections("")
+        gc_.start()
+        port = 5555
+
+        try:
+            context = zmq.Context()
+            listener = context.socket(zmq.REP)
+            listener.bind("tcp://*:"+str(port))
+            while self.loop:
+                msg = listener.recv()
+                logger.debug("Replying to request: " + str(msg))
+                msg = Message.decode(msg)
+                listener.send_unicode(str(get_active_address(msg.data["type"],
+                                                             gc_)))
+        except KeyboardInterrupt:
+            # Needed to stop the nameserver.
+            pass
+        finally:
+            gc_.stop()
+            listener.close()
+            context.term()
+
+    def stop(self):
+        self.loop = False

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012.
+# Copyright (c) 2011, 2012, 2014.
 
 # Author(s):
  
@@ -46,5 +46,6 @@ setup(name="posttroll",
           'Intended Audience :: Science/Research',
           'Topic :: Scientific/Engineering',
           'Topic :: Communications'
-          ]
+          ],
+      test_suite = 'posttroll.tests.suite',
       )

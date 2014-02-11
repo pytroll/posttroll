@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011, 2012 SMHI
+# Copyright (c) 2011, 2012, 2014 SMHI
 
 # Author(s):
 
@@ -25,7 +25,6 @@
 
 # TODO: make Subscriber/Subscribe autoupdatable when new producers arrive.
 
-import os
 import zmq
 import sys
 import time
@@ -35,7 +34,8 @@ from urlparse import urlsplit
 from posttroll.message import Message, _MAGICK
 from posttroll.ns import TimeoutError, get_pub_address
 
-debug = os.environ.get('DEBUG', False)
+import logging
+logger = logging.getLogger(__name__)
 
 class Subscriber(object):
     """Subscriber
@@ -86,7 +86,8 @@ class Subscriber(object):
             return False
             
         topics = self._magickfy_topics(topics) or self._topics
-        print >> sys.stderr, "Subscriber adding address", address, topics
+        logger.info("Subscriber adding address " + str(address)
+                    + " with topics " + str(topics))
         subscriber = self._context.socket(zmq.SUB)
         for t__ in topics:
             subscriber.setsockopt(zmq.SUBSCRIBE, t__)
@@ -104,7 +105,7 @@ class Subscriber(object):
             subscriber = self.addr_sub[address]
         except KeyError:
             return False
-        print >> sys.stderr, "Subscriber removing address", address
+        logger.info("Subscriber removing address " + str(address))
         if self.poller:
             self.poller.unregister(subscriber)
         del self.addr_sub[address]
@@ -133,7 +134,8 @@ class Subscriber(object):
         Good for operations, which is required to be done in the same thread as
         the main recieve loop (e.q operations on the underlying sockets).
         """
-        print >> sys.stderr, "Subscriber adding SUB hook", address, topics
+        logger.info("Subscriber adding SUB hook " + str(address)
+                    + " for topics " + str(topics))
         socket = self._context.socket(zmq.SUB)
         for t__ in self._magickfy_topics(topics):
             socket.setsockopt(zmq.SUBSCRIBE, t__)
@@ -144,7 +146,7 @@ class Subscriber(object):
         """Same as above, but with a PULL socket. 
         (e.g good for pushed 'inproc' messages from another thread).
         """
-        print >> sys.stderr, "Subscriber adding PULL hook", address
+        logger("Subscriber adding PULL hook " + str(address))
         socket = self._context.socket(zmq.PULL)
         socket.connect(address)
         self._add_hook(socket, callback)
@@ -196,7 +198,7 @@ class Subscriber(object):
                         # timeout
                         yield None
                 except zmq.ZMQError, e:
-                    print >>sys.stderr, 'receive failed', str(e)
+                    logger.exception("Receive failed " + str(e))
         finally:
             for sub in self.subscribers + self._hooks:
                 self.poller.unregister(sub)
@@ -236,6 +238,7 @@ class Subscriber(object):
                 sub.close()
             except:
                 pass
+        self._context.term()
 
 
 class Subscribe(object):
@@ -245,7 +248,7 @@ class Subscribe(object):
 
         from posttroll.subscriber import Subscribe
 
-        with Subscribe("a_service, ""my_topic",) as sub:
+        with Subscribe("a_service", "my_topic",) as sub:
             for msg in sub.recv():
                 print msg
 
@@ -281,8 +284,8 @@ class Subscribe(object):
             addr = _get_addr_loop(service, self._timeout)
             if not addr:
                 raise TimeoutError("Can't get address for " + service)
-            if debug:
-                print >> sys.stderr, "GOT address", service, addr
+
+            logger.debug("GOT address " + str(service) + " " + str(addr))
             self._addresses.extend(addr)
 
         # Subscribe to those services and topics.
@@ -326,11 +329,10 @@ class _AddressListener(object):
             type_ = msg.data.get('type')
             for service in self.services:
                 if not service or service in type_:
-                    if debug:
-                        print >> sys.stderr, "Adding address", addr_, type_
+                    logger.debug("Adding address " + str(addr_)
+                                 + str(type_))
                     self.subscriber.add(addr_)
                     break
         else:
-            if debug:
-                print >> sys.stderr, "Removing address", addr_
+            logger.debug("Removing address " + str(addr_))
             self.subscriber.remove(addr_)

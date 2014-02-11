@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2009-2012.
+# Copyright (c) 2009-2014.
 #
 # Author(s): 
 #   Lars Ørum Rasmussen <ras@dmi.dk>
@@ -23,16 +23,16 @@
 
 """The publisher module gives high-level tools to publish messages on a port.
 """
-import sys
-import os
-from urlparse import urlsplit
+from urlparse import urlsplit, urlunsplit
 from datetime import datetime, timedelta
 import zmq
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddresstype
 import socket
 
-debug = os.environ.get('DEBUG', False)
+import logging
+
+logger = logging.getLogger(__name__)
 
 TEST_HOST = 'dmi.dk'
 
@@ -60,19 +60,19 @@ class Publisher(object):
             counter = 0
             while True:
                 counter += 1
-                print "publishing " + str(i)
-                PUB.send(str(i))
-                time.sleep(60)
+                print "publishing " + str(counter)
+                PUB.send(str(counter))
+                time.sleep(3)
         except KeyboardInterrupt:
             print "terminating publisher..."
             PUB.stop()
-
 
     """
     def __init__(self, address, name=""):
         """Bind the publisher class to a port.
         """
-        self._name = name
+        # pylint: disable=E1103
+        self.name = name
         self.destination = address
         self.context = zmq.Context()
         self.publish = self.context.socket(zmq.PUB)
@@ -87,11 +87,15 @@ class Publisher(object):
                 pass
 
         if port == 0:
-            self._port_number = self.publish.bind_to_random_port(dest)
-            self.destination = dest + ':' + str(self._port_number)
+            dest = urlunsplit((u__.scheme, u__.netloc.split(':')[0],
+                               u__.path, u__.query, u__.fragment))
+            self.port_number = self.publish.bind_to_random_port(dest)
+            netloc = u__.netloc.split(':')[0] + ":" + str(self.port_number)
+            self.destination = urlunsplit((u__.scheme, netloc, u__.path,
+                                           u__.query, u__.fragment))
         else:
             self.publish.bind(self.destination)
-            self._port_number = port
+            self.port_number = port
 
         # Initialize no heartbeat
         self._heartbeat = None
@@ -99,13 +103,14 @@ class Publisher(object):
     def send(self, msg):
         """Send the given message.
         """
-        #print "SENDING", msg
         self.publish.send(msg)
         return self
 
     def stop(self):
         """Stop the publisher.
         """
+        self.publish.close()
+        self.context.term()
         return self
 
     def heartbeat(self, min_interval=0):
@@ -117,9 +122,11 @@ class Publisher(object):
         self._heartbeat(min_interval)
 
 class _PublisherHeartbeat(object):
+    """Publisher for heartbeat.
+    """
     def __init__(self, publisher):
         self.publisher = publisher
-        self.subject = '/heartbeat/' + publisher._name
+        self.subject = '/heartbeat/' + publisher.name
         self.lastbeat = datetime(1900, 1, 1)
 
     def __call__(self, min_interval=0):
@@ -127,8 +134,7 @@ class _PublisherHeartbeat(object):
             (datetime.utcnow() - self.lastbeat >= 
              timedelta(seconds=min_interval))):
             self.lastbeat = datetime.utcnow()
-            if debug:
-                print >> sys.stderr, "Publish heartbeat"
+            logger.debug("Publish heartbeat")
             self.publisher.send(Message(self.subject, "beat").encode())
 
 
@@ -142,16 +148,18 @@ class Publish(object):
     Example on how to use the :class:`Publish` context::
     
             from posttroll.publisher import Publish
+            from posttroll.message import Message
             import time
 
             try:
-                with Publish("my_publisher", 9000) as pub:
+                with Publish("my_service", 9000) as pub:
                     counter = 0
                     while True:
                         counter += 1
-                        print "publishing " + str(i)
-                        PUB.send(str(i))
-                        time.sleep(60)
+                        message = Message("/counter", "info", str(counter))
+                        print "publishing", message
+                        pub.send(str(message))
+                        time.sleep(3)
             except KeyboardInterrupt:
                 print "terminating publisher..."
 
@@ -159,7 +167,7 @@ class Publish(object):
     # Make this one subclassable with another publisher.
     _publisher_class = Publisher
 
-    def __init__(self, name, port, aliases=[], broadcast_interval=2):
+    def __init__(self, name, port, aliases=None, broadcast_interval=2):
         self._name = name
         if aliases:
             if isinstance(aliases, (str, unicode)):
@@ -177,17 +185,16 @@ class Publish(object):
     def __enter__(self):
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name)
-        if debug:
-            print "entering publish", self._publisher.destination
-        addr = "tcp://" + str(get_own_ip()) + ":" + str(self._publisher._port_number)
+        logger.debug("entering publish " + str(self._publisher.destination))
+        addr = ("tcp://" + str(get_own_ip()) + ":"
+                + str(self._publisher.port_number))
         self._broadcaster = sendaddresstype(self._name, addr,
                                             self._aliases,
                                             self._broadcast_interval).start()
         return self._publisher
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if debug:
-            print "exiting publish"
+        logger.debug("exiting publish")
         if self._publisher is not None:
             self._publisher.stop()
             self._publisher = None

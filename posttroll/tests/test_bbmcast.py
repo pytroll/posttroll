@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2011.
+# Copyright (c) 2010-2011, 2014.
 
 # Author(s):
  
@@ -27,7 +27,7 @@ from socket import SOL_SOCKET, SO_BROADCAST, error
 from posttroll import bbmcast
 
 
-class Test(unittest.TestCase):
+class TestBB(unittest.TestCase):
     """Test class.
     """
 
@@ -107,5 +107,12 @@ class Test(unittest.TestCase):
                    str(random.randint(0, 255)))
         self.assertRaises(error, bbmcast.mcast_receiver, mcport, mcgroup)
 
-if __name__ == "__main__":
-    unittest.main()
+def suite():
+    """The suite for test_bbmcast.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBB))
+    
+    return mysuite
+
