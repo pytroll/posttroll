@@ -298,9 +298,10 @@ class Subscribe(object):
         for service in self._services:
             addr = _get_addr_loop(service, self._timeout)
             if not addr:
-                raise TimeoutError("Can't get address for " + service)
-
-            logger.debug("GOT address " + str(service) + " " + str(addr))
+                logger.warning("Can't get any address for " + service)
+            else:
+                logger.debug("Got address for " + str(service)
+                             + ": " + str(addr))
             self._addresses.extend(addr)
 
         # Subscribe to those services and topics.
