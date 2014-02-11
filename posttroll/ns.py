@@ -104,6 +104,7 @@ class NameServer(object):
 
     def __init__(self):
         self.loop = True
+        self.listener = None
 
     def run(self, *args):
         """Run the listener and answer to requests.
@@ -116,21 +117,30 @@ class NameServer(object):
 
         try:
             context = zmq.Context()
-            listener = context.socket(zmq.REP)
-            listener.bind("tcp://*:"+str(port))
+            # pylint: disable=E1101
+            self.listener = context.socket(zmq.REP)
+            self.listener.bind("tcp://*:"+str(port))
+            poller = zmq.Poller()
+            poller.register(self.listener, zmq.POLLIN)
             while self.loop:
-                msg = listener.recv()
+                socks = dict(poller.poll(1000))
+                if socks:
+                    if socks.get(self.listener) == zmq.POLLIN:
+                        msg = self.listener.recv()
+                else:
+                    continue
                 logger.debug("Replying to request: " + str(msg))
                 msg = Message.decode(msg)
-                listener.send_unicode(str(get_active_address(msg.data["type"],
-                                                             gc_)))
+                self.listener.send_unicode(str(get_active_address(msg.data["type"],
+                                                                  gc_)))
         except KeyboardInterrupt:
             # Needed to stop the nameserver.
             pass
         finally:
             gc_.stop()
-            listener.close()
+            self.listener.close()
             context.term()
 
     def stop(self):
+        self.listener.setsockopt(zmq.LINGER, 0)
         self.loop = False

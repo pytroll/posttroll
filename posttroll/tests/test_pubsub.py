@@ -76,6 +76,7 @@ class TestPubSub(unittest.TestCase):
         self.assertTrue(tested)
 
         self.ns.stop()
+        thr.join()
 
 
         
