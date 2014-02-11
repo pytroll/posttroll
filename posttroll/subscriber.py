@@ -23,10 +23,7 @@
 """Simple library to subscribe to messages.
 """
 
-# TODO: make Subscriber/Subscribe autoupdatable when new producers arrive.
-
 import zmq
-import sys
 import time
 from datetime import datetime, timedelta
 from urlparse import urlsplit

@@ -136,14 +136,15 @@ class Test(unittest.TestCase):
         fp_ = open(DATADIR + compare_file)
         dump = fp_.read()
         fp_.close()
-        # dumps differ ... maybe it's not a problem
-        self.assertTrue(dump == json.dumps(metadata),
-                        msg='Messaging, JSON serialization has changed,'
-                        ' dumps differ')
+        local_dump = json.dumps(metadata)
+
         msg = json.loads(dump)
-        self.assertTrue(msg == metadata,
-                        msg='Messaging, JSON serialization'
-                        ' has changed, python objects differ')
+        for key, val in msg.items():
+            self.assertEquals(val, metadata.get(key))
+
+        msg = json.loads(local_dump)
+        for key, val in msg.items():
+            self.assertEquals(val, metadata.get(key))
 
 def suite():
     """The suite for test_message.
