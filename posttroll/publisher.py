@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2009-2013.
+# Copyright (c) 2009-2014.
 #
 # Author(s): 
 #   Lars Ørum Rasmussen <ras@dmi.dk>
@@ -87,9 +87,55 @@ class Publisher(object):
     def stop(self):
         """Stop the publisher.
         """
+        self.publish.close()
+        self.context.term()
         return self
 
-class Publish(object):
+class NoisyPublisher(object):
+    """Same as the Publisher class, except that is also broadcasts the *name*,
+    *data_types* and *port* (using
+    :class:`posttroll.message_broadcaster.MessageBroadcaster`).
+    """
+
+    def __init__(self, name, data_types, port, broadcast_interval=2):
+        self._name = name
+        
+        if isinstance(data_types, str):
+            self._data_types = [data_types,]
+        else:
+            self._data_types = data_types
+        
+        self._port = port
+        self._broadcast_interval = broadcast_interval
+        self._broadcaster = None
+        self._publisher = None
+
+    def start(self):
+        """Start the publishing and broadcasting.
+        """
+        logger.debug("Publishing " + str(self._data_types))
+        addr = "tcp://" + str(get_own_ip()) + ":" + str(self._port)
+        self._broadcaster = sendaddresstype(self._name, addr,
+                                            self._data_types,
+                                            self._broadcast_interval).start()
+        pub_addr = "tcp://*:" + str(self._port)
+        self._publisher = Publisher(pub_addr)
+        return self._publisher
+
+    def stop(self):
+        """Stop the publishing and broadcasting.
+        """        
+        logger.debug("Stop publishing " + str(self._data_types))
+        if self._publisher is not None:
+            self._publisher.stop()
+            self._publisher = None
+        if self._broadcaster is not None:
+            self._broadcaster.stop()
+            self._broadcaster = None
+        
+
+
+class Publish(NoisyPublisher):
     """The publishing context.
 
     Broadcasts also the *name*, *data_types* and *port* (using
@@ -115,35 +161,9 @@ class Publish(object):
 
     """
     
-    def __init__(self, name, data_types, port, broadcast_interval=2):
-        self._name = name
-        
-        if isinstance(data_types, str):
-            self._data_types = [data_types,]
-        else:
-            self._data_types = data_types
-        
-        self._port = port
-        self._broadcast_interval = broadcast_interval
-        self._broadcaster = None
-        self._publisher = None
-
     def __enter__(self):
-        logger.debug("Publishing " + str(self._data_types))
-        addr = "tcp://" + str(get_own_ip()) + ":" + str(self._port)
-        self._broadcaster = sendaddresstype(self._name, addr,
-                                            self._data_types,
-                                            self._broadcast_interval).start()
-        pub_addr = "tcp://*:" + str(self._port)
-        self._publisher = Publisher(pub_addr)
-        return self._publisher
+        return self.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        logger.debug("Stop publishing " + str(self._data_types))
-        if self._publisher is not None:
-            self._publisher.stop()
-            self._publisher = None
-        if self._broadcaster is not None:
-            self._broadcaster.stop()
-            self._broadcaster = None
+        self.stop()
         
