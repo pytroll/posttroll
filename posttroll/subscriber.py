@@ -129,7 +129,7 @@ class Subscriber(object):
     def add_hook_sub(self, address, topics, callback):
         """Specify a *callback* in the same stream (thread) as the main receive
         loop. The callback will be called with the received messages from the 
-        specifyed subscribtion.
+        specified subscription.
 
         Good for operations, which is required to be done in the same thread as
         the main recieve loop (e.q operations on the underlying sockets).
