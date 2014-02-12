@@ -40,7 +40,7 @@ if __name__ == '__main__':
                         choices=["start", "stop", "status", "restart"])
     parser.add_argument("-l", "--log", help="File to log to (defaults to stdout)",
                         default=None)
-    parser.add_argument("-v", "--verbose", help="debug mode",
+    parser.add_argument("-v", "--verbose", help="print debug messages too",
                         action="store_true")
     opts = parser.parse_args()
 

@@ -56,21 +56,22 @@ class Publisher(object):
     An example on how to use the :class:`Publisher`::
     
         from posttroll.publisher import Publisher, get_own_ip
+        from posttroll.message import Message
         import time
 
-        PUB_ADDRESS = "tcp://" + str(get_own_ip()) + ":9000"
-        PUB = Publisher(PUB_ADDRESS)
+        pub_address = "tcp://" + str(get_own_ip()) + ":9000"
+        pub = Publisher(pub_address)
 
         try:
             counter = 0
             while True:
                 counter += 1
-                print "publishing " + str(counter)
-                PUB.send(str(counter))
+                message = Message("/counter", "info", str(counter))
+                pub.send(str(message))
                 time.sleep(3)
         except KeyboardInterrupt:
             print "terminating publisher..."
-            PUB.stop()
+            pub.stop()
 
     """
     def __init__(self, address, name=""):
@@ -147,7 +148,7 @@ class _PublisherHeartbeat(object):
 class Publish(object):
     """The publishing context.
 
-    Broadcasts also the *name*, *data_types* and *port* (using
+    Broadcasts also the *name*, *port*, and optional *aliases* (using
     :class:`posttroll.message_broadcaster.MessageBroadcaster`).
 
     Example on how to use the :class:`Publish` context::

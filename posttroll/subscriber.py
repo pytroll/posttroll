@@ -48,14 +48,14 @@ class Subscriber(object):
         from posttroll.subscriber import Subscriber, get_pub_address
 
         addr = get_pub_address(service, timeout=2)
-        SUB = Subscriber([addr], 'my_topic')
+        sub = Subscriber([addr], 'my_topic')
         try:
-            for msg in SUB(timeout=2):
+            for msg in sub(timeout=2):
                 print "Consumer got", msg
 
         except KeyboardInterrupt:
             print "terminating consumer..."
-            SUB.close()
+            sub.close()
     
     """
     def __init__(self, addresses, topics='', message_filter=None,
