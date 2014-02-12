@@ -32,7 +32,7 @@ from zmq import (SUB, Context, Poller,
                  POLLIN, SUBSCRIBE, PULL, NOBLOCK, ZMQError)
 # pylint: enable=E0611
 from posttroll.message import Message, _MAGICK
-from posttroll.ns import TimeoutError, get_pub_address
+from posttroll.ns import get_pub_address
 
 
 logger = logging.getLogger(__name__)
@@ -67,8 +67,7 @@ class Subscriber(object):
         
         self.sub_addr = {}
         self.addr_sub = {}
-        self.poller = None
-        
+
         self._hooks = []
         self._hooks_cb = {}
 
