@@ -77,7 +77,7 @@ copyright = u'2012, Pytroll crew'
 import posttroll.version as current_version
 
 # The short X.Y version.
-version = current_version.__major__
+version = current_version.__major__ + "." + current_version.__minor__
 # The full version, including alpha/beta/rc tags.
 release = current_version.__version__
 
