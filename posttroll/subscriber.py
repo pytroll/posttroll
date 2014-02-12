@@ -67,7 +67,8 @@ class Subscriber(object):
         
         self.sub_addr = {}
         self.addr_sub = {}
-
+        self.poller = None
+        
         self._hooks = []
         self._hooks_cb = {}
 
