@@ -144,8 +144,50 @@ class _PublisherHeartbeat(object):
             self.publisher.send(Message(self.subject, "beat").encode())
 
 
+class NoisyPublisher(object):
+    """Same as a Publisher, but with broadcasting of address.
+    Or same as Publish in class mode.
+    """
 
-class Publish(object):
+    
+    _publisher_class = Publisher
+
+    def __init__(self, name, port, aliases=None, broadcast_interval=2):
+        self._name = name
+        if aliases:
+            if isinstance(aliases, (str, unicode)):
+                self._aliases = [aliases]
+            else:
+                self._aliases = aliases
+        else:
+            self._aliases = [name]
+        
+        self._port = port
+        self._broadcast_interval = broadcast_interval
+        self._broadcaster = None
+        self._publisher = None
+
+    def start(self):
+        pub_addr = "tcp://*:" + str(self._port)
+        self._publisher = self._publisher_class(pub_addr, self._name)
+        logger.debug("entering publish " + str(self._publisher.destination))
+        addr = ("tcp://" + str(get_own_ip()) + ":"
+                + str(self._publisher.port_number))
+        self._broadcaster = sendaddresstype(self._name, addr,
+                                            self._aliases,
+                                            self._broadcast_interval).start()
+        return self._publisher
+
+    def stop(self):
+        logger.debug("exiting publish")
+        if self._publisher is not None:
+            self._publisher.stop()
+            self._publisher = None
+        if self._broadcaster is not None:
+            self._broadcaster.stop()
+            self._broadcaster = None
+            
+class Publish(NoisyPublisher):
     """The publishing context.
 
     Broadcasts also the *name*, *port*, and optional *aliases* (using
@@ -173,37 +215,8 @@ class Publish(object):
     # Make this one subclassable with another publisher.
     _publisher_class = Publisher
 
-    def __init__(self, name, port, aliases=None, broadcast_interval=2):
-        self._name = name
-        if aliases:
-            if isinstance(aliases, (str, unicode)):
-                self._aliases = [aliases]
-            else:
-                self._aliases = aliases
-        else:
-            self._aliases = [name]
-        
-        self._port = port
-        self._broadcast_interval = broadcast_interval
-        self._broadcaster = None
-        self._publisher = None
-
     def __enter__(self):
-        pub_addr = "tcp://*:" + str(self._port)
-        self._publisher = self._publisher_class(pub_addr, self._name)
-        logger.debug("entering publish " + str(self._publisher.destination))
-        addr = ("tcp://" + str(get_own_ip()) + ":"
-                + str(self._publisher.port_number))
-        self._broadcaster = sendaddresstype(self._name, addr,
-                                            self._aliases,
-                                            self._broadcast_interval).start()
-        return self._publisher
+        return self.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        logger.debug("exiting publish")
-        if self._publisher is not None:
-            self._publisher.stop()
-            self._publisher = None
-        if self._broadcaster is not None:
-            self._broadcaster.stop()
-            self._broadcaster = None
+        return self.stop()

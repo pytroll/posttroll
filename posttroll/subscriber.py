@@ -253,17 +253,8 @@ class Subscriber(object):
         self._context.term()
 
 
-class Subscribe(object):
-    """Subscriber context.
-
-    Example::
-
-        from posttroll.subscriber import Subscribe
-
-        with Subscribe("a_service", "my_topic",) as sub:
-            for msg in sub.recv():
-                print msg
-
+class NSSubscriber(object):
+    """Like the Subscribe context in a class form.
     """
     def __init__(self, services=None, topics=_MAGICK, addr_listener=False,
                  addresses=None, timeout=10, translate=False):
@@ -281,7 +272,7 @@ class Subscribe(object):
         self._subscriber = None
         self._addr_listener = addr_listener
 
-    def __enter__(self):
+    def start(self):
         
         def _get_addr_loop(service, timeout):
             """Try to get the address of *service* until for *timeout* seconds.
@@ -315,10 +306,30 @@ class Subscribe(object):
 
         return self._subscriber
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def stop(self):
         if self._subscriber is not None:
             self._subscriber.close()
             self._subscriber = None
+
+    
+
+class Subscribe(NSSubscriber):
+    """Subscriber context.
+
+    Example::
+
+        from posttroll.subscriber import Subscribe
+
+        with Subscribe("a_service", "my_topic",) as sub:
+            for msg in sub.recv():
+                print msg
+
+    """
+    def __enter__(self):
+        return self.start()
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self.stop()
 
 def _to_array(obj):
     """Convert *obj* to list if not already one.
