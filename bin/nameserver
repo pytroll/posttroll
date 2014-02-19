@@ -48,7 +48,7 @@ if __name__ == '__main__':
         import logging.handlers
         handler = logging.handlers.TimedRotatingFileHandler(opts.log,
                                                             "midnight",
-                                                            backupCount = 7)
+                                                            backupCount=7)
     else:
         handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
