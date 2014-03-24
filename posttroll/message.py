@@ -89,7 +89,7 @@ def is_valid_data(obj):
 # Message class.
 #
 #-----------------------------------------------------------------------------
-class Message:
+class Message(object):
     """A Message.
 
     - Has to be initialized with a *rawstr* (encoded message to decode) OR
@@ -168,7 +168,7 @@ class Message:
             raise MessageError, "Invalid type: '%s'" % self.type
         if not is_valid_sender(self.sender):
             raise MessageError, "Invalid sender: '%s'" % self.sender
-        if not is_valid_data(self.data) and not self.binary:
+        if not self.binary and not is_valid_data(self.data):
             raise MessageError, "Invalid data: data is not JSON serializable"
         
     #
