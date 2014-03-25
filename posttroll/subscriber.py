@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011, 2012, 2014 SMHI
+# Copyright (c) 2011, 2012, 2013, 2014.
 
 # Author(s):
 
-#   Martin Raspaud <martin.raspaud@smhi.se>
+#   Martin Raspaud    <martin.raspaud@smhi.se>
+#   Lars Ø. Rasmussen <ras@dmi.dk>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,8 +41,10 @@ logger = logging.getLogger(__name__)
 class Subscriber(object):
     """Subscriber
 
-    Subscribes to addresses for topics, and perform address translation of
-    *translate* is true.
+    Subscribes to *addresses* for *topics*, and perform address translation of
+    *translate* is true. The function *message_filter* can be used to
+    discriminate some messages on the subscriber side. *topics* on the other
+    hand performs filtering on the publishing side (from zeromq 3).
 
     Example::
 
@@ -56,7 +59,7 @@ class Subscriber(object):
         except KeyboardInterrupt:
             print "terminating consumer..."
             sub.close()
-    
+
     """
     def __init__(self, addresses, topics='', message_filter=None,
                  translate=False):
@@ -64,16 +67,16 @@ class Subscriber(object):
         self._topics = self._magickfy_topics(topics)
         self._filter = message_filter
         self._translate = translate
-        
+
         self.sub_addr = {}
         self.addr_sub = {}
         self.poller = None
-        
+
         self._hooks = []
         self._hooks_cb = {}
 
         self.update(addresses)
-        
+
         self.poller = Poller()
         self._loop = True
 
@@ -84,7 +87,7 @@ class Subscriber(object):
         """
         if address in self.addresses:
             return False
-            
+
         topics = self._magickfy_topics(topics) or self._topics
         logger.info("Subscriber adding address " + str(address)
                     + " with topics " + str(topics))
@@ -95,9 +98,9 @@ class Subscriber(object):
         self.sub_addr[subscriber] = address
         self.addr_sub[address] = subscriber
         if self.poller:
-            self.poller.register(subscriber, POLLIN)        
+            self.poller.register(subscriber, POLLIN)
         return True
-    
+
     def remove(self, address):
         """Remove *address* from the subscribing list for *topics*.
         """
@@ -128,7 +131,7 @@ class Subscriber(object):
 
     def add_hook_sub(self, address, topics, callback):
         """Specify a *callback* in the same stream (thread) as the main receive
-        loop. The callback will be called with the received messages from the 
+        loop. The callback will be called with the received messages from the
         specified subscription.
 
         Good for operations, which is required to be done in the same thread as
@@ -143,7 +146,7 @@ class Subscriber(object):
         self._add_hook(socket, callback)
 
     def add_hook_pull(self, address, callback):
-        """Same as above, but with a PULL socket. 
+        """Same as above, but with a PULL socket.
         (e.g good for pushed 'inproc' messages from another thread).
         """
         logger("Subscriber adding PULL hook " + str(address))
@@ -157,8 +160,8 @@ class Subscriber(object):
         self._hooks.append(socket)
         self._hooks_cb[socket] = callback
         if self.poller:
-            self.poller.register(socket, POLLIN)        
-        
+            self.poller.register(socket, POLLIN)
+
     @property
     def addresses(self):
         """Get the addresses
@@ -181,7 +184,7 @@ class Subscriber(object):
             self.poller.register(sub, POLLIN)
         self._loop = True
         try:
-            while(self._loop):
+            while self._loop:
                 try:
                     socks = dict(self.poller.poll(timeout=timeout))
                     if socks:
@@ -208,10 +211,10 @@ class Subscriber(object):
         finally:
             for sub in self.subscribers + self._hooks:
                 self.poller.unregister(sub)
-            
+
     def __call__(self, **kwargs):
         return self.recv(**kwargs)
-    
+
     def stop(self):
         """Stop the subscriber.
         """
@@ -242,7 +245,7 @@ class Subscriber(object):
                 else:
                     t__ = _MAGICK + '/' + t__
             ts_.append(t__)
-        return ts_                
+        return ts_
 
     def __del__(self):
         for sub in self.subscribers + self._hooks:
@@ -254,8 +257,18 @@ class Subscriber(object):
 
 
 class NSSubscriber(object):
-    """Like the Subscribe context in a class form.
+    """Automatically subscribe to *services* (requesting addresses from the
+    nameserver. If *topics* are specified, filter the messages through the
+    beginning of the subject. *addr_listener* allows to add new services on the
+    fly as they appear on the network. Additional *addresses* to subscribe to
+    can be specified, and address translation can be performed if *translate*
+    is set to True (False by default). The *timeout* here is specified in
+    seconds.
+
+    Note: 'services = None', means no services, and 'services =""' means all
+    services.
     """
+
     def __init__(self, services=None, topics=_MAGICK, addr_listener=False,
                  addresses=None, timeout=10, translate=False):
         """ Note: services = None, means no services
@@ -268,23 +281,24 @@ class NSSubscriber(object):
 
         self._timeout = timeout
         self._translate = translate
-            
+
         self._subscriber = None
         self._addr_listener = addr_listener
 
     def start(self):
-        
+        """Start the subscriber.
+        """
         def _get_addr_loop(service, timeout):
             """Try to get the address of *service* until for *timeout* seconds.
             """
             then = datetime.now() + timedelta(seconds=timeout)
-            while(datetime.now() < then):
+            while datetime.now() < then:
                 addrs = get_pub_address(service)
                 if addrs:
                     return [addr["URI"] for addr in addrs]
                 time.sleep(1)
             return []
-        
+
         # Search for addresses corresponding to service.
         for service in self._services:
             addr = _get_addr_loop(service, self._timeout)
@@ -299,7 +313,7 @@ class NSSubscriber(object):
         self._subscriber = Subscriber(self._addresses,
                                       self._topics,
                                       translate=self._translate)
-                                      
+
         if self._addr_listener:
             self._addr_listener = _AddressListener(self._subscriber,
                                                    self._services)
@@ -307,14 +321,17 @@ class NSSubscriber(object):
         return self._subscriber
 
     def stop(self):
+        """Stop the subscriber.
+        """
         if self._subscriber is not None:
             self._subscriber.close()
             self._subscriber = None
 
-    
+
 
 class Subscribe(NSSubscriber):
-    """Subscriber context.
+    """Subscriber context. See :class:`NSSubscriber` for initialization
+    parameters.
 
     Example::
 
@@ -327,7 +344,7 @@ class Subscribe(NSSubscriber):
     """
     def __enter__(self):
         return self.start()
-        
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self.stop()
 
@@ -348,16 +365,16 @@ class _AddressListener(object):
             services = [services,]
         self.services = services
         self.subscriber = subscriber
-        self.subscriber.add_hook_sub("tcp://localhost:16543", 
+        self.subscriber.add_hook_sub("tcp://localhost:16543",
                                      ["pytroll://address",],
                                      self.handle_msg)
-        
+
     def handle_msg(self, msg):
         """handle the message *msg*.
         """
         addr_ = msg.data["URI"]
         status = msg.data.get('status', True)
-        if (status):
+        if status:
             type_ = msg.data.get('type')
             for service in self.services:
                 if not service or service in type_:

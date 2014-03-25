@@ -53,8 +53,16 @@ def get_own_ip():
 class Publisher(object):
     """The publisher class.
 
+    *address* is the current address of the Publisher, e.g.::
+
+      tcp://localhost:1234
+
+    Setting the port to 0 means that a random free port will be chosen for you.
+
+    *name* is simply the name of the publisher.
+
     An example on how to use the :class:`Publisher`::
-    
+
         from posttroll.publisher import Publisher, get_own_ip
         from posttroll.message import Message
         import time
@@ -85,18 +93,13 @@ class Publisher(object):
 
         # Check for port 0 (random port)
         u__ = urlsplit(self.destination)
-        port = None
-        if ':' in u__.netloc:
-            try:
-                port = int(u__.netloc.split(':')[-1])
-            except ValueError:
-                pass
+        port = u__.port
 
         if port == 0:
-            dest = urlunsplit((u__.scheme, u__.netloc.split(':')[0],
+            dest = urlunsplit((u__.scheme, u__.hostname,
                                u__.path, u__.query, u__.fragment))
             self.port_number = self.publish.bind_to_random_port(dest)
-            netloc = u__.netloc.split(':')[0] + ":" + str(self.port_number)
+            netloc = u__.hostname + ":" + str(self.port_number)
             self.destination = urlunsplit((u__.scheme, netloc, u__.path,
                                            u__.query, u__.fragment))
         else:
@@ -105,7 +108,7 @@ class Publisher(object):
 
         # Initialize no heartbeat
         self._heartbeat = None
-    
+
     def send(self, msg):
         """Send the given message.
         """
@@ -137,7 +140,7 @@ class _PublisherHeartbeat(object):
 
     def __call__(self, min_interval=0):
         if not min_interval or (
-            (datetime.utcnow() - self.lastbeat >= 
+            (datetime.utcnow() - self.lastbeat >=
              timedelta(seconds=min_interval))):
             self.lastbeat = datetime.utcnow()
             logger.debug("Publish heartbeat")
@@ -145,11 +148,18 @@ class _PublisherHeartbeat(object):
 
 
 class NoisyPublisher(object):
-    """Same as a Publisher, but with broadcasting of address.
-    Or same as Publish in class mode.
+    """Same as a Publisher, but with broadcasting of its own name and address.
+
+    Setting the *name* to a meaningful value is import since it will be
+    searchable in the nameserver. The *port* is to be provided as an int, and
+    setting to 0 means it will be set to a random free port. *aliases* is a
+    list of alternative names for the process. *broadcast_interval*, in seconds
+    (2 by default) says how often the current name and address should be
+    broadcasted.
+
     """
 
-    
+
     _publisher_class = Publisher
 
     def __init__(self, name, port, aliases=None, broadcast_interval=2):
@@ -161,13 +171,15 @@ class NoisyPublisher(object):
                 self._aliases = aliases
         else:
             self._aliases = [name]
-        
+
         self._port = port
         self._broadcast_interval = broadcast_interval
         self._broadcaster = None
         self._publisher = None
 
     def start(self):
+        """Start the publisher.
+        """
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name)
         logger.debug("entering publish " + str(self._publisher.destination))
@@ -179,6 +191,8 @@ class NoisyPublisher(object):
         return self._publisher
 
     def stop(self):
+        """Stop the publisher.
+        """
         logger.debug("exiting publish")
         if self._publisher is not None:
             self._publisher.stop()
@@ -186,12 +200,14 @@ class NoisyPublisher(object):
         if self._broadcaster is not None:
             self._broadcaster.stop()
             self._broadcaster = None
-            
+
 class Publish(NoisyPublisher):
     """The publishing context.
 
     Broadcasts also the *name*, *port*, and optional *aliases* (using
     :class:`posttroll.message_broadcaster.MessageBroadcaster`).
+
+    See :class:`NoisyPublisher` for more information on the arguments.
 
     Example on how to use the :class:`Publish` context::
     

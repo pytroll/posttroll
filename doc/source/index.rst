@@ -65,7 +65,7 @@ And the subscribing code::
 
     from posttroll.subscriber import Subscribe
 
-        with Subscribe("a_service", "my_topic",) as sub:
+        with Subscribe("a_service", "counter",) as sub:
             for msg in sub.recv():
                 print msg
 
@@ -76,8 +76,8 @@ Converting from older posttroll versions
 ----------------------------------------
   
 Migrating from older versions of posttroll (pre v0.2), so some adaptations have
-to be made. Instead of *data types*, the services now have *aliases*. So the
-old directive. So, for the publishing, the following call::
+to be made. Instead of *data types*, the services now have *aliases*. So, for
+the publishing, the following call::
   
   with Publish("a_service", ["data_type1", "data_type2"], 9000) as pub:
  
@@ -90,13 +90,17 @@ On the subscriber side, the following::
   with Subscribe("data_type1") as sub:
 
 
-would stay unchanged. However, the behaviour is changed: all the messages
-comming from the publisher sending this data type would be iterated over,
-including messages that have another data type than the one required. This is
-why there is now the possibility to add a subject filter directly inside the
-:class:`posttroll.subscriber.Subscribe` call::
+would have to be changed to::
 
-  with Subscribe("data_type1", "data_type1") as sub:
+  with Subscribe("a_service") as sub:
+
+Note that the behaviour is changed: all the messages comming from the publisher
+*a_service* would be iterated over, including messages that have another data
+type than the one you want. This is why there is now the possibility to add a
+subject filter directly inside the :class:`posttroll.subscriber.Subscribe`
+call::
+
+  with Subscribe("a_service", "data_type1") as sub:
 
 This means that the subjects of the messages you are interested in should start
 with "data_type1" though...

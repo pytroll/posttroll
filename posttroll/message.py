@@ -4,7 +4,7 @@
 # Copyright (c) 2010-2012, 2014.
 
 # Author(s):
- 
+
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud    <martin.raspaud@smhi.se>
 
@@ -22,7 +22,7 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
-"""A Message goes like: 
+"""A Message goes like:
 <subject> <type> <sender> <timestamp> <version> [mime-type data]
 
 ::
@@ -95,13 +95,13 @@ class Message(object):
     - Has to be initialized with a *rawstr* (encoded message to decode) OR
     - Has to be initialized with a *subject*, *type* and optionally *data*, in
       which case:
-      
+
       - It will add add few extra attributes.
       - It will make a Message pickleable.
     """
 
     def __init__(self, subject='', atype='', data='', binary=False, rawstr=None):
-        """Initialize a Message from a subject, type and data ... 
+        """Initialize a Message from a subject, type and data...
         or from a raw string.
         """
         if rawstr:
@@ -124,7 +124,7 @@ class Message(object):
             return self.sender[:self.sender.index('@')]
         except ValueError:
             return ''
-      
+
     @property
     def host(self):
         """Try to return a host from a sender.
@@ -146,7 +146,7 @@ class Message(object):
         """Decode a raw string into a Message.
         """
         return Message(rawstr=rawstr)
-    
+
     def encode(self):
         """Encode a Message to a raw string.
         """
@@ -163,14 +163,14 @@ class Message(object):
         """Validate a messages attributes.
         """
         if not is_valid_subject(self.subject):
-            raise MessageError, "Invalid subject: '%s'" % self.subject
+            raise MessageError("Invalid subject: '%s'" % self.subject)
         if not is_valid_type(self.type):
-            raise MessageError, "Invalid type: '%s'" % self.type
+            raise MessageError("Invalid type: '%s'" % self.type)
         if not is_valid_sender(self.sender):
-            raise MessageError, "Invalid sender: '%s'" % self.sender
+            raise MessageError("Invalid sender: '%s'" % self.sender)
         if not self.binary and not is_valid_data(self.data):
-            raise MessageError, "Invalid data: data is not JSON serializable"
-        
+            raise MessageError("Invalid data: data is not JSON serializable")
+
     #
     # Make it pickleable.
     #
@@ -218,18 +218,18 @@ def _decode(rawstr):
     """
     # Check for the magick word.
     if not rawstr.startswith(_MAGICK):
-        raise MessageError, "This is not a '%s' message (wrong magick word)"\
-            % _MAGICK
+        raise MessageError("This is not a '%s' message (wrong magick word)"
+                           % _MAGICK)
     rawstr = rawstr[len(_MAGICK):]
 
     # Check for element count and version
     raw = re.split(r"\s+", rawstr, maxsplit=6)
     if len(raw) < 5:
-        raise MessageError, "Could node decode raw string: '%s ...'"\
-            % str(rawstr[:36])
+        raise MessageError("Could node decode raw string: '%s ...'"
+                           % str(rawstr[:36]))
     version = raw[4][:len(_VERSION)]
     if not _is_valid_version(version):
-        raise MessageError, "Invalid Message version: '%s'" % str(version)
+        raise MessageError("Invalid Message version: '%s'" % str(version))
 
     # Start to build message
     msg = dict((('subject', raw[0].strip()),
@@ -254,7 +254,7 @@ def _decode(rawstr):
             msg['binary'] = False
         except ValueError:
             del msg
-            raise MessageError, "JSON decode failed on '%s ...'" % raw[6][:36]
+            raise MessageError("JSON decode failed on '%s ...'" % raw[6][:36])
     elif mimetype == 'text/ascii':
         msg['data'] = str(data)
         msg['binary'] = False
@@ -262,7 +262,7 @@ def _decode(rawstr):
         msg['data'] = data
         msg['binary'] = True
     else:
-        raise MessageError, "Unknown mime-type '%s'" % mimetype
+        raise MessageError("Unknown mime-type '%s'" % mimetype)
 
     return msg
 
