@@ -23,6 +23,8 @@ sys.path.insert(0, os.path.abspath('../../posttroll'))
 
 
 class Mock(object):
+    """A mocking class
+    """
     def __init__(self, *args, **kwargs):
         pass
 
@@ -34,9 +36,9 @@ class Mock(object):
         if name in ('__file__', '__path__'):
             return '/dev/null'
         elif name[0] == name[0].upper():
-            mockType = type(name, (), {})
-            mockType.__module__ = __name__
-            return mockType
+            mock_type = type(name, (), {})
+            mock_type.__module__ = __name__
+            return mock_type
         else:
             return Mock()
 
@@ -67,7 +69,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PostTroll'
-copyright = u'2012, Pytroll crew'
+copyright = u'2012-2014, Pytroll crew'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

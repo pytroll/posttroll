@@ -245,7 +245,7 @@ def _decode(rawstr):
     except IndexError:
         mimetype = None
 
-    if mimetype == None:
+    if mimetype is None:
         msg['data'] = ''
         msg['binary'] = False
     elif mimetype == 'application/json':
@@ -253,7 +253,6 @@ def _decode(rawstr):
             msg['data'] = json.loads(raw[6], object_hook=datetime_decoder)
             msg['binary'] = False
         except ValueError:
-            del msg
             raise MessageError("JSON decode failed on '%s ...'" % raw[6][:36])
     elif mimetype == 'text/ascii':
         msg['data'] = str(data)

@@ -155,12 +155,12 @@ class AddressReceiver(object):
                         msg.data['status'] = True
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
-                        
+
                         logger.debug('receiving address ' + str(addr)
                                      + " " + str(name) + " " + str(metadata))
                         if addr not in self._addresses:
-                            logger.info("nameserver: publish add '%s'"
-                                        % str(msg))
+                            logger.info("nameserver: publish add '%s'",
+                                        str(msg))
                             pub.send(msg.encode())
                         self._add(addr, metadata)
             finally:

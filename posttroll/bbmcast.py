@@ -3,7 +3,7 @@
 # Copyright (c) 2010-2012, 2014.
 
 # Author(s):
- 
+
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
@@ -36,8 +36,6 @@ MC_GROUP = '225.0.0.212'
 # local network multicast (<32)
 TTL_LOCALNET = 31
 
-import sys
-import time
 import struct
 from socket import (socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR,
                     SO_BROADCAST, IPPROTO_IP, IP_ADD_MEMBERSHIP, INADDR_ANY,
@@ -52,7 +50,8 @@ SocketTimeout = timeout # for easy access to socket.timeout
 #
 #-----------------------------------------------------------------------------
 class MulticastSender(object):
-
+    """Multicast sender on *port* and *mcgroup*.
+    """
     def __init__(self, port, mcgroup=MC_GROUP):
         self.port = port
         self.group = mcgroup
@@ -62,16 +61,20 @@ class MulticastSender(object):
         self.socket.sendto(data, (self.group, self.port))
 
     def close(self):
+        """Close the sender.
+        """
         self.socket.close()
 
 # Allow non-object interface
 def mcast_sender(mcgroup=MC_GROUP):
+    """Non-object interface for sending multicast messages.
+    """
     sock = socket(AF_INET, SOCK_DGRAM)
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     if _is_broadcast_group(mcgroup):
         group = '<broadcast>'
         sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    elif((int(mcgroup.split(".")[0]) > 239) or 
+    elif((int(mcgroup.split(".")[0]) > 239) or
          (int(mcgroup.split(".")[0]) < 224)):
         raise IOError("Invalid multicast address.")
     else:
@@ -86,15 +89,17 @@ def mcast_sender(mcgroup=MC_GROUP):
 #
 #-----------------------------------------------------------------------------
 class MulticastReceiver(object):
-    
+    """Multicast receiver on *port* for an *mcgroup*.
+    """
     BUFSIZE = 1024
     def __init__(self, port, mcgroup=MC_GROUP):
         # Note: a multicast receiver will also receive broadcast on same port.
         self.port = port
         self.socket, self.group = mcast_receiver(port, mcgroup)
-        
+
     def settimeout(self, tout=None):
-        # A timeout will throw a 'socket.timeout'
+        """A timeout will throw a 'socket.timeout'.
+        """
         self.socket.settimeout(tout)
         return self
 
@@ -103,12 +108,15 @@ class MulticastReceiver(object):
         return data, sender
 
     def close(self):
+        """Close the receiver.
+        """
         self.socket.close()
 
 # Allow non-object interface
 def mcast_receiver(port, mcgroup=MC_GROUP):
-    # Open a UDP socket, bind it to a port and select a multicast group
- 
+    """Open a UDP socket, bind it to a port and select a multicast group.
+    """
+
     if _is_broadcast_group(mcgroup):
         group = None
     else:
@@ -144,7 +152,7 @@ def mcast_receiver(port, mcgroup=MC_GROUP):
 
         # Add group membership
         sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, mreq)
-        
+
     return sock, group or '<broadcast>'
 
 #-----------------------------------------------------------------------------
@@ -153,6 +161,8 @@ def mcast_receiver(port, mcgroup=MC_GROUP):
 #
 #-----------------------------------------------------------------------------
 def _is_broadcast_group(group):
+    """Check if *group* is a valid multicasting group.
+    """
     if not group or gethostbyname(group) in ('0.0.0.0', '255.255.255.255'):
         return True
     return False

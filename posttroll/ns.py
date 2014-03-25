@@ -51,7 +51,7 @@ def get_pub_addresses(names=None, timeout=10):
         names = ["", ]
     for name in names:
         then = datetime.now() + timedelta(seconds=timeout)
-        while(datetime.now() < then):
+        while datetime.now() < then:
             addrs += get_pub_address(name)
             if addrs:
                 break

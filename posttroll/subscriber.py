@@ -233,7 +233,7 @@ class Subscriber(object):
         """
         # If topic does not start with messages._MAGICK (pytroll:/), it will be
         # prepended.
-        if topics == None:
+        if topics is None:
             return None
         if isinstance(topics, (str, unicode)):
             topics = [topics,]
@@ -353,7 +353,7 @@ def _to_array(obj):
     """
     if isinstance(obj, (str, unicode)):
         return [obj,]
-    if obj == None:
+    if obj is None:
         return []
     return obj
 

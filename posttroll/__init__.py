@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012.
+# Copyright (c) 2010-2012, 2014.
 
 # Author(s):
- 
+
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
@@ -36,7 +36,7 @@ def strp_isoformat(strg):
     if len(strg) < 19 or len(strg) > 26:
         if len(strg) > 30:
             strg = strg[:30] + '...'
-        raise ValueError, "Invalid ISO formatted time string '%s'"%strg
+        raise ValueError("Invalid ISO formatted time string '%s'"%strg)
     if strg.find(".") == -1:
         strg += '.000000'
     if sys.version[0:3] >= '2.6':
