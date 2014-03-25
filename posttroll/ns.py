@@ -70,13 +70,14 @@ def get_pub_address(name, timeout=10):
         socket.setsockopt(LINGER, timeout*1000)
         socket.connect("tcp://localhost:5555")
 
+        poller = Poller()
+        poller.register(socket, POLLIN)
+
+
         message = Message("/oper/ns", "request", {"type": name})
         socket.send(str(message))
 
-
         # Get the reply.
-        poller = Poller()
-        poller.register(socket, POLLIN)
         sock = poller.poll(timeout=timeout * 1000)
         if sock:
             if sock[0][0] == socket:

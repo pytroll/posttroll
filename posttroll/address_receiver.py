@@ -94,7 +94,8 @@ class AddressReceiver(object):
         self._address_lock.acquire()
         try:
             for metadata in self._addresses.values():
-                if name and name in metadata["type"]:
+                if (name == "" or
+                    (name and name in metadata["type"])):
                     mda = copy.copy(metadata)
                     mda["receive_time"] = mda["receive_time"].isoformat()
                     addrs.append(mda)
@@ -102,15 +103,15 @@ class AddressReceiver(object):
             self._address_lock.release()
         logger.debug('return address ' + str(addrs))
         return addrs
-    
+
     def _check_age(self, pub, min_interval=timedelta(seconds=0)):
         """Check the age of the receiver.
         """
         now = datetime.utcnow()
         if (now - self._last_age_check) <= min_interval:
             return
-        
-        
+
+
         logger.debug(str(datetime.utcnow()) + " checking addresses")
         self._last_age_check = now
         self._address_lock.acquire()
@@ -123,7 +124,7 @@ class AddressReceiver(object):
                            'type': metadata['type']}
                     msg = Message('/address/' + metadata['name'], 'info', mda)
                     del self._addresses[addr]
-                    logger.info("publish remove '%s'" % str(msg))
+                    logger.info("publish remove '%s'", str(msg))
                     pub.send(msg.encode())
         finally:
             self._address_lock.release()
