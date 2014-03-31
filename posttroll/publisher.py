@@ -118,6 +118,7 @@ class Publisher(object):
     def stop(self):
         """Stop the publisher.
         """
+        self.publish.setsockopt(zmq.LINGER, 0)
         self.publish.close()
         self.context.term()
         return self
@@ -189,6 +190,11 @@ class NoisyPublisher(object):
                                             self._aliases,
                                             self._broadcast_interval).start()
         return self._publisher
+
+    def send(self, msg):
+        """Send a *msg*.
+        """
+        return self._publisher.send(msg)
 
     def stop(self):
         """Stop the publisher.

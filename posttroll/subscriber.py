@@ -29,7 +29,7 @@ from urlparse import urlsplit
 
 import time
 # pylint: disable=E0611
-from zmq import (SUB, Context, Poller,
+from zmq import (SUB, Context, Poller, LINGER,
                  POLLIN, SUBSCRIBE, PULL, NOBLOCK, ZMQError)
 # pylint: enable=E0611
 from posttroll.message import Message, _MAGICK
@@ -225,6 +225,7 @@ class Subscriber(object):
         """
         self.stop()
         for sub in self.subscribers + self._hooks:
+            sub.setsockopt(LINGER, 0)
             sub.close()
 
     @staticmethod
@@ -310,6 +311,7 @@ class NSSubscriber(object):
             self._addresses.extend(addr)
 
         # Subscribe to those services and topics.
+        logger.debug("Subscribing to topics " + str(self._topics))
         self._subscriber = Subscriber(self._addresses,
                                       self._topics,
                                       translate=self._translate)
