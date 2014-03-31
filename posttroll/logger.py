@@ -27,6 +27,7 @@
 # TODO: remove old hanging subscriptions
 
 from posttroll.subscriber import Subscriber, Subscribe
+from posttroll.publisher import NoisyPublisher
 from posttroll.ns import get_pub_address
 from posttroll.message import Message
 from threading import Thread
@@ -39,7 +40,7 @@ import logging.handlers
 class PytrollFormatter(logging.Formatter):
     """Formats a pytroll message inside a log record.
     """
-    
+
     def __init__(self, subject):
         logging.Formatter.__init__(self)
         self._subject = subject
@@ -53,13 +54,18 @@ class PytrollHandler(logging.Handler):
     """Sends the record through a pytroll publisher.
     """
 
-    def __init__(self, publisher):
+    def __init__(self, name, port=0):
         logging.Handler.__init__(self)
-        self._publisher = publisher
+        self._publisher = NoisyPublisher(name, port)
+        self._publisher.start()
 
     def emit(self, record):
         message = self.format(record)
         self._publisher.send(message)
+
+    def close(self):
+        self._publisher.stop()
+        logging.Handler.close(self)
 
 
 
@@ -110,12 +116,6 @@ formatter = ColoredFormatter("[%(asctime)s %(levelname)-19s] %(message)s")
 ch.setFormatter(formatter)
 LOG.addHandler(ch)
 
-ch2 = logging.handlers.SMTPHandler("localhost", "safusr.u@smhi.se",
-                                   ["martin.raspaud@smhi.se"], "Pytroll logger")
-ch2.setLevel(logging.WARNING)
-formatter2 = logging.Formatter("[%(asctime)s %(levelname)-8s] %(message)s")
-ch2.setFormatter(formatter2)
-LOG.addHandler(ch2)
 
 class Logger(object):
 
