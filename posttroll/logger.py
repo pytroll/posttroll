@@ -26,9 +26,8 @@
 
 # TODO: remove old hanging subscriptions
 
-from posttroll.subscriber import Subscriber, Subscribe
+from posttroll.subscriber import Subscribe
 from posttroll.publisher import NoisyPublisher
-from posttroll.ns import get_pub_address
 from posttroll.message import Message
 from threading import Thread
 
@@ -36,6 +35,7 @@ import copy
 import logging
 import logging.handlers
 
+LOG = logging.getLogger(__name__)
 
 class PytrollFormatter(logging.Formatter):
     """Formats a pytroll message inside a log record.
@@ -85,7 +85,7 @@ RESET_SEQ = "\033[0m"
 class ColoredFormatter(logging.Formatter):
     """Adds a color for the levelname.
     """
-    def __init__(self, msg, use_color = True):
+    def __init__(self, msg, use_color=True):
         logging.Formatter.__init__(self, msg)
         self.use_color = use_color
 
@@ -103,18 +103,6 @@ class ColoredFormatter(logging.Formatter):
 #logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s',
 #                    level=logging.DEBUG)
 
-# TODO: put all this in the ifmain section
-
-LOG = logging.getLogger("pytroll")
-LOG.setLevel(logging.DEBUG)
-
-ch = logging.StreamHandler()
-#ch = logging.handlers.TimedRotatingFileHandler("pytroll.log", "midnight", backupCount=7)
-ch.setLevel(logging.DEBUG)
-
-formatter = ColoredFormatter("[%(asctime)s %(levelname)-19s] %(message)s")
-ch.setFormatter(formatter)
-LOG.addHandler(ch)
 
 
 class Logger(object):
@@ -170,6 +158,17 @@ class Logger(object):
         self.loop = False
 
 if __name__ == '__main__':
+
+    LOG = logging.getLogger("pytroll")
+    LOG.setLevel(logging.DEBUG)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    formatter = ColoredFormatter("[%(asctime)s %(levelname)-19s] %(message)s")
+    ch.setFormatter(formatter)
+    LOG.addHandler(ch)
+
     import time
     try:
         #logger = Logger()
