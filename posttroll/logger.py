@@ -41,12 +41,12 @@ class PytrollFormatter(logging.Formatter):
     """Formats a pytroll message inside a log record.
     """
 
-    def __init__(self, subject):
-        logging.Formatter.__init__(self)
-        self._subject = subject
+    def __init__(self, fmt, datefmt):
+        logging.Formatter.__init__(self, fmt, datefmt)
 
     def format(self, record):
-        mesg = Message(self._subject, "log." + str(record.levelname).lower(),
+        subject = "/".join(("log", record.levelname, str(record.name)))
+        mesg = Message(subject, "log." + str(record.levelname).lower(),
                        record.getMessage())
         return str(mesg)
 
