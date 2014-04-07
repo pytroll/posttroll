@@ -26,6 +26,7 @@
 from urlparse import urlsplit, urlunsplit
 from datetime import datetime, timedelta
 import zmq
+from posttroll import context
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddresstype
 import socket
@@ -35,6 +36,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 TEST_HOST = 'dmi.dk'
+
 
 def get_own_ip():
     """Get the host's ip number.
@@ -88,8 +90,7 @@ class Publisher(object):
         # pylint: disable=E1103
         self.name = name
         self.destination = address
-        self.context = zmq.Context()
-        self.publish = self.context.socket(zmq.PUB)
+        self.publish = context.socket(zmq.PUB)
 
         # Check for port 0 (random port)
         u__ = urlsplit(self.destination)
@@ -120,7 +121,6 @@ class Publisher(object):
         """
         self.publish.setsockopt(zmq.LINGER, 0)
         self.publish.close()
-        self.context.term()
         return self
 
     def heartbeat(self, min_interval=0):

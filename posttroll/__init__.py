@@ -25,6 +25,10 @@ import sys
 assert sys.version[0:3] >= '2.5', 'Python version 2.5 or above is required.'
 from datetime import datetime
 
+import zmq
+context = zmq.Context()
+
+
 def strp_isoformat(strg):
     """Decode an ISO formatted string to a datetime object.
     Allow a time-string without microseconds.

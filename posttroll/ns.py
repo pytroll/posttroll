@@ -27,9 +27,10 @@ from datetime import datetime, timedelta
 
 import time
 # pylint: disable=E0611
-from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK, Poller, Context
+from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK, Poller
 # pylint: enable=E0611
 
+from posttroll import context
 from posttroll.address_receiver import AddressReceiver
 from posttroll.message import Message
 
@@ -62,10 +63,8 @@ def get_pub_address(name, timeout=10):
     """Get the address of the publisher for a given publisher *name*.
     """
 
-    ctxt = Context()
-
     # Socket to talk to server
-    socket = ctxt.socket(REQ)
+    socket = context.socket(REQ)
     try:
         socket.setsockopt(LINGER, timeout*1000)
         socket.connect("tcp://localhost:5555")
@@ -88,7 +87,6 @@ def get_pub_address(name, timeout=10):
                                %timeout)
     finally:
         socket.close()
-        ctxt.term()
 
 ### Server part.
 
@@ -120,7 +118,6 @@ class NameServer(object):
         port = 5555
 
         try:
-            context = Context()
             self.listener = context.socket(REP)
             self.listener.bind("tcp://*:"+str(port))
             poller = Poller()
@@ -142,7 +139,6 @@ class NameServer(object):
         finally:
             arec.stop()
             self.listener.close()
-            context.term()
 
     def stop(self):
         """Stop the name server.

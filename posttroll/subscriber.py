@@ -29,9 +29,10 @@ from urlparse import urlsplit
 
 import time
 # pylint: disable=E0611
-from zmq import (SUB, Context, Poller, LINGER,
+from zmq import (SUB, Poller, LINGER,
                  POLLIN, SUBSCRIBE, PULL, NOBLOCK, ZMQError)
 # pylint: enable=E0611
+from posttroll import context
 from posttroll.message import Message, _MAGICK
 from posttroll.ns import get_pub_address
 
@@ -63,7 +64,6 @@ class Subscriber(object):
     """
     def __init__(self, addresses, topics='', message_filter=None,
                  translate=False):
-        self._context = Context()
         self._topics = self._magickfy_topics(topics)
         self._filter = message_filter
         self._translate = translate
@@ -91,7 +91,7 @@ class Subscriber(object):
         topics = self._magickfy_topics(topics) or self._topics
         logger.info("Subscriber adding address " + str(address)
                     + " with topics " + str(topics))
-        subscriber = self._context.socket(SUB)
+        subscriber = context.socket(SUB)
         for t__ in topics:
             subscriber.setsockopt(SUBSCRIBE, t__)
         subscriber.connect(address)
@@ -139,7 +139,7 @@ class Subscriber(object):
         """
         logger.info("Subscriber adding SUB hook " + str(address)
                     + " for topics " + str(topics))
-        socket = self._context.socket(SUB)
+        socket = context.socket(SUB)
         for t__ in self._magickfy_topics(topics):
             socket.setsockopt(SUBSCRIBE, t__)
         socket.connect(address)
@@ -150,7 +150,7 @@ class Subscriber(object):
         (e.g good for pushed 'inproc' messages from another thread).
         """
         logger("Subscriber adding PULL hook " + str(address))
-        socket = self._context.socket(PULL)
+        socket = context.socket(PULL)
         socket.connect(address)
         self._add_hook(socket, callback)
 
@@ -254,7 +254,6 @@ class Subscriber(object):
                 sub.close()
             except:
                 pass
-        self._context.term()
 
 
 class NSSubscriber(object):
