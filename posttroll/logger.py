@@ -35,7 +35,7 @@ import copy
 import logging
 import logging.handlers
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class PytrollFormatter(logging.Formatter):
     """Formats a pytroll message inside a log record.
@@ -131,25 +131,25 @@ class Logger(object):
                     if msg.type in ["log.debug", "log.info",
                                     "log.warning", "log.error",
                                     "log.critical"]:
-                        getattr(LOG, msg.type[4:])(msg.subject + " " +
-                                                   msg.sender + " " +
-                                                   str(msg.data) + " " +
-                                                   str(msg.time))
+                        getattr(logger, msg.type[4:])(msg.subject + " " +
+                                                      msg.sender + " " +
+                                                      str(msg.data) + " " +
+                                                      str(msg.time))
 
                     elif msg.binary:
-                        LOG.debug(msg.subject + " " +
-                                  msg.sender + " " +
-                                  msg.type + " " +
-                                  "[binary] " +
-                                  str(msg.time))
+                        logger.debug(msg.subject + " " +
+                                     msg.sender + " " +
+                                     msg.type + " " +
+                                     "[binary] " +
+                                     str(msg.time))
                     else:
-                        LOG.debug(msg.subject + " " +
-                                  msg.sender + " " +
-                                  msg.type + " " +
-                                  str(msg.data) + " " +
-                                  str(msg.time))
+                        logger.debug(msg.subject + " " +
+                                     msg.sender + " " +
+                                     msg.type + " " +
+                                     str(msg.data) + " " +
+                                     str(msg.time))
                 if not self.loop:
-                    LOG.info("Stop logging")
+                    logger.info("Stop logging")
                     break
 
     def stop(self):
@@ -157,22 +157,49 @@ class Logger(object):
         """
         self.loop = False
 
-if __name__ == '__main__':
+def run():
+    """Main function
+    """
+    import argparse
 
-    LOG = logging.getLogger("pytroll")
-    LOG.setLevel(logging.DEBUG)
+    global logger
 
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-r", "--rotated", help="Time rotated log file")
+    parser.add_argument("-v", "--verbose", help="print debug messages too",
+                        action="store_true")
+    parser.add_argument("-s", "--server", help="server to listen to",
+                        default="localhost")
+    parser.add_argument("-p", "--port", help="port to listen to",
+                        default=16543,
+                        type=int)
+    opts = parser.parse_args()
+
+    if opts.verbose:
+        loglevel = logging.DEBUG
+    else:
+        loglevel = logging.INFO
+
+    if opts.rotated:
+        handler = logging.handlers.TimedRotatingFileHandler(opts.rotated,
+                                                            when="midnight",
+                                                            backupCount=7)
+    else:
+        handler = logging.StreamHandler()
+
+    logger = logging.getLogger("pytroll")
+    logger.setLevel(loglevel)
+
+    handler.setLevel(loglevel)
 
     formatter = ColoredFormatter("[%(asctime)s %(levelname)-19s] %(message)s")
-    ch.setFormatter(formatter)
-    LOG.addHandler(ch)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
     import time
     try:
-        #logger = Logger()
-        logger = Logger(("safe", 16543))
+        logger = Logger((opts.server, opts.port))
+        #logger = Logger(("safe", 16543))
         logger.start()
         while True:
             time.sleep(1)
@@ -180,3 +207,6 @@ if __name__ == '__main__':
         logger.stop()
         print ("Thanks for using pytroll/logger. "
                "See you soon on www.pytroll.org!")
+
+if __name__ == '__main__':
+    run()

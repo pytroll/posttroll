@@ -41,7 +41,9 @@ setup(name="posttroll",
       author_email='martin.raspaud@smhi.se',
       url="http://github.com/mraspaud/posttroll",
       packages=['posttroll'],
-      scripts = ['bin/nameserver'],
+      entry_points={
+          'console_scripts': ['logger = posttroll.logger:run',]},
+      scripts=['bin/nameserver'],
       zip_safe=False,
       license="GPLv3",
       install_requires=requirements,
@@ -54,5 +56,5 @@ setup(name="posttroll",
           'Topic :: Scientific/Engineering',
           'Topic :: Communications'
           ],
-      test_suite = 'posttroll.tests.suite',
+      test_suite='posttroll.tests.suite',
       )
