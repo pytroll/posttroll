@@ -198,13 +198,13 @@ def run():
 
     import time
     try:
-        logger = Logger((opts.server, opts.port))
+        tlogger = Logger((opts.server, opts.port))
         #logger = Logger(("safe", 16543))
-        logger.start()
+        tlogger.start()
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        logger.stop()
+        tlogger.stop()
         print ("Thanks for using pytroll/logger. "
                "See you soon on www.pytroll.org!")
 
