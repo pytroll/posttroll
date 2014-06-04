@@ -165,13 +165,12 @@ class NoisyPublisher(object):
 
     def __init__(self, name, port, aliases=None, broadcast_interval=2):
         self._name = name
+        self._aliases = [name]
         if aliases:
             if isinstance(aliases, (str, unicode)):
-                self._aliases = [aliases]
+                self._aliases += [aliases]
             else:
-                self._aliases = aliases
-        else:
-            self._aliases = [name]
+                self._aliases += aliases
 
         self._port = port
         self._broadcast_interval = broadcast_interval
