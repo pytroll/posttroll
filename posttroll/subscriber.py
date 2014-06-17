@@ -376,11 +376,11 @@ class _AddressListener(object):
         addr_ = msg.data["URI"]
         status = msg.data.get('status', True)
         if status:
-            type_ = msg.data.get('type')
+            service = msg.data.get('service')
             for service in self.services:
-                if not service or service in type_:
+                if not service or service in service:
                     logger.debug("Adding address " + str(addr_)
-                                 + str(type_))
+                                 + str(service))
                     self.subscriber.add(addr_)
                     break
         else:

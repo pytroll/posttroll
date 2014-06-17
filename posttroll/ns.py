@@ -73,7 +73,7 @@ def get_pub_address(name, timeout=10):
         poller.register(socket, POLLIN)
 
 
-        message = Message("/oper/ns", "request", {"type": name})
+        message = Message("/oper/ns", "request", {"service": name})
         socket.send(str(message))
 
         # Get the reply.
@@ -132,7 +132,7 @@ class NameServer(object):
                 logger.debug("Replying to request: " + str(msg))
                 msg = Message.decode(msg)
                 self.listener.send_unicode(str(get_active_address(
-                    msg.data["type"], arec)))
+                    msg.data["service"], arec)))
         except KeyboardInterrupt:
             # Needed to stop the nameserver.
             pass

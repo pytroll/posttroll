@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 import zmq
 from posttroll import context
 from posttroll.message import Message
-from posttroll.message_broadcaster import sendaddresstype
+from posttroll.message_broadcaster import sendaddressservice
 import socket
 
 import logging
@@ -185,9 +185,9 @@ class NoisyPublisher(object):
         logger.debug("entering publish " + str(self._publisher.destination))
         addr = ("tcp://" + str(get_own_ip()) + ":"
                 + str(self._publisher.port_number))
-        self._broadcaster = sendaddresstype(self._name, addr,
-                                            self._aliases,
-                                            self._broadcast_interval).start()
+        self._broadcaster = sendaddressservice(self._name, addr,
+                                               self._aliases,
+                                               self._broadcast_interval).start()
         return self._publisher
 
     def send(self, msg):

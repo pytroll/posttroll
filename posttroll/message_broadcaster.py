@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012.
+# Copyright (c) 2010-2012, 2014.
 
 # Author(s):
  
@@ -30,7 +30,10 @@ from posttroll.bbmcast import MulticastSender, MC_GROUP
 
 __all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
 
-debug = os.environ.get('DEBUG', False)
+
+import logging
+logger = logging.getLogger(__name__)
+
 broadcast_port = 21200
 
 #-----------------------------------------------------------------------------
@@ -79,8 +82,7 @@ class MessageBroadcaster(object):
         self._is_running = True
         try:
             while self._do_run:
-                if debug:
-                    print "Advertizing.", str(self._message)
+                logger.debug("Advertizing %s", str(self._message))
                 self._sender(self._message)
                 time.sleep(self._interval)
         finally:
@@ -108,14 +110,14 @@ sendaddress = AddressBroadcaster
 # General thread to broadcast addresses and type.
 #
 #-----------------------------------------------------------------------------
-class AddressTypeBroadcaster(MessageBroadcaster):
+class AddressServiceBroadcaster(MessageBroadcaster):
     """Class to broadcast stuff.
     """
     def __init__(self, name, address, data_type, interval=2):
         msg = message.Message("/address/%s"%name, "info",
                               {"URI": address,
-                               "type": data_type}).encode()
+                               "service": data_type}).encode()
         MessageBroadcaster.__init__(self, msg, broadcast_port, interval) 
 #-----------------------------------------------------------------------------
 # default
-sendaddresstype = AddressTypeBroadcaster
+sendaddressservice = AddressServiceBroadcaster

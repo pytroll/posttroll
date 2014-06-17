@@ -58,7 +58,7 @@ class TestNS(unittest.TestCase):
             res = get_pub_addresses(["this_data"])
             self.assertEquals(len(res), 1)
             expected = {u'status': True,
-                        u'type': [u'data_provider', u'this_data'],
+                        u'service': [u'data_provider', u'this_data'],
                         u'name': u'address'}
             for key, val in expected.items():
                 self.assertEquals(res[0][key], val)

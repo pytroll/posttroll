@@ -95,7 +95,7 @@ class AddressReceiver(object):
         try:
             for metadata in self._addresses.values():
                 if (name == "" or
-                    (name and name in metadata["type"])):
+                    (name and name in metadata["service"])):
                     mda = copy.copy(metadata)
                     mda["receive_time"] = mda["receive_time"].isoformat()
                     addrs.append(mda)
@@ -121,7 +121,7 @@ class AddressReceiver(object):
                 if now - atime > self._max_age:
                     mda = {'status': False,
                            'URI': addr,
-                           'type': metadata['type']}
+                           'service': metadata['service']}
                     msg = Message('/address/' + metadata['name'], 'info', mda)
                     del self._addresses[addr]
                     logger.info("publish remove '%s'", str(msg))
