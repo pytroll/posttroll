@@ -3,7 +3,7 @@
 #
 # Copyright (c) 2009-2014.
 #
-# Author(s): 
+# Author(s):
 #   Lars Ørum Rasmussen <ras@dmi.dk>
 #   Martin Raspaud      <martin.raspaud@smhi.se>
 
@@ -52,7 +52,9 @@ def get_own_ip():
         sock.close()
     return ip_
 
+
 class Publisher(object):
+
     """The publisher class.
 
     *address* is the current address of the Publisher, e.g.::
@@ -84,6 +86,7 @@ class Publisher(object):
             pub.stop()
 
     """
+
     def __init__(self, address, name=""):
         """Bind the publisher class to a port.
         """
@@ -131,9 +134,12 @@ class Publisher(object):
             self._heartbeat = _PublisherHeartbeat(self)
         self._heartbeat(min_interval)
 
+
 class _PublisherHeartbeat(object):
+
     """Publisher for heartbeat.
     """
+
     def __init__(self, publisher):
         self.publisher = publisher
         self.subject = '/heartbeat/' + publisher.name
@@ -149,6 +155,7 @@ class _PublisherHeartbeat(object):
 
 
 class NoisyPublisher(object):
+
     """Same as a Publisher, but with broadcasting of its own name and address.
 
     Setting the *name* to a meaningful value is import since it will be
@@ -206,7 +213,9 @@ class NoisyPublisher(object):
             self._broadcaster.stop()
             self._broadcaster = None
 
+
 class Publish(NoisyPublisher):
+
     """The publishing context.
 
     Broadcasts also the *name*, *port*, and optional *aliases* (using
@@ -215,7 +224,7 @@ class Publish(NoisyPublisher):
     See :class:`NoisyPublisher` for more information on the arguments.
 
     Example on how to use the :class:`Publish` context::
-    
+
             from posttroll.publisher import Publish
             from posttroll.message import Message
             import time

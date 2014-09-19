@@ -36,8 +36,10 @@ from posttroll.subscriber import Subscribe, Subscriber
 
 
 class TestNS(unittest.TestCase):
+
     """Test the nameserver.
     """
+
     def setUp(self):
         self.ns = NameServer(max_age=timedelta(seconds=3))
         self.thr = Thread(target=self.ns.run)
@@ -81,12 +83,10 @@ class TestNS(unittest.TestCase):
                     tested = True
         self.assertTrue(tested)
 
-
     def test_pub_sub_add_rm(self):
         """Test adding and removing publishers.
         """
 
-        
         with Subscribe("this_data", "counter", True) as sub:
             time.sleep(11)
             self.assertEquals(len(sub.sub_addr), 0)
@@ -100,18 +100,19 @@ class TestNS(unittest.TestCase):
                     break
             time.sleep(3)
             self.assertEquals(len(sub.sub_addr), 0)
-        
+
 
 class TestPubSub(unittest.TestCase):
+
     """Testing the publishing and subscribing capabilities.
     """
+
     def test_pub_address_timeout(self):
         """Test timeout in offline nameserver.
         """
 
         self.assertRaises(TimeoutError,
                           get_pub_address, ["this_data"])
-
 
     def test_pub_suber(self):
         """Test publisher and subscriber.
@@ -126,7 +127,7 @@ class TestPubSub(unittest.TestCase):
             message = Message("/counter", "info", str(counter))
             pub.send(str(message))
             time.sleep(1)
-            
+
             msg = sub.recv(2).next()
             if msg is not None:
                 self.assertEquals(str(msg), str(message))
@@ -135,7 +136,6 @@ class TestPubSub(unittest.TestCase):
         pub.stop()
 
 
-        
 def suite():
     """The suite for test_bbmcast.
     """
@@ -143,5 +143,5 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestPubSub))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNS))
-    
+
     return mysuite

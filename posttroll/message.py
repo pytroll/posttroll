@@ -48,7 +48,9 @@ from posttroll import strp_isoformat
 _MAGICK = 'pytroll:/'
 _VERSION = 'v1.01'
 
+
 class MessageError(Exception):
+
     """This modules exceptions.
     """
     pass
@@ -58,20 +60,25 @@ class MessageError(Exception):
 # Utillities.
 #
 #-----------------------------------------------------------------------------
+
+
 def is_valid_subject(obj):
     """Currently we only check for empty strings.
     """
     return isinstance(obj, str) and bool(obj)
+
 
 def is_valid_type(obj):
     """Currently we only check for empty strings.
     """
     return isinstance(obj, str) and bool(obj)
 
+
 def is_valid_sender(obj):
     """Currently we only check for empty strings.
     """
     return isinstance(obj, str) and bool(obj)
+
 
 def is_valid_data(obj):
     """Check if data is JSON serializable.
@@ -89,7 +96,10 @@ def is_valid_data(obj):
 # Message class.
 #
 #-----------------------------------------------------------------------------
+
+
 class Message(object):
+
     """A Message.
 
     - Has to be initialized with a *rawstr* (encoded message to decode) OR
@@ -130,7 +140,7 @@ class Message(object):
         """Try to return a host from a sender.
         """
         try:
-            return self.sender[self.sender.index('@')+1:]
+            return self.sender[self.sender.index('@') + 1:]
         except ValueError:
             return ''
 
@@ -169,7 +179,8 @@ class Message(object):
         if not is_valid_sender(self.sender):
             raise MessageError("Invalid sender: '%s'" % self.sender)
         if not self.binary and not is_valid_data(self.data):
-            raise MessageError("Invalid data: data is not JSON serializable")
+            raise MessageError("Invalid data: data is not JSON serializable: %s"
+                               % str(self.data))
 
     #
     # Make it pickleable.
@@ -186,10 +197,13 @@ class Message(object):
 # Decode / encode
 #
 #-----------------------------------------------------------------------------
+
+
 def _is_valid_version(version):
     """Check version.
     """
     return version == _VERSION
+
 
 def datetime_decoder(dct):
     """Decode datetimes to python objects.
@@ -212,6 +226,7 @@ def datetime_decoder(dct):
         return [x[1] for x in result]
     elif isinstance(dct, dict):
         return dict(result)
+
 
 def _decode(rawstr):
     """Convert a raw string to a Message.
@@ -265,6 +280,7 @@ def _decode(rawstr):
 
     return msg
 
+
 def datetime_encoder(obj):
     """Encodes datetimes into iso format.
     """
@@ -273,12 +289,13 @@ def datetime_encoder(obj):
     except AttributeError:
         raise TypeError(repr(obj) + " is not JSON serializable")
 
+
 def _encode(msg, head=False, binary=False):
     """Convert a Message to a raw string.
     """
     rawstr = _MAGICK + "%s %s %s %s %s" % \
-             (msg.subject, msg.type, msg.sender,
-              msg.time.isoformat(), msg.version)
+        (msg.subject, msg.type, msg.sender,
+         msg.time.isoformat(), msg.version)
     if not head and msg.data:
         if not binary and isinstance(msg.data, str):
             return (rawstr + ' ' +
@@ -297,6 +314,8 @@ def _encode(msg, head=False, binary=False):
 # Small internal helpers.
 #
 #-----------------------------------------------------------------------------
+
+
 def _getsender():
     """Return local sender.
     Don't use the getpass module, it looks at various environment variables
@@ -308,4 +327,3 @@ def _getsender():
     host = socket.gethostname()
     user = pwd.getpwuid(os.getuid())[0]
     return "%s@%s" % (user, host)
-
