@@ -167,10 +167,9 @@ class NoisyPublisher(object):
 
     """
 
-
     _publisher_class = Publisher
 
-    def __init__(self, name, port, aliases=None, broadcast_interval=2):
+    def __init__(self, name, port=0, aliases=None, broadcast_interval=2):
         self._name = name
         self._aliases = [name]
         if aliases:
