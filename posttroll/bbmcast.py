@@ -42,16 +42,20 @@ from socket import (socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR,
                     IP_MULTICAST_TTL, IP_MULTICAST_LOOP, SOL_IP, timeout,
                     gethostbyname)
 
-SocketTimeout = timeout # for easy access to socket.timeout
+SocketTimeout = timeout  # for easy access to socket.timeout
 
 #-----------------------------------------------------------------------------
 #
 # Sender.
 #
 #-----------------------------------------------------------------------------
+
+
 class MulticastSender(object):
+
     """Multicast sender on *port* and *mcgroup*.
     """
+
     def __init__(self, port, mcgroup=MC_GROUP):
         self.port = port
         self.group = mcgroup
@@ -66,6 +70,8 @@ class MulticastSender(object):
         self.socket.close()
 
 # Allow non-object interface
+
+
 def mcast_sender(mcgroup=MC_GROUP):
     """Non-object interface for sending multicast messages.
     """
@@ -79,7 +85,7 @@ def mcast_sender(mcgroup=MC_GROUP):
         raise IOError("Invalid multicast address.")
     else:
         group = mcgroup
-        ttl = struct.pack('b', TTL_LOCALNET) # Time-to-live
+        ttl = struct.pack('b', TTL_LOCALNET)  # Time-to-live
         sock.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, ttl)
     return sock, group
 
@@ -88,10 +94,14 @@ def mcast_sender(mcgroup=MC_GROUP):
 # Receiver.
 #
 #-----------------------------------------------------------------------------
+
+
 class MulticastReceiver(object):
+
     """Multicast receiver on *port* for an *mcgroup*.
     """
     BUFSIZE = 1024
+
     def __init__(self, port, mcgroup=MC_GROUP):
         # Note: a multicast receiver will also receive broadcast on same port.
         self.port = port
@@ -113,6 +123,8 @@ class MulticastReceiver(object):
         self.socket.close()
 
 # Allow non-object interface
+
+
 def mcast_receiver(port, mcgroup=MC_GROUP):
     """Open a UDP socket, bind it to a port and select a multicast group.
     """
@@ -129,8 +141,8 @@ def mcast_receiver(port, mcgroup=MC_GROUP):
     # (not strictly needed)
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     if group:
-        sock.setsockopt(SOL_IP, IP_MULTICAST_TTL, TTL_LOCALNET) # default
-        sock.setsockopt(SOL_IP, IP_MULTICAST_LOOP, 1) # default
+        sock.setsockopt(SOL_IP, IP_MULTICAST_TTL, TTL_LOCALNET)  # default
+        sock.setsockopt(SOL_IP, IP_MULTICAST_LOOP, 1)  # default
 
     # Bind it to the port
     sock.bind(('', port))
@@ -160,10 +172,11 @@ def mcast_receiver(port, mcgroup=MC_GROUP):
 # Small helpers.
 #
 #-----------------------------------------------------------------------------
+
+
 def _is_broadcast_group(group):
     """Check if *group* is a valid multicasting group.
     """
     if not group or gethostbyname(group) in ('0.0.0.0', '255.255.255.255'):
         return True
     return False
-

@@ -3,7 +3,7 @@
 # Copyright (c) 2010-2012, 2014.
 
 # Author(s):
- 
+
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
@@ -19,7 +19,7 @@
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License along with
-# pytroll.  If not, see <http://www.gnu.org/licenses/>. 
+# pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 Receive broadcasted addresses in a standard pytroll Message:
@@ -51,13 +51,17 @@ default_publish_port = 16543
 # General thread to receive broadcast addresses.
 #
 #-----------------------------------------------------------------------------
+
+
 class AddressReceiver(object):
+
     """General thread to receive broadcast addresses.
     """
+
     def __init__(self, max_age=timedelta(minutes=10), port=None,
                  do_heartbeat=True):
         self._max_age = max_age
-        self._port = port or default_publish_port 
+        self._port = port or default_publish_port
         self._address_lock = thread.allocate_lock()
         self._addresses = {}
         self._subject = '/address'
@@ -65,7 +69,7 @@ class AddressReceiver(object):
         self._last_age_check = datetime(1900, 1, 1)
         self._do_run = False
         self._is_running = False
-        self._thread = threading.Thread(target=self._run)        
+        self._thread = threading.Thread(target=self._run)
 
     def start(self):
         """Start the receiver.
@@ -95,7 +99,7 @@ class AddressReceiver(object):
         try:
             for metadata in self._addresses.values():
                 if (name == "" or
-                    (name and name in metadata["service"])):
+                        (name and name in metadata["service"])):
                     mda = copy.copy(metadata)
                     mda["receive_time"] = mda["receive_time"].isoformat()
                     addrs.append(mda)
@@ -110,7 +114,6 @@ class AddressReceiver(object):
         now = datetime.utcnow()
         if (now - self._last_age_check) <= min_interval:
             return
-
 
         logger.debug(str(datetime.utcnow()) + " checking addresses")
         self._last_age_check = now
@@ -142,9 +145,10 @@ class AddressReceiver(object):
                         data, fromaddr = recv()
                         del fromaddr
                     except SocketTimeout:
+                        logger.debug("Multicast socket timed out on recv!")
                         continue
                     finally:
-                        self._check_age(pub, min_interval=self._max_age/20)
+                        self._check_age(pub, min_interval=self._max_age / 20)
                         if self._do_heartbeat:
                             pub.heartbeat(min_interval=29)
                     msg = Message.decode(data)
@@ -180,5 +184,3 @@ class AddressReceiver(object):
 #-----------------------------------------------------------------------------
 # default
 getaddress = AddressReceiver
-
-
