@@ -11,7 +11,7 @@ deploy:
   provider: pypi
   user: Martin.Raspaud
   password:
-    secure: RuQzdaLTY4sryIzG8Hz1KWEsyYRxrLvbyfm7DurXDPcj2vsujRwJicNwBrJajIBkzZWwdmWE8db55BPWZwCsJtVUbE53vc742wSAcci2zzCgizSb/jjlDkwk1CE/PoMl4t3JsuIU6bklgw1Y1d4Xn4+BeZe8Blol5PD/FUovxfo=
+    secure: dole4qxvcCpRrxtrRZucGp5jeCdI3sGZUclge2e7YrlasTa8eVszXg4MTmW4XiV8CMQs5PymyfNKPRxaaBKm8U2BGjrwFWNcXH/pyaWlnXdyQ1Tm3Owf/RDz9oCYULLQXcKgu3UljUHYz+9NbfE67sfDLJiFsi3VHRjKut+eUwo=
   on:
     tags: true
     repo: mraspaud/posttroll
