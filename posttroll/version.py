@@ -23,8 +23,8 @@
 """Version file.
 """
 
-__major__ = "0"
-__minor__ = "2"
+__major__ = "1"
+__minor__ = "0"
 __release__ = "0"
 
 __version__ = __major__ + "." + __minor__ + "." + __release__
