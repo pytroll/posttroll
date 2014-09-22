@@ -56,8 +56,16 @@ class TestNS(unittest.TestCase):
 
         with Publish("data_provider", 0, ["this_data"]):
             time.sleep(3)
-            print get_pub_addresses(["this_data"])
             res = get_pub_addresses(["this_data"])
+            self.assertEquals(len(res), 1)
+            expected = {u'status': True,
+                        u'service': [u'data_provider', u'this_data'],
+                        u'name': u'address'}
+            for key, val in expected.items():
+                self.assertEquals(res[0][key], val)
+            self.assertTrue("receive_time" in res[0])
+            self.assertTrue("URI" in res[0])
+            res = get_pub_addresses(["data_provider"])
             self.assertEquals(len(res), 1)
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
