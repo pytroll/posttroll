@@ -25,6 +25,6 @@
 
 __major__ = "1"
 __minor__ = "0"
-__release__ = "0"
+__release__ = "1"
 
 __version__ = __major__ + "." + __minor__ + "." + __release__
