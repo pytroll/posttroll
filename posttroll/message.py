@@ -65,19 +65,19 @@ class MessageError(Exception):
 def is_valid_subject(obj):
     """Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return isinstance(obj, (str, unicode)) and bool(obj)
 
 
 def is_valid_type(obj):
     """Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return isinstance(obj, (str, unicode)) and bool(obj)
 
 
 def is_valid_sender(obj):
     """Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return isinstance(obj, (str, unicode)) and bool(obj)
 
 
 def is_valid_data(obj):
