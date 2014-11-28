@@ -3,7 +3,7 @@
 # Copyright (c) 2010-2012, 2014.
 
 # Author(s):
- 
+
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud    <martin.raspaud@smhi.se>
 
@@ -41,11 +41,15 @@ broadcast_port = 21200
 # General thread to broadcast messages.
 #
 #-----------------------------------------------------------------------------
+
+
 class MessageBroadcaster(object):
+
     """Class to broadcast stuff.
 
     If *interval* is 0 or negative, no broadcasting is done.
     """
+
     def __init__(self, msg, port, interval):
         # mcgroup = None or '<broadcast>' is broadcast
         # mcgroup = MC_GROUP is default multicast group
@@ -55,7 +59,7 @@ class MessageBroadcaster(object):
         self._do_run = False
         self._is_running = False
         self._thread = threading.Thread(target=self._run)
-        
+
     def start(self):
         """Start the broadcasting.
         """
@@ -82,7 +86,6 @@ class MessageBroadcaster(object):
         self._is_running = True
         try:
             while self._do_run:
-                logger.debug("Advertizing %s", str(self._message))
                 self._sender(self._message)
                 time.sleep(self._interval)
         finally:
@@ -94,13 +97,17 @@ class MessageBroadcaster(object):
 # General thread to broadcast addresses.
 #
 #-----------------------------------------------------------------------------
+
+
 class AddressBroadcaster(MessageBroadcaster):
+
     """Class to broadcast stuff.
     """
+
     def __init__(self, name, address, interval):
-        msg = message.Message("/address/%s"%name, "info",
-                              {"URI": "%s:%d"%address}).encode()
-        MessageBroadcaster.__init__(self, msg, broadcast_port, interval) 
+        msg = message.Message("/address/%s" % name, "info",
+                              {"URI": "%s:%d" % address}).encode()
+        MessageBroadcaster.__init__(self, msg, broadcast_port, interval)
 #-----------------------------------------------------------------------------
 # default
 sendaddress = AddressBroadcaster
@@ -110,14 +117,18 @@ sendaddress = AddressBroadcaster
 # General thread to broadcast addresses and type.
 #
 #-----------------------------------------------------------------------------
+
+
 class AddressServiceBroadcaster(MessageBroadcaster):
+
     """Class to broadcast stuff.
     """
+
     def __init__(self, name, address, data_type, interval=2):
-        msg = message.Message("/address/%s"%name, "info",
+        msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
                                "service": data_type}).encode()
-        MessageBroadcaster.__init__(self, msg, broadcast_port, interval) 
+        MessageBroadcaster.__init__(self, msg, broadcast_port, interval)
 #-----------------------------------------------------------------------------
 # default
 sendaddressservice = AddressServiceBroadcaster
