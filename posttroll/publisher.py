@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2009-2014.
+# Copyright (c) 2009-2015.
 #
 # Author(s):
 #   Lars Ørum Rasmussen <ras@dmi.dk>
@@ -109,6 +109,8 @@ class Publisher(object):
         else:
             self.publish.bind(self.destination)
             self.port_number = port
+
+        logger.debug("publisher started on port " + str(self.port_number))
 
         # Initialize no heartbeat
         self._heartbeat = None
