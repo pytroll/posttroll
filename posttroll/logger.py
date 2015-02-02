@@ -116,8 +116,9 @@ class Logger(object):
     Contains a thread listening to incomming messages, and a thread logging.
     """
 
-    def __init__(self):
-                 #(nameserver_address, nameserver_port)=("localhost", 16543)):
+    def __init__(self,
+                 (nameserver_address, nameserver_port)=("localhost", 16543)):
+        del nameserver_address, nameserver_port
         self.log_thread = Thread(target=self.log)
         self.loop = True
 
