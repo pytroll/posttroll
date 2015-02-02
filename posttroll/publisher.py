@@ -110,7 +110,7 @@ class Publisher(object):
             self.publish.bind(self.destination)
             self.port_number = port
 
-        logger.debug("publisher started on port " + str(self.port_number))
+        logger.info("publisher started on port " + str(self.port_number))
 
         # Initialize no heartbeat
         self._heartbeat = None
