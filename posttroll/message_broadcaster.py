@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012, 2014.
+# Copyright (c) 2010-2012, 2014, 2015.
 
 # Author(s):
 
@@ -21,7 +21,6 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import time
 import threading
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, 2014 Martin Raspaud
+# Copyright (c) 2012, 2014, 2015 Martin Raspaud
 
 # Author(s):
 
@@ -37,7 +37,9 @@ import logging.handlers
 
 logger = logging.getLogger(__name__)
 
+
 class PytrollFormatter(logging.Formatter):
+
     """Formats a pytroll message inside a log record.
     """
 
@@ -50,7 +52,9 @@ class PytrollFormatter(logging.Formatter):
                        record.getMessage())
         return str(mesg)
 
+
 class PytrollHandler(logging.Handler):
+
     """Sends the record through a pytroll publisher.
     """
 
@@ -68,7 +72,6 @@ class PytrollHandler(logging.Handler):
         logging.Handler.close(self)
 
 
-
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
 COLORS = {
@@ -82,9 +85,12 @@ COLORS = {
 COLOR_SEQ = "\033[1;%dm"
 RESET_SEQ = "\033[0m"
 
+
 class ColoredFormatter(logging.Formatter):
+
     """Adds a color for the levelname.
     """
+
     def __init__(self, msg, use_color=True):
         logging.Formatter.__init__(self, msg)
         self.use_color = use_color
@@ -99,10 +105,8 @@ class ColoredFormatter(logging.Formatter):
         return logging.Formatter.format(self, record2)
 
 
-
-#logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s',
+# logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s',
 #                    level=logging.DEBUG)
-
 
 
 class Logger(object):
@@ -112,8 +116,8 @@ class Logger(object):
     Contains a thread listening to incomming messages, and a thread logging.
     """
 
-    def __init__(self,
-                 (nameserver_address, nameserver_port)=("localhost", 16543)):
+    def __init__(self):
+                 #(nameserver_address, nameserver_port)=("localhost", 16543)):
         self.log_thread = Thread(target=self.log)
         self.loop = True
 
@@ -156,6 +160,7 @@ class Logger(object):
         """Stop the machine.
         """
         self.loop = False
+
 
 def run():
     """Main function
