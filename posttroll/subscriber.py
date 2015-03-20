@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011, 2012, 2013, 2014.
+# Copyright (c) 2011, 2012, 2013, 2014, 2015.
 
 # Author(s):
 
@@ -39,7 +39,9 @@ from posttroll.ns import get_pub_address
 
 logger = logging.getLogger(__name__)
 
+
 class Subscriber(object):
+
     """Subscriber
 
     Subscribes to *addresses* for *topics*, and perform address translation of
@@ -62,6 +64,7 @@ class Subscriber(object):
             sub.close()
 
     """
+
     def __init__(self, addresses, topics='', message_filter=None,
                  translate=False):
         self._topics = self._magickfy_topics(topics)
@@ -120,7 +123,7 @@ class Subscriber(object):
         """Updating with a set of addresses.
         """
         if isinstance(addresses, (str, unicode)):
-            addresses = [addresses,]
+            addresses = [addresses, ]
         s0_, s1_ = set(self.addresses), set(addresses)
         sr_, sa_ = s0_.difference(s1_), s1_.difference(s0_)
         for a__ in sr_:
@@ -237,7 +240,7 @@ class Subscriber(object):
         if topics is None:
             return None
         if isinstance(topics, (str, unicode)):
-            topics = [topics,]
+            topics = [topics, ]
         ts_ = []
         for t__ in topics:
             if not t__.startswith(_MAGICK):
@@ -257,20 +260,22 @@ class Subscriber(object):
 
 
 class NSSubscriber(object):
+
     """Automatically subscribe to *services* (requesting addresses from the
     nameserver. If *topics* are specified, filter the messages through the
     beginning of the subject. *addr_listener* allows to add new services on the
     fly as they appear on the network. Additional *addresses* to subscribe to
     can be specified, and address translation can be performed if *translate*
     is set to True (False by default). The *timeout* here is specified in
-    seconds.
+    seconds. The *nameserver* tells which host should be used for nameserver
+    requests, defaulting to "localhost".
 
     Note: 'services = None', means no services, and 'services =""' means all
     services.
     """
 
     def __init__(self, services=None, topics=_MAGICK, addr_listener=False,
-                 addresses=None, timeout=10, translate=False):
+                 addresses=None, timeout=10, translate=False, nameserver="localhost"):
         """ Note: services = None, means no services
                   services = "", means all services
         """
@@ -284,6 +289,7 @@ class NSSubscriber(object):
 
         self._subscriber = None
         self._addr_listener = addr_listener
+        self._nameserver = nameserver
 
     def start(self):
         """Start the subscriber.
@@ -293,7 +299,7 @@ class NSSubscriber(object):
             """
             then = datetime.now() + timedelta(seconds=timeout)
             while datetime.now() < then:
-                addrs = get_pub_address(service)
+                addrs = get_pub_address(service, nameserver=self._nameserver)
                 if addrs:
                     return [addr["URI"] for addr in addrs]
                 time.sleep(1)
@@ -317,7 +323,8 @@ class NSSubscriber(object):
 
         if self._addr_listener:
             self._addr_listener = _AddressListener(self._subscriber,
-                                                   self._services)
+                                                   self._services,
+                                                   nameserver=self._nameserver)
 
         return self._subscriber
 
@@ -329,8 +336,8 @@ class NSSubscriber(object):
             self._subscriber = None
 
 
-
 class Subscribe(NSSubscriber):
+
     """Subscriber context. See :class:`NSSubscriber` for initialization
     parameters.
 
@@ -343,31 +350,36 @@ class Subscribe(NSSubscriber):
                 print msg
 
     """
+
     def __enter__(self):
         return self.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self.stop()
 
+
 def _to_array(obj):
     """Convert *obj* to list if not already one.
     """
     if isinstance(obj, (str, unicode)):
-        return [obj,]
+        return [obj, ]
     if obj is None:
         return []
     return obj
 
+
 class _AddressListener(object):
+
     """Listener for new addresses of interest.
     """
-    def __init__(self, subscriber, services=""):
+
+    def __init__(self, subscriber, services="", nameserver="localhost"):
         if isinstance(services, (str, unicode)):
-            services = [services,]
+            services = [services, ]
         self.services = services
         self.subscriber = subscriber
-        self.subscriber.add_hook_sub("tcp://localhost:16543",
-                                     ["pytroll://address",],
+        self.subscriber.add_hook_sub("tcp://" + nameserver + ":16543",
+                                     ["pytroll://address", ],
                                      self.handle_msg)
 
     def handle_msg(self, msg):

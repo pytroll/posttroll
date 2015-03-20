@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011, 2012, 2014 SMHI
+# Copyright (c) 2011, 2012, 2014, 2015 SMHI
 
 # Author(s):
 
@@ -23,7 +23,7 @@
 """Manage other's subscriptions.
 """
 import logging
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta
 
 import time
 # pylint: disable=E0611
@@ -37,15 +37,19 @@ from posttroll.message import Message
 
 logger = logging.getLogger(__name__)
 
+
 class TimeoutError(BaseException):
+
     """A timeout.
     """
     pass
 
-### Client functions.
+# Client functions.
 
-def get_pub_addresses(names=None, timeout=10):
-    """Get the address of the publisher for a given list of publisher *names*.
+
+def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
+    """Get the address of the publisher for a given list of publisher *names*
+    from the nameserver on *nameserver* (localhost by default).
     """
     addrs = []
     if names is None:
@@ -53,25 +57,26 @@ def get_pub_addresses(names=None, timeout=10):
     for name in names:
         then = datetime.now() + timedelta(seconds=timeout)
         while datetime.now() < then:
-            addrs += get_pub_address(name)
+            addrs += get_pub_address(name, nameserver)
             if addrs:
                 break
             time.sleep(.5)
     return addrs
 
-def get_pub_address(name, timeout=10):
-    """Get the address of the publisher for a given publisher *name*.
+
+def get_pub_address(name, timeout=10, nameserver="localhost"):
+    """Get the address of the publisher for a given publisher *name* from the
+    nameserver on *nameserver* (localhost by default).
     """
 
     # Socket to talk to server
     socket = context.socket(REQ)
     try:
-        socket.setsockopt(LINGER, timeout*1000)
-        socket.connect("tcp://localhost:5555")
+        socket.setsockopt(LINGER, timeout * 1000)
+        socket.connect("tcp://" + nameserver + ":5555")
 
         poller = Poller()
         poller.register(socket, POLLIN)
-
 
         message = Message("/oper/ns", "request", {"service": name})
         socket.send(str(message))
@@ -84,11 +89,12 @@ def get_pub_address(name, timeout=10):
                 return message.data
         else:
             raise TimeoutError("Didn't get an address after %d seconds."
-                               %timeout)
+                               % timeout)
     finally:
         socket.close()
 
-### Server part.
+# Server part.
+
 
 def get_active_address(name, arec):
     """Get the addresses of the active modules for a given publisher *name*.
@@ -101,8 +107,10 @@ def get_active_address(name, arec):
 
 
 class NameServer(object):
+
     """The name server.
     """
+
     def __init__(self, max_age=timedelta(minutes=10)):
         self.loop = True
         self.listener = None
@@ -119,7 +127,7 @@ class NameServer(object):
 
         try:
             self.listener = context.socket(REP)
-            self.listener.bind("tcp://*:"+str(port))
+            self.listener.bind("tcp://*:" + str(port))
             poller = Poller()
             poller.register(self.listener, POLLIN)
             while self.loop:
