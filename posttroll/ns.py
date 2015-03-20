@@ -57,7 +57,7 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     for name in names:
         then = datetime.now() + timedelta(seconds=timeout)
         while datetime.now() < then:
-            addrs += get_pub_address(name, nameserver)
+            addrs += get_pub_address(name, nameserver=nameserver)
             if addrs:
                 break
             time.sleep(.5)
