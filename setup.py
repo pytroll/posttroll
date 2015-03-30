@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2014.
+# Copyright (c) 2011, 2012, 2014, 2015.
 
 # Author(s):
- 
+
 #   The pytroll team:
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
@@ -42,7 +42,7 @@ setup(name="posttroll",
       url="http://github.com/mraspaud/posttroll",
       packages=['posttroll'],
       entry_points={
-          'console_scripts': ['logger = posttroll.logger:run',]},
+          'console_scripts': ['pytroll-logger = posttroll.logger:run', ]},
       scripts=['bin/nameserver'],
       zip_safe=False,
       license="GPLv3",
@@ -55,6 +55,6 @@ setup(name="posttroll",
           'Intended Audience :: Science/Research',
           'Topic :: Scientific/Engineering',
           'Topic :: Communications'
-          ],
+      ],
       test_suite='posttroll.tests.suite',
       )
