@@ -35,7 +35,7 @@ import copy
 import logging
 import logging.handlers
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class PytrollFormatter(logging.Formatter):
@@ -136,25 +136,24 @@ class Logger(object):
                     if msg.type in ["log.debug", "log.info",
                                     "log.warning", "log.error",
                                     "log.critical"]:
-                        getattr(logger, msg.type[4:])(msg.subject + " " +
+                        getattr(LOGGER, msg.type[4:])(msg.subject + " " +
                                                       msg.sender + " " +
                                                       str(msg.data) + " " +
                                                       str(msg.time))
 
                     elif msg.binary:
-                        logger.debug(msg.subject + " " +
-                                     msg.sender + " " +
-                                     msg.type + " " +
-                                     "[binary] " +
+                        LOGGER.debug("%s %s %s [binary] %s", msg.subject,
+                                     msg.sender,
+                                     msg.type,
                                      str(msg.time))
                     else:
-                        logger.debug(msg.subject + " " +
-                                     msg.sender + " " +
-                                     msg.type + " " +
-                                     str(msg.data) + " " +
+                        LOGGER.debug("%s %s %s %s %s", msg.subject,
+                                     msg.sender,
+                                     msg.type,
+                                     str(msg.data),
                                      str(msg.time))
                 if not self.loop:
-                    logger.info("Stop logging")
+                    LOGGER.info("Stop logging")
                     break
 
     def stop(self):
@@ -168,7 +167,7 @@ def run():
     """
     import argparse
 
-    global logger
+    global LOGGER
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--rotated", help="Time rotated log file")
@@ -193,14 +192,14 @@ def run():
     else:
         handler = logging.StreamHandler()
 
-    logger = logging.getLogger("pytroll")
-    logger.setLevel(loglevel)
+    LOGGER = logging.getLogger("pytroll")
+    LOGGER.setLevel(loglevel)
 
     handler.setLevel(loglevel)
 
     formatter = ColoredFormatter("[%(asctime)s %(levelname)-19s] %(message)s")
     handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    LOGGER.addHandler(handler)
 
     import time
     try:
