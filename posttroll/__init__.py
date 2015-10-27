@@ -29,6 +29,11 @@ import zmq
 context = zmq.Context()
 
 
+def renew_context():
+    global context
+    context = zmq.Context()
+
+
 def strp_isoformat(strg):
     """Decode an ISO formatted string to a datetime object.
     Allow a time-string without microseconds.
