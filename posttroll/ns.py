@@ -35,6 +35,8 @@ from posttroll.address_receiver import AddressReceiver
 from posttroll.message import Message
 
 
+PORT = 5557
+
 logger = logging.getLogger(__name__)
 
 
@@ -73,7 +75,7 @@ def get_pub_address(name, timeout=10, nameserver="localhost"):
     socket = context.socket(REQ)
     try:
         socket.setsockopt(LINGER, timeout * 1000)
-        socket.connect("tcp://" + nameserver + ":5555")
+        socket.connect("tcp://" + nameserver + ":" + str(PORT))
 
         poller = Poller()
         poller.register(socket, POLLIN)
@@ -123,7 +125,7 @@ class NameServer(object):
 
         arec = AddressReceiver(max_age=self._max_age)
         arec.start()
-        port = 5555
+        port = PORT
 
         try:
             self.listener = context.socket(REP)
