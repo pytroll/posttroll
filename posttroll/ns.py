@@ -21,6 +21,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Manage other's subscriptions.
+
+Default port is 5557, if $NAMESERVER_PORT is not defined.
 """
 import logging
 from datetime import datetime, timedelta
@@ -33,9 +35,9 @@ from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK, Poller
 from posttroll import context
 from posttroll.address_receiver import AddressReceiver
 from posttroll.message import Message
+import os
 
-
-PORT = 5557
+PORT = int(os.environ.get("NAMESERVER_PORT", 5557))
 
 logger = logging.getLogger(__name__)
 
