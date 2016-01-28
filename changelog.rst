@@ -1,6 +1,41 @@
 Changelog
 =========
 
+v1.1.0 (2016-01-28)
+-------------------
+
+Fix
+~~~
+
+- Bugfix: assigning the namesever arg to the nameserve kw... [Martin
+  Raspaud]
+
+Other
+~~~~~
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.0.2 → 1.1.0. [Martin Raspaud]
+
+- Nameserver port can be specified as an environment variable (5557
+  otherwise) [Martin Raspaud]
+
+- Changed nameserver port to 5557 (to avoid conflict with HP data
+  protector) [Martin Raspaud]
+
+- Add a renew_context function for multithreading/processing cases.
+  [Martin Raspaud]
+
+- Rename logger to pytroll-logger to avoid system conflicts. [Martin
+  Raspaud]
+
+- Add setup.cfg for easy rpm generation. [Martin Raspaud]
+
+- Subscriber can now request addresses from a nameserver on another
+  host. [Martin Raspaud]
+
+  This is done using the "nameserver" keyword.
+
 v1.0.2 (2015-02-19)
 -------------------
 
