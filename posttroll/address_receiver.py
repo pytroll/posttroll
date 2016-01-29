@@ -36,6 +36,9 @@ from posttroll.bbmcast import MulticastReceiver, SocketTimeout
 from posttroll.message import Message
 from posttroll.publisher import Publish
 
+from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK, Poller
+from posttroll import context
+
 
 __all__ = ('AddressReceiver', 'getaddress')
 
@@ -59,13 +62,14 @@ class AddressReceiver(object):
     """
 
     def __init__(self, max_age=timedelta(minutes=10), port=None,
-                 do_heartbeat=True):
+                 do_heartbeat=True, multicast_enabled=True):
         self._max_age = max_age
         self._port = port or default_publish_port
         self._address_lock = thread.allocate_lock()
         self._addresses = {}
         self._subject = '/address'
         self._do_heartbeat = do_heartbeat
+        self._multicast_enabled = multicast_enabled
         self._last_age_check = datetime(1900, 1, 1)
         self._do_run = False
         self._is_running = False
@@ -136,17 +140,25 @@ class AddressReceiver(object):
         """Run the receiver.
         """
         port = broadcast_port
-        recv = MulticastReceiver(port).settimeout(2.)
+        nameservers = []
+        if self._multicast_enabled:
+            recv = MulticastReceiver(port).settimeout(2.)
+        else:
+            recv = _SimpleReceiver(port)
+            nameservers = ["localhost"]
         self._is_running = True
-        with Publish("address_receiver", self._port, ["addresses"]) as pub:
+        with Publish("address_receiver", self._port, ["addresses"],
+                     nameservers=nameservers) as pub:
             try:
                 while self._do_run:
                     try:
                         data, fromaddr = recv()
+                        logger.debug("data %s" % data)
                         del fromaddr
                     except SocketTimeout:
-                        logger.debug("Multicast socket timed out on recv!")
-                        continue
+                        if self._multicast_enabled:
+                            logger.debug("Multicast socket timed out on recv!")
+                            continue
                     finally:
                         self._check_age(pub, min_interval=self._max_age / 20)
                         if self._do_heartbeat:
@@ -180,6 +192,27 @@ class AddressReceiver(object):
             self._addresses[adr] = metadata
         finally:
             self._address_lock.release()
+
+
+class _SimpleReceiver(object):
+
+    """ Simple listing on port for address messages.
+    """
+
+    def __init__(self, port=None):
+        self._port = port or default_publish_port
+        self._socket = context.socket(REP)
+        self._socket.bind("tcp://*:" + str(port))
+
+    def __call__(self):
+        message = self._socket.recv()
+        self._socket.send("ok")
+        return message, None
+
+    def close(self):
+        """Close the receiver.
+        """
+        self._socket.close()
 
 #-----------------------------------------------------------------------------
 # default

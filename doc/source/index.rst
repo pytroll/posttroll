@@ -28,7 +28,7 @@ Use Example
 The main use of this library is the :class:`posttroll.message.Message`,
 :class:`posttroll.subscriber.Subscribe` and
 :class:`posttroll.publisher.Publish` classes, but the `nameserver` script is
-also necessary. The `namesever` scripts allows to register data publishers and
+also necessary. The `nameserver` scripts allows to register data publishers and
 then for the subscribers to find them. Here is the usage of the `nameserver`
 script::
 
@@ -40,6 +40,7 @@ script::
                           Run as a daemon
     -l LOG, --log LOG     File to log to (defaults to stdout)
     -v, --verbose         print debug messages too
+    --no-multicast        disable address broadcasting via multicasting
 
 
 So, after starting the nameserver, making two processes communicate is fairly
@@ -68,6 +69,26 @@ And the subscribing code::
         with Subscribe("a_service", "counter",) as sub:
             for msg in sub.recv():
                 print msg
+
+If you do not want to broadcast addresses via multicasting to nameservers in your network,
+you can start the nameserver with the argument *--no-multicast*. Doing that, you have 
+to specify the nameserver(s) explicitly in the publishing code::
+
+        from posttroll.publisher import Publish
+            from posttroll.message import Message
+            import time
+
+            try:
+                with Publish("a_service", 9000, nameservers=['localhost']) as pub:
+                    counter = 0
+                    while True:
+                        counter += 1
+                        message = Message("/counter", "info", str(counter))
+                        print "publishing", message
+                        pub.send(str(message))
+                        time.sleep(3)
+            except KeyboardInterrupt:
+                print "terminating publisher..."
 
 .. seealso:: :class:`posttroll.publisher.Publish` 
              and :class:`posttroll.subscriber.Subscribe`

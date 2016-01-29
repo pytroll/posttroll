@@ -166,12 +166,14 @@ class NoisyPublisher(object):
     list of alternative names for the process. *broadcast_interval*, in seconds
     (2 by default) says how often the current name and address should be
     broadcasted.
-
+    If *nameservers* is non-empty, multicasting will be deactivated and the
+    publisher registers on these nameservers only
     """
 
     _publisher_class = Publisher
 
-    def __init__(self, name, port=0, aliases=None, broadcast_interval=2):
+    def __init__(self, name, port=0, aliases=None, broadcast_interval=2,
+                 nameservers=[]):
         self._name = name
         self._aliases = [name]
         if aliases:
@@ -184,6 +186,7 @@ class NoisyPublisher(object):
         self._broadcast_interval = broadcast_interval
         self._broadcaster = None
         self._publisher = None
+        self._nameservers = nameservers
 
     def start(self):
         """Start the publisher.
@@ -195,7 +198,8 @@ class NoisyPublisher(object):
                 + str(self._publisher.port_number))
         self._broadcaster = sendaddressservice(self._name, addr,
                                                self._aliases,
-                                               self._broadcast_interval).start()
+                                               self._broadcast_interval,
+                                               self._nameservers).start()
         return self._publisher
 
     def send(self, msg):
