@@ -173,7 +173,7 @@ class NoisyPublisher(object):
     _publisher_class = Publisher
 
     def __init__(self, name, port=0, aliases=None, broadcast_interval=2,
-                 nameservers=[]):
+                 nameservers=None):
         self._name = name
         self._aliases = [name]
         if aliases:
@@ -186,7 +186,10 @@ class NoisyPublisher(object):
         self._broadcast_interval = broadcast_interval
         self._broadcaster = None
         self._publisher = None
-        self._nameservers = nameservers
+        if nameservers:
+            self._nameservers = nameservers
+        else:
+            self._nameservers = []
 
     def start(self):
         """Start the publisher.
