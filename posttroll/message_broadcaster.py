@@ -89,7 +89,7 @@ class MessageBroadcaster(object):
     If *interval* is 0 or negative, no broadcasting is done.
     """
 
-    def __init__(self, msg, port, interval, designated_receivers=[]):
+    def __init__(self, msg, port, interval, designated_receivers=None):
 
         if designated_receivers:
             self._sender = DesignatedReceiversSender(port,
@@ -170,7 +170,7 @@ class AddressServiceBroadcaster(MessageBroadcaster):
     """Class to broadcast stuff.
     """
 
-    def __init__(self, name, address, data_type, interval=2, nameservers=[]):
+    def __init__(self, name, address, data_type, interval=2, nameservers=None):
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
                                "service": data_type}).encode()
