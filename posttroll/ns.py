@@ -115,17 +115,18 @@ class NameServer(object):
     """The name server.
     """
 
-    def __init__(self, max_age=timedelta(minutes=10)):
+    def __init__(self, max_age=timedelta(minutes=10), multicast_enabled=True):
         self.loop = True
         self.listener = None
         self._max_age = max_age
+        self._multicast_enabled = multicast_enabled
 
     def run(self, *args):
         """Run the listener and answer to requests.
         """
         del args
 
-        arec = AddressReceiver(max_age=self._max_age)
+        arec = AddressReceiver(max_age=self._max_age, multicast_enabled=self._multicast_enabled)
         arec.start()
         port = PORT
 

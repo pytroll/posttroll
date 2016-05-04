@@ -42,6 +42,8 @@ if __name__ == '__main__':
                         default=None)
     parser.add_argument("-v", "--verbose", help="print debug messages too",
                         action="store_true")
+    parser.add_argument("--no-multicast", help="disable multicasting",
+                        action="store_true")
     opts = parser.parse_args()
 
     if opts.log:
@@ -63,7 +65,9 @@ if __name__ == '__main__':
     logging.getLogger('').addHandler(handler)
     logger = logging.getLogger("nameserver")
 
-    ns = NameServer()
+    multicast_enabled=(opts.no_multicast == False)
+
+    ns = NameServer(multicast_enabled=multicast_enabled)
 
     if opts.daemon is None:
         try:

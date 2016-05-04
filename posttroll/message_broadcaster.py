@@ -26,6 +26,8 @@ import threading
 
 import posttroll.message as message
 from posttroll.bbmcast import MulticastSender, MC_GROUP
+from posttroll import context
+from zmq import REQ, REP, LINGER
 
 __all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
 
@@ -35,6 +37,44 @@ logger = logging.getLogger(__name__)
 
 broadcast_port = 21200
 
+
+class DesignatedReceiversSender(object):
+
+    """Sends message to multiple *receivers* on *port*.
+    """
+
+    def __init__(self, default_port, receivers):
+        self.default_port = default_port
+
+        self.receivers = receivers
+
+    def __call__(self, data):
+        for receiver in self.receivers:
+            self._send_to_address(receiver, data)
+
+    def _send_to_address(self, address, data, timeout=10):
+
+        """send data to *address* and *port* without verification of response.
+        """
+        # Socket to talk to server
+        socket = context.socket(REQ)
+        try:
+            socket.setsockopt(LINGER, timeout * 1000)
+            if address.find(":") == -1:
+                socket.connect("tcp://%s:%d" % (address, self.default_port))
+            else:
+                socket.connect("tcp://%s" % address)
+            socket.send(data)
+            message = socket.recv()
+            if message != "ok":
+                logger.warn("invalid acknowledge received: %s" % message)
+
+        finally:
+            socket.close()
+
+    def close(self):
+        """Close the sender.
+        """
 #-----------------------------------------------------------------------------
 #
 # General thread to broadcast messages.
@@ -49,10 +89,16 @@ class MessageBroadcaster(object):
     If *interval* is 0 or negative, no broadcasting is done.
     """
 
-    def __init__(self, msg, port, interval):
-        # mcgroup = None or '<broadcast>' is broadcast
-        # mcgroup = MC_GROUP is default multicast group
-        self._sender = MulticastSender(port, mcgroup=MC_GROUP)
+    def __init__(self, msg, port, interval, designated_receivers=[]):
+
+        if designated_receivers:
+            self._sender = DesignatedReceiversSender(port,
+                                                     designated_receivers)
+        else:
+            # mcgroup = None or '<broadcast>' is broadcast
+            # mcgroup = MC_GROUP is default multicast group
+            self._sender = MulticastSender(port, mcgroup=MC_GROUP)
+
         self._interval = interval
         self._message = msg
         self._do_run = False
@@ -103,10 +149,11 @@ class AddressBroadcaster(MessageBroadcaster):
     """Class to broadcast stuff.
     """
 
-    def __init__(self, name, address, interval):
+    def __init__(self, name, address, interval, nameservers):
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": "%s:%d" % address}).encode()
-        MessageBroadcaster.__init__(self, msg, broadcast_port, interval)
+        MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
+                                    nameservers)
 #-----------------------------------------------------------------------------
 # default
 sendaddress = AddressBroadcaster
@@ -123,11 +170,12 @@ class AddressServiceBroadcaster(MessageBroadcaster):
     """Class to broadcast stuff.
     """
 
-    def __init__(self, name, address, data_type, interval=2):
+    def __init__(self, name, address, data_type, interval=2, nameservers=[]):
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
                                "service": data_type}).encode()
-        MessageBroadcaster.__init__(self, msg, broadcast_port, interval)
+        MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
+                                    nameservers)
 #-----------------------------------------------------------------------------
 # default
 sendaddressservice = AddressServiceBroadcaster
