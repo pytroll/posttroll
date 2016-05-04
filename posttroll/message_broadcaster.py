@@ -26,7 +26,7 @@ import threading
 import logging
 import errno
 
-import posttroll.message as message
+from posttroll import message
 from posttroll.bbmcast import MulticastSender, MC_GROUP
 
 __all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
