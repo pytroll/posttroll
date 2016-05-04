@@ -1,6 +1,51 @@
 Changelog
 =========
 
+v1.2.0 (2016-05-04)
+-------------------
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.1.0 → 1.2.0. [Martin Raspaud]
+
+- Merge branch 'develop' into release-v1.1.1. [Martin Raspaud]
+
+  Conflicts:
+  	posttroll/address_receiver.py
+
+- Perform a minor cosmetic fix. [Martin Raspaud]
+
+- Merge pull request #1 from pnuu/develop. [Martin Raspaud]
+
+  Fault tolerance for network errors
+
+- Fault tolerance for network errors, logger -> LOGGER. [Panu Lahtinen]
+
+- Allow the MC troup to be provided as an envvariable. [Martin Raspaud]
+
+- Merge pull request #3 from khunger/dwd-develop. [Martin Raspaud]
+
+  Fixed dangerous default value [] as argument
+
+- Fixed dangerous default value [] as argument. [Christian Kliche]
+
+- Merge pull request #2 from khunger/dwd-develop. [Martin Raspaud]
+
+  Optional deactivation of multicasting
+
+- Optional deactivation of multicasting. [Christian Kliche]
+
+  Added new command line parameter "--no-multicast" to disable listening
+  on address messages via multicasting. Instead nameserver listens for
+  direct socket connections on specified port.
+  Furthermore (client side), new argument "nameservers" added to ctor of NoisyPublisher.
+  When non-empty, the NoisyPublisher does not use multicast to send
+  own address to nameservers. Instead, NoisyPublisher connects to each nameserver
+  directly to promote own address. Specification of nameserver port
+  is possible. If no port was defined, the default broadcasting bport will be used (21200)
+  for example: nameservers=['localhost','backupns:1234']
+
+
 v1.1.0 (2016-01-28)
 -------------------
 
