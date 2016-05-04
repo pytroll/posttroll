@@ -27,11 +27,13 @@ Requires that your OS kernel supports IP multicast.
 This is based on python-examples Demo/sockets/mcast.py
 """
 
+import os
+
 __all__ = ('MulticastSender', 'MulticastReceiver', 'mcast_sender',
            'mcast_receiver', 'SocketTimeout')
 
 # 224.0.0.0 through 224.0.0.255 is reserved administrative tasks
-MC_GROUP = '225.0.0.212'
+MC_GROUP = os.environ.get('PYTROLL_MC_GROUP', '225.0.0.212')
 
 # local network multicast (<32)
 TTL_LOCALNET = 31

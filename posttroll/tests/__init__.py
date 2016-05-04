@@ -37,3 +37,6 @@ def suite():
     mysuite.addTests(test_pubsub.suite())
 
     return mysuite
+
+def load_tests(loader, tests, pattern):
+    return suite()

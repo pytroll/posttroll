@@ -37,7 +37,7 @@ from posttroll.message import Message, _MAGICK
 from posttroll.ns import get_pub_address
 
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class Subscriber(object):
@@ -92,8 +92,8 @@ class Subscriber(object):
             return False
 
         topics = self._magickfy_topics(topics) or self._topics
-        logger.info("Subscriber adding address " + str(address)
-                    + " with topics " + str(topics))
+        LOGGER.info("Subscriber adding address %s with topics %s",
+                    str(address), str(topics))
         subscriber = context.socket(SUB)
         for t__ in topics:
             subscriber.setsockopt(SUBSCRIBE, t__)
@@ -111,7 +111,7 @@ class Subscriber(object):
             subscriber = self.addr_sub[address]
         except KeyError:
             return False
-        logger.info("Subscriber removing address " + str(address))
+        LOGGER.info("Subscriber removing address %s", str(address))
         if self.poller:
             self.poller.unregister(subscriber)
         del self.addr_sub[address]
@@ -140,8 +140,8 @@ class Subscriber(object):
         Good for operations, which is required to be done in the same thread as
         the main recieve loop (e.q operations on the underlying sockets).
         """
-        logger.info("Subscriber adding SUB hook " + str(address)
-                    + " for topics " + str(topics))
+        LOGGER.info("Subscriber adding SUB hook %s for topics %s",
+                    str(address), str(topics))
         socket = context.socket(SUB)
         for t__ in self._magickfy_topics(topics):
             socket.setsockopt(SUBSCRIBE, t__)
@@ -152,7 +152,7 @@ class Subscriber(object):
         """Same as above, but with a PULL socket.
         (e.g good for pushed 'inproc' messages from another thread).
         """
-        logger("Subscriber adding PULL hook " + str(address))
+        LOGGER.info("Subscriber adding PULL hook %s", str(address))
         socket = context.socket(PULL)
         socket.connect(address)
         self._add_hook(socket, callback)
@@ -210,7 +210,7 @@ class Subscriber(object):
                         # timeout
                         yield None
                 except ZMQError, err:
-                    logger.exception("Receive failed " + str(err))
+                    LOGGER.exception("Receive failed: %s", str(err))
         finally:
             for sub in self.subscribers + self._hooks:
                 self.poller.unregister(sub)
@@ -309,14 +309,14 @@ class NSSubscriber(object):
         for service in self._services:
             addr = _get_addr_loop(service, self._timeout)
             if not addr:
-                logger.warning("Can't get any address for " + service)
+                LOGGER.warning("Can't get any address for %s", service)
             else:
-                logger.debug("Got address for " + str(service)
-                             + ": " + str(addr))
+                LOGGER.debug("Got address for %s: %s",
+                             str(service), str(addr))
             self._addresses.extend(addr)
 
         # Subscribe to those services and topics.
-        logger.debug("Subscribing to topics " + str(self._topics))
+        LOGGER.debug("Subscribing to topics %s", str(self._topics))
         self._subscriber = Subscriber(self._addresses,
                                       self._topics,
                                       translate=self._translate)
@@ -391,10 +391,10 @@ class _AddressListener(object):
             service = msg.data.get('service')
             for service in self.services:
                 if not service or service in service:
-                    logger.debug("Adding address " + str(addr_)
-                                 + str(service))
+                    LOGGER.debug("Adding address %s %s", str(addr_),
+                                 str(service))
                     self.subscriber.add(addr_)
                     break
         else:
-            logger.debug("Removing address " + str(addr_))
+            LOGGER.debug("Removing address %s", str(addr_))
             self.subscriber.remove(addr_)

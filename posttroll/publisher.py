@@ -33,7 +33,7 @@ import socket
 
 import logging
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 TEST_HOST = 'dmi.dk'
 
@@ -110,7 +110,7 @@ class Publisher(object):
             self.publish.bind(self.destination)
             self.port_number = port
 
-        logger.info("publisher started on port " + str(self.port_number))
+        LOGGER.info("publisher started on port %s", str(self.port_number))
 
         # Initialize no heartbeat
         self._heartbeat = None
@@ -152,7 +152,7 @@ class _PublisherHeartbeat(object):
             (datetime.utcnow() - self.lastbeat >=
              timedelta(seconds=min_interval))):
             self.lastbeat = datetime.utcnow()
-            logger.debug("Publish heartbeat")
+            LOGGER.debug("Publish heartbeat")
             self.publisher.send(Message(self.subject, "beat").encode())
 
 
@@ -196,7 +196,7 @@ class NoisyPublisher(object):
         """
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name)
-        logger.debug("entering publish " + str(self._publisher.destination))
+        LOGGER.debug("entering publish %s", str(self._publisher.destination))
         addr = ("tcp://" + str(get_own_ip()) + ":"
                 + str(self._publisher.port_number))
         self._broadcaster = sendaddressservice(self._name, addr,
@@ -213,7 +213,7 @@ class NoisyPublisher(object):
     def stop(self):
         """Stop the publisher.
         """
-        logger.debug("exiting publish")
+        LOGGER.debug("exiting publish")
         if self._publisher is not None:
             self._publisher.stop()
             self._publisher = None

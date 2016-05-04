@@ -23,17 +23,17 @@
 
 import time
 import threading
+import logging
+import errno
 
-import posttroll.message as message
+from posttroll import message
 from posttroll.bbmcast import MulticastSender, MC_GROUP
 from posttroll import context
 from zmq import REQ, REP, LINGER
 
 __all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
 
-
-import logging
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 broadcast_port = 21200
 
@@ -129,9 +129,22 @@ class MessageBroadcaster(object):
         """Broadcasts forever.
         """
         self._is_running = True
+        network_fail = False
         try:
             while self._do_run:
-                self._sender(self._message)
+                try:
+                    if network_fail is True:
+                        LOGGER.info("Network connection re-established!")
+                        network_fail = False
+                    self._sender(self._message)
+                except IOError, err:
+                    if err.errno == errno.ENETUNREACH:
+                        LOGGER.error("Network unreachable. "
+                                     "Trying again in %d s.",
+                                     self._interval)
+                        network_fail = True
+                    else:
+                        raise
                 time.sleep(self._interval)
         finally:
             self._is_running = False

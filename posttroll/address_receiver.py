@@ -28,21 +28,23 @@ Receive broadcasted addresses in a standard pytroll Message:
 import copy
 import logging
 import os
-import thread
 import threading
+import errno
+import time
+
 from datetime import datetime, timedelta
 
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
 from posttroll.message import Message
 from posttroll.publisher import Publish
 
-from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK, Poller
+from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK
 from posttroll import context
 
 
 __all__ = ('AddressReceiver', 'getaddress')
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 debug = os.environ.get('DEBUG', False)
 broadcast_port = 21200
@@ -65,7 +67,7 @@ class AddressReceiver(object):
                  do_heartbeat=True, multicast_enabled=True):
         self._max_age = max_age
         self._port = port or default_publish_port
-        self._address_lock = thread.allocate_lock()
+        self._address_lock = threading.Lock()
         self._addresses = {}
         self._subject = '/address'
         self._do_heartbeat = do_heartbeat
@@ -99,17 +101,14 @@ class AddressReceiver(object):
         """
         addrs = []
 
-        self._address_lock.acquire()
-        try:
+        with self._address_lock:
             for metadata in self._addresses.values():
                 if (name == "" or
                         (name and name in metadata["service"])):
                     mda = copy.copy(metadata)
                     mda["receive_time"] = mda["receive_time"].isoformat()
                     addrs.append(mda)
-        finally:
-            self._address_lock.release()
-        logger.debug('return address ' + str(addrs))
+        LOGGER.debug('return address %s', str(addrs))
         return addrs
 
     def _check_age(self, pub, min_interval=timedelta(seconds=0)):
@@ -119,10 +118,9 @@ class AddressReceiver(object):
         if (now - self._last_age_check) <= min_interval:
             return
 
-        logger.debug(str(datetime.utcnow()) + " checking addresses")
+        LOGGER.debug("%s - checking addresses", str(datetime.utcnow()) )
         self._last_age_check = now
-        self._address_lock.acquire()
-        try:
+        with self._address_lock:
             for addr, metadata in self._addresses.items():
                 atime = metadata["receive_time"]
                 if now - atime > self._max_age:
@@ -131,10 +129,8 @@ class AddressReceiver(object):
                            'service': metadata['service']}
                     msg = Message('/address/' + metadata['name'], 'info', mda)
                     del self._addresses[addr]
-                    logger.info("publish remove '%s'", str(msg))
+                    LOGGER.info("publish remove '%s'", str(msg))
                     pub.send(msg.encode())
-        finally:
-            self._address_lock.release()
 
     def _run(self):
         """Run the receiver.
@@ -143,9 +139,24 @@ class AddressReceiver(object):
         nameservers = []
         if self._multicast_enabled:
             recv = MulticastReceiver(port).settimeout(2.)
+            while True:
+                try:
+                    recv = MulticastReceiver(port).settimeout(2.)
+                    LOGGER.info("Receiver initialized.")
+                    break
+                except IOError as err:
+                    if err.errno == errno.ENODEV:
+                        LOGGER.error("Receiver initialization failed "
+                                     "(no such device). "
+                                     "Trying again in %d s",
+                                     10)
+                        time.sleep(10)
+                    else:
+                        raise
         else:
             recv = _SimpleReceiver(port)
             nameservers = ["localhost"]
+
         self._is_running = True
         with Publish("address_receiver", self._port, ["addresses"],
                      nameservers=nameservers) as pub:
@@ -153,11 +164,11 @@ class AddressReceiver(object):
                 while self._do_run:
                     try:
                         data, fromaddr = recv()
-                        logger.debug("data %s" % data)
+                        LOGGER.debug("data %s" % data)
                         del fromaddr
                     except SocketTimeout:
                         if self._multicast_enabled:
-                            logger.debug("Multicast socket timed out on recv!")
+                            LOGGER.debug("Multicast socket timed out on recv!")
                             continue
                     finally:
                         self._check_age(pub, min_interval=self._max_age / 20)
@@ -172,10 +183,10 @@ class AddressReceiver(object):
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
 
-                        logger.debug('receiving address ' + str(addr)
-                                     + " " + str(name) + " " + str(metadata))
+                        LOGGER.debug('receiving address %s %s %s', str(addr),
+                                     str(name), str(metadata))
                         if addr not in self._addresses:
-                            logger.info("nameserver: publish add '%s'",
+                            LOGGER.info("nameserver: publish add '%s'",
                                         str(msg))
                             pub.send(msg.encode())
                         self._add(addr, metadata)
@@ -186,12 +197,9 @@ class AddressReceiver(object):
     def _add(self, adr, metadata):
         """Add an address.
         """
-        self._address_lock.acquire()
-        try:
+        with self._address_lock:
             metadata["receive_time"] = datetime.utcnow()
             self._addresses[adr] = metadata
-        finally:
-            self._address_lock.release()
 
 
 class _SimpleReceiver(object):
