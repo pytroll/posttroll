@@ -28,11 +28,12 @@
 from posttroll.ns import NameServer
 
 import logging
+import _strptime
 
 logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
-    
+
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -100,7 +101,7 @@ if __name__ == '__main__':
             import daemon.runner
             import signal
             import sys
-            
+
             class App(object):
                 """App object for running the nameserver as daemon.
                 """

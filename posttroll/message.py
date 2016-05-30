@@ -38,6 +38,7 @@ Note: It's not optimized for BIG messages.
 
 import re
 from datetime import datetime
+import _strptime
 try:
     import json
 except ImportError:
