@@ -25,18 +25,22 @@ import time
 import threading
 import logging
 import errno
+import ConfigParser
+import os
 
 from posttroll import message
 from posttroll.bbmcast import MulticastSender, MC_GROUP
 from posttroll import context
 from zmq import REQ, REP, LINGER
-
+from mpop import CONFIG_PATH
 __all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
 
 LOGGER = logging.getLogger(__name__)
 
-broadcast_port = 21200
 
+conf = ConfigParser.ConfigParser()
+conf.read(os.path.join(CONFIG_PATH, "posttroll.ini"))
+broadcast_port = conf.getint('ports', 'broadcast_port') or 21200
 
 class DesignatedReceiversSender(object):
 

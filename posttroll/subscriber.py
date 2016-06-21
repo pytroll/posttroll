@@ -26,8 +26,11 @@
 import logging
 from datetime import datetime, timedelta
 from urlparse import urlsplit
-
+from mpop import CONFIG_PATH
 import time
+import os
+import ConfigParser
+
 # pylint: disable=E0611
 from zmq import (SUB, Poller, LINGER,
                  POLLIN, SUBSCRIBE, PULL, NOBLOCK, ZMQError)
@@ -378,7 +381,10 @@ class _AddressListener(object):
             services = [services, ]
         self.services = services
         self.subscriber = subscriber
-        self.subscriber.add_hook_sub("tcp://" + nameserver + ":16543",
+        conf = ConfigParser.ConfigParser()
+        conf.read(os.path.join(CONFIG_PATH, "posttroll.ini"))
+        default_publish_port = conf.getint('ports', 'default_publish_port') or 16543
+        self.subscriber.add_hook_sub("tcp://" + nameserver + ":"+str(default_publish_port),
                                      ["pytroll://address", ],
                                      self.handle_msg)
 
