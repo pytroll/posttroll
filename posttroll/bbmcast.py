@@ -27,6 +27,7 @@ Requires that your OS kernel supports IP multicast.
 This is based on python-examples Demo/sockets/mcast.py
 """
 
+import logging
 import os
 import struct
 from socket import (AF_INET, INADDR_ANY, IP_ADD_MEMBERSHIP, IP_MULTICAST_LOOP,
@@ -43,6 +44,7 @@ MC_GROUP = os.environ.get('PYTROLL_MC_GROUP', '225.0.0.212')
 # local network multicast (<32)
 TTL_LOCALNET = 31
 
+logger = logging.getLogger(__name__)
 
 SocketTimeout = timeout  # for easy access to socket.timeout
 
