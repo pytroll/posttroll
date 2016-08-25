@@ -28,6 +28,11 @@ This is based on python-examples Demo/sockets/mcast.py
 """
 
 import os
+import struct
+from socket import (AF_INET, INADDR_ANY, IP_ADD_MEMBERSHIP, IP_MULTICAST_LOOP,
+                    IP_MULTICAST_TTL, IPPROTO_IP, SO_BROADCAST, SO_REUSEADDR,
+                    SOCK_DGRAM, SOL_IP, SOL_SOCKET, gethostbyname, socket,
+                    timeout)
 
 __all__ = ('MulticastSender', 'MulticastReceiver', 'mcast_sender',
            'mcast_receiver', 'SocketTimeout')
@@ -38,11 +43,6 @@ MC_GROUP = os.environ.get('PYTROLL_MC_GROUP', '225.0.0.212')
 # local network multicast (<32)
 TTL_LOCALNET = 31
 
-import struct
-from socket import (socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR,
-                    SO_BROADCAST, IPPROTO_IP, IP_ADD_MEMBERSHIP, INADDR_ANY,
-                    IP_MULTICAST_TTL, IP_MULTICAST_LOOP, SOL_IP, timeout,
-                    gethostbyname)
 
 SocketTimeout = timeout  # for easy access to socket.timeout
 
@@ -62,6 +62,7 @@ class MulticastSender(object):
         self.port = port
         self.group = mcgroup
         self.socket, self.group = mcast_sender(mcgroup)
+        logger.debug('Started multicast group %s', mcgroup)
 
     def __call__(self, data):
         self.socket.sendto(data, (self.group, self.port))

@@ -25,17 +25,19 @@
 Default port is 5557, if $NAMESERVER_PORT is not defined.
 """
 import logging
+import os
+import time
 from datetime import datetime, timedelta
 
-import time
 # pylint: disable=E0611
-from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK, Poller
-# pylint: enable=E0611
+from zmq import LINGER, NOBLOCK, POLLIN, REP, REQ, Poller
 
 from posttroll import context
 from posttroll.address_receiver import AddressReceiver
 from posttroll.message import Message
-import os
+
+# pylint: enable=E0611
+
 
 PORT = int(os.environ.get("NAMESERVER_PORT", 5557))
 
@@ -78,7 +80,7 @@ def get_pub_address(name, timeout=10, nameserver="localhost"):
     try:
         socket.setsockopt(LINGER, timeout * 1000)
         socket.connect("tcp://" + nameserver + ":" + str(PORT))
-
+        logger.debug('Connecting to %s', "tcp://" + nameserver + ":" + str(PORT))
         poller = Poller()
         poller.register(socket, POLLIN)
 
@@ -133,6 +135,7 @@ class NameServer(object):
         try:
             self.listener = context.socket(REP)
             self.listener.bind("tcp://*:" + str(port))
+            logger.debug('Listening on port %s', str(port))
             poller = Poller()
             poller.register(self.listener, POLLIN)
             while self.loop:
