@@ -51,7 +51,7 @@ debug = os.environ.get('DEBUG', False)
 import ConfigParser
 conf = ConfigParser.ConfigParser()
 conf.read(os.path.join(CONFIG_PATH, "posttroll.ini"))
-print(os.path.join(CONFIG_PATH, "posttroll.ini"))
+#print(os.path.join(CONFIG_PATH, "posttroll.ini"))
 broadcast_port = conf.getint('ports', 'broadcast_port') or 21600
 default_publish_port = conf.getint('ports', 'default_publish_port') or 16560
 
