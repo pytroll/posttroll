@@ -382,8 +382,10 @@ class _AddressListener(object):
         self.services = services
         self.subscriber = subscriber
         conf = ConfigParser.ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, "posttroll.ini"))
-        default_publish_port = conf.getint('ports', 'default_publish_port') or 16543
+        posttrollConfig = os.path.join(CONFIG_PATH, "posttroll.ini")
+        default_publish_port = 16543
+        if os.path.isfile(posttrollConfig):
+            default_publish_port = conf.getint('ports', 'default_publish_port') or 16543
         self.subscriber.add_hook_sub("tcp://" + nameserver + ":"+str(default_publish_port),
                                      ["pytroll://address", ],
                                      self.handle_msg)

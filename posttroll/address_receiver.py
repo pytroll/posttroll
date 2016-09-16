@@ -32,7 +32,6 @@ import threading
 import errno
 import time
 from mpop import CONFIG_PATH
-
 from datetime import datetime, timedelta
 
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
@@ -50,10 +49,15 @@ LOGGER = logging.getLogger(__name__)
 debug = os.environ.get('DEBUG', False)
 import ConfigParser
 conf = ConfigParser.ConfigParser()
-conf.read(os.path.join(CONFIG_PATH, "posttroll.ini"))
+posttrollConfig = os.path.join(CONFIG_PATH, "posttroll.ini")
 #print(os.path.join(CONFIG_PATH, "posttroll.ini"))
-broadcast_port = conf.getint('ports', 'broadcast_port') or 21600
-default_publish_port = conf.getint('ports', 'default_publish_port') or 16560
+
+broadcast_port = 21600
+default_publish_port = 16560
+if os.path.isfile(posttrollConfig):
+    conf.read(posttrollConfig)
+    broadcast_port = conf.getint('ports', 'broadcast_port') or 21600
+    default_publish_port = conf.getint('ports', 'default_publish_port') or 16560
 
 #-----------------------------------------------------------------------------
 #

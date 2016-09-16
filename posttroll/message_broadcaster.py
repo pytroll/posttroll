@@ -39,8 +39,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 conf = ConfigParser.ConfigParser()
-conf.read(os.path.join(CONFIG_PATH, "posttroll.ini"))
-broadcast_port = conf.getint('ports', 'broadcast_port') or 21200
+posttrollConfig = os.path.join(CONFIG_PATH, "posttroll.ini")
+
+broadcast_port = 21200
+if os.path.isfile(posttrollConfig):
+    conf.read(posttrollConfig)
+    broadcast_port = conf.getint('ports', 'broadcast_port') or 21200
 
 class DesignatedReceiversSender(object):
 
