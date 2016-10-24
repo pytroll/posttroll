@@ -25,6 +25,7 @@
 """
 import logging
 from datetime import datetime, timedelta
+from threading import Lock
 from urlparse import urlsplit
 
 import time
@@ -78,9 +79,11 @@ class Subscriber(object):
         self._hooks = []
         self._hooks_cb = {}
 
+        self.poller = Poller()
+        self._lock = Lock()
+
         self.update(addresses)
 
-        self.poller = Poller()
         self._loop = True
 
     def add(self, address, topics=None):
@@ -88,36 +91,38 @@ class Subscriber(object):
 
         It topics is None we will subscibe to already specified topics.
         """
-        if address in self.addresses:
-            return False
+        with self._lock:
+            if address in self.addresses:
+                return False
 
-        topics = self._magickfy_topics(topics) or self._topics
-        LOGGER.info("Subscriber adding address %s with topics %s",
-                    str(address), str(topics))
-        subscriber = context.socket(SUB)
-        for t__ in topics:
-            subscriber.setsockopt(SUBSCRIBE, t__)
-        subscriber.connect(address)
-        self.sub_addr[subscriber] = address
-        self.addr_sub[address] = subscriber
-        if self.poller:
-            self.poller.register(subscriber, POLLIN)
-        return True
+            topics = self._magickfy_topics(topics) or self._topics
+            LOGGER.info("Subscriber adding address %s with topics %s",
+                        str(address), str(topics))
+            subscriber = context.socket(SUB)
+            for t__ in topics:
+                subscriber.setsockopt(SUBSCRIBE, t__)
+            subscriber.connect(address)
+            self.sub_addr[subscriber] = address
+            self.addr_sub[address] = subscriber
+            if self.poller:
+                self.poller.register(subscriber, POLLIN)
+            return True
 
     def remove(self, address):
         """Remove *address* from the subscribing list for *topics*.
         """
-        try:
-            subscriber = self.addr_sub[address]
-        except KeyError:
-            return False
-        LOGGER.info("Subscriber removing address %s", str(address))
-        if self.poller:
-            self.poller.unregister(subscriber)
-        del self.addr_sub[address]
-        del self.sub_addr[subscriber]
-        subscriber.close()
-        return True
+        with self._lock:
+            try:
+                subscriber = self.addr_sub[address]
+            except KeyError:
+                return False
+            LOGGER.info("Subscriber removing address %s", str(address))
+            if self.poller:
+                self.poller.unregister(subscriber)
+            del self.addr_sub[address]
+            del self.sub_addr[subscriber]
+            subscriber.close()
+            return True
 
     def update(self, addresses):
         """Updating with a set of addresses.
