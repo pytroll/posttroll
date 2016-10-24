@@ -24,19 +24,18 @@
 """Simple library to subscribe to messages.
 """
 import logging
+import time
 from datetime import datetime, timedelta
 from threading import Lock
 from urlparse import urlsplit
 
-import time
 # pylint: disable=E0611
-from zmq import (SUB, Poller, LINGER,
-                 POLLIN, SUBSCRIBE, PULL, NOBLOCK, ZMQError)
+from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
+
 # pylint: enable=E0611
 from posttroll import context
-from posttroll.message import Message, _MAGICK
+from posttroll.message import _MAGICK, Message
 from posttroll.ns import get_pub_address
-
 
 LOGGER = logging.getLogger(__name__)
 
