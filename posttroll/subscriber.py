@@ -309,16 +309,6 @@ class NSSubscriber(object):
                 time.sleep(1)
             return []
 
-        # Search for addresses corresponding to service.
-        for service in self._services:
-            addr = _get_addr_loop(service, self._timeout)
-            if not addr:
-                LOGGER.warning("Can't get any address for %s", service)
-            else:
-                LOGGER.debug("Got address for %s: %s",
-                             str(service), str(addr))
-            self._addresses.extend(addr)
-
         # Subscribe to those services and topics.
         LOGGER.debug("Subscribing to topics %s", str(self._topics))
         self._subscriber = Subscriber(self._addresses,
@@ -329,6 +319,18 @@ class NSSubscriber(object):
             self._addr_listener = _AddressListener(self._subscriber,
                                                    self._services,
                                                    nameserver=self._nameserver)
+
+        # Search for addresses corresponding to service.
+        for service in self._services:
+            addresses = _get_addr_loop(service, self._timeout)
+            if not addresses:
+                LOGGER.warning("Can't get any address for %s", service)
+                continue
+            else:
+                LOGGER.debug("Got address for %s: %s",
+                             str(service), str(addresses))
+            for addr in addresses:
+                self._subscriber.add(addr)
 
         return self._subscriber
 
