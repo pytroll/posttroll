@@ -1,6 +1,24 @@
 Changelog
 =========
 
+v1.2.1 (2016-10-27)
+-------------------
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.2.0 → 1.2.1. [Martin Raspaud]
+
+- Add bumpversion and gitchangelog config files. [Martin Raspaud]
+
+- Add a logger. [Martin Raspaud]
+
+- Added a couple log messages. [Martin Raspaud]
+
+- Import _strptime for thread incompatibility workaround. [Martin
+  Raspaud]
+
+- Change repo to pytroll/posttroll. [Martin Raspaud]
+
 v1.2.0 (2016-05-04)
 -------------------
 
