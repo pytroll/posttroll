@@ -23,15 +23,17 @@
 
 """The publisher module gives high-level tools to publish messages on a port.
 """
-from urlparse import urlsplit, urlunsplit
+import logging
+import socket
 from datetime import datetime, timedelta
+from threading import Lock
+from urlparse import urlsplit, urlunsplit
+
 import zmq
+
 from posttroll import context
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
-import socket
-
-import logging
 
 LOGGER = logging.getLogger(__name__)
 
@@ -114,11 +116,13 @@ class Publisher(object):
 
         # Initialize no heartbeat
         self._heartbeat = None
+        self._pub_lock = Lock()
 
     def send(self, msg):
         """Send the given message.
         """
-        self.publish.send(msg)
+        with self._pub_lock:
+            self.publish.send(msg)
         return self
 
     def stop(self):
