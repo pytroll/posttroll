@@ -21,13 +21,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''Listener module for Trollduction.'''
+'''Listener module.'''
 
 from posttroll.subscriber import NSSubscriber
 from Queue import Queue
 from threading import Thread
 import time
 import logging
+
 
 class ListenerContainer(object):
 
@@ -74,7 +75,8 @@ class ListenerContainer(object):
 
 class Listener(object):
 
-    '''PyTroll listener class for reading messages for Trollduction
+    '''PyTroll listener class for reading messages for eg. operational
+    product generation.
     '''
 
     logger = logging.getLogger("Listener")
