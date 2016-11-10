@@ -1,6 +1,24 @@
 Changelog
 =========
 
+v1.2.2 (2016-11-10)
+-------------------
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.2.1 → 1.2.2. [Martin Raspaud]
+
+- Make publishing thread-safe through locking. [Martin Raspaud]
+
+- Merge branch 'master' into develop. [Martin Raspaud]
+
+- Do address fetching after address listener has been started (fixes #5)
+  [Martin Raspaud]
+
+- Reorganize imports in subcriber.py. [Martin Raspaud]
+
+- Add lock around subscriber's address handling. [Martin Raspaud]
+
 v1.2.1 (2016-10-27)
 -------------------
 
