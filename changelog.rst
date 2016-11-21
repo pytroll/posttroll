@@ -1,6 +1,24 @@
 Changelog
 =========
 
+v1.3.0 (2016-11-21)
+-------------------
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.2.2 → 1.3.0. [Martin Raspaud]
+
+- Merge branch 'master' into release-v1.2.3. [Martin Raspaud]
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.2.1 → 1.2.2. [Martin Raspaud]
+
+- Generalize docstrings. [Panu Lahtinen]
+
+- Move Listener and ListenerContainer from trollduction to posttroll.
+  [Panu Lahtinen]
+
 v1.2.2 (2016-11-10)
 -------------------
 
