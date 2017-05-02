@@ -26,7 +26,7 @@
 import logging
 import socket
 from datetime import datetime, timedelta
-from threading import Lock
+from threading import Lock, Thread
 from urlparse import urlsplit, urlunsplit
 
 import zmq
@@ -201,8 +201,8 @@ class NoisyPublisher(object):
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name)
         LOGGER.debug("entering publish %s", str(self._publisher.destination))
-        addr = ("tcp://" + str(get_own_ip()) + ":"
-                + str(self._publisher.port_number))
+        addr = ("tcp://" + str(get_own_ip()) + ":" +
+                str(self._publisher.port_number))
         self._broadcaster = sendaddressservice(self._name, addr,
                                                self._aliases,
                                                self._broadcast_interval,
@@ -262,3 +262,41 @@ class Publish(NoisyPublisher):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self.stop()
+
+
+class PublisherContainer(object):
+
+    """Threaded container for a publisher instance"""
+
+    logger = logging.getLogger("PublisherContainer")
+
+    def __init__(self, name, port=0, aliases=None, broadcast_interval=2,
+                 nameservers=None):
+        self.pub = None
+        self.create_publisher(name, port=port, aliases=aliases,
+                              broadcast_interval=broadcast_interval,
+                              nameservers=nameservers)
+        self.thread = Thread(target=self.pub.start)
+        self.thread.setDaemon(True)
+        self.thread.start()
+
+    def create_publisher(self, name, port=0, aliases=None,
+                         broadcast_interval=2,
+                         nameservers=None):
+        """Create a publisher instance"""
+        if self.pub is None:
+            self.pub = NoisyPublisher(name, port=port, aliases=aliases,
+                                      broadcast_interval=broadcast_interval,
+                                      nameservers=nameservers)
+
+    def send(self, msg):
+        """Send message"""
+        self.pub.send(str(msg))
+        self.logger.info("Sent message: %s", str(msg))
+
+    def stop(self):
+        """Stop publisher"""
+        self.pub.stop()
+        self.thread.join()
+        self.thread = None
+        self.logger.info("Listener stopped")
