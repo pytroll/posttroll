@@ -31,7 +31,9 @@ import time
 from posttroll.message import Message
 from posttroll.ns import (NameServer, get_pub_addresses,
                           get_pub_address, TimeoutError)
-from posttroll.publisher import Publish, Publisher, get_own_ip
+from posttroll.publisher import (Publish, Publisher, get_own_ip,
+                                 PublisherContainer)
+from posttroll.listener import ListenerContainer
 from posttroll.subscriber import Subscribe, Subscriber
 
 
@@ -224,6 +226,38 @@ class TestPubSub(unittest.TestCase):
         pub.stop()
 
 
+class TestContainers(unittest.TestCase):
+
+    """Testing publisher and listener containers"""
+
+    def setUp(self):
+        self.ns = NameServer(max_age=timedelta(seconds=3))
+        self.thr = Thread(target=self.ns.run)
+        self.thr.start()
+
+    def tearDown(self):
+        self.ns.stop()
+        self.thr.join()
+        time.sleep(2)
+
+    def test_containers(self):
+        """Test listener and publisher containers"""
+        pub = PublisherContainer("test")
+        sub = ListenerContainer(topics=["/counter"])
+        for counter in range(5):
+            tested = False
+            msg_out = Message("/counter", "info", str(counter))
+            pub.send(msg_out)
+
+            msg_in = sub.output_queue.get(True, 1)
+            if msg_in is not None:
+                self.assertEquals(str(msg_in), str(msg_out))
+                tested = True
+            self.assertTrue(tested)
+        pub.stop()
+        sub.stop()
+
+
 def suite():
     """The suite for test_bbmcast.
     """
@@ -232,5 +266,6 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestPubSub))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNS))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNSWithoutMulticasting))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestContainers))
 
     return mysuite
