@@ -247,7 +247,7 @@ class TestContainers(unittest.TestCase):
         for counter in range(5):
             tested = False
             msg_out = Message("/counter", "info", str(counter))
-            pub.send(msg_out)
+            pub.send(str(msg_out))
 
             msg_in = sub.output_queue.get(True, 1)
             if msg_in is not None:
