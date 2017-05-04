@@ -26,7 +26,7 @@
 import logging
 import socket
 from datetime import datetime, timedelta
-from threading import Lock, Thread
+from threading import Lock
 from urlparse import urlsplit, urlunsplit
 
 import zmq
