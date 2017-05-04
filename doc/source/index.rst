@@ -70,17 +70,18 @@ And the subscribing code::
         for msg in sub.recv():
             print msg
 
-There are also threaded containers for both publisher and listener that can be
-used eg. inside a class without context manager::
+There is also a threaded container for the listener that can be
+used eg. inside a class for continuously monitoring incoming messages::
 
-        from posttroll.publisher import PublisherContainer
+        from posttroll.publisher import NoisyPublisher
         from posttroll.listener import ListenerContainer
         from posttroll.message import Message
         import time
 
-        pub = PublisherContainer("test")
+        pub = NoisyPublisher("test")
+        pub.start()
         sub = ListenerContainer(topics=["/counter"])
-        # Wait that both sub and pub register to nameserver
+        # Wait that both sub and pub to register to nameserver
         time.sleep(3)
         for counter in range(5):
             msg_out = Message("/counter", "info", str(counter))

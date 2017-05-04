@@ -32,7 +32,7 @@ from posttroll.message import Message
 from posttroll.ns import (NameServer, get_pub_addresses,
                           get_pub_address, TimeoutError)
 from posttroll.publisher import (Publish, Publisher, get_own_ip,
-                                 PublisherContainer)
+                                 NoisyPublisher)
 from posttroll.listener import ListenerContainer
 from posttroll.subscriber import Subscribe, Subscriber
 
@@ -226,9 +226,9 @@ class TestPubSub(unittest.TestCase):
         pub.stop()
 
 
-class TestContainers(unittest.TestCase):
+class TestListenerContainer(unittest.TestCase):
 
-    """Testing publisher and listener containers"""
+    """Testing listener container"""
 
     def setUp(self):
         self.ns = NameServer(max_age=timedelta(seconds=3))
@@ -240,10 +240,12 @@ class TestContainers(unittest.TestCase):
         self.thr.join()
         time.sleep(2)
 
-    def test_containers(self):
-        """Test listener and publisher containers"""
-        pub = PublisherContainer("test")
+    def test_listener_container(self):
+        """Test listener container"""
+        pub = NoisyPublisher("test")
+        pub.start()
         sub = ListenerContainer(topics=["/counter"])
+        time.sleep(2)
         for counter in range(5):
             tested = False
             msg_out = Message("/counter", "info", str(counter))
@@ -266,6 +268,6 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestPubSub))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNS))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNSWithoutMulticasting))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestContainers))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestListenerContainer))
 
     return mysuite
