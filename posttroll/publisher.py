@@ -156,8 +156,9 @@ class _PublisherHeartbeat(object):
             (datetime.utcnow() - self.lastbeat >=
              timedelta(seconds=min_interval))):
             self.lastbeat = datetime.utcnow()
-            LOGGER.debug("Publish heartbeat")
-            self.publisher.send(Message(self.subject, "beat").encode())
+            LOGGER.debug("Publish heartbeat (min_interval is %.1f sec)", min_interval)
+            self.publisher.send(Message(self.subject, "beat",
+                                        {"min_interval": min_interval}).encode())
 
 
 class NoisyPublisher(object):
