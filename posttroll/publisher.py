@@ -202,8 +202,8 @@ class NoisyPublisher(object):
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name)
         LOGGER.debug("entering publish %s", str(self._publisher.destination))
-        addr = ("tcp://" + str(get_own_ip()) + ":"
-                + str(self._publisher.port_number))
+        addr = ("tcp://" + str(get_own_ip()) + ":" +
+                str(self._publisher.port_number))
         self._broadcaster = sendaddressservice(self._name, addr,
                                                self._aliases,
                                                self._broadcast_interval,
