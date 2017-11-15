@@ -37,15 +37,13 @@ from posttroll.message_broadcaster import sendaddressservice
 
 LOGGER = logging.getLogger(__name__)
 
-TEST_HOST = 'dmi.dk'
-
 
 def get_own_ip():
     """Get the host's ip number.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        sock.connect((TEST_HOST, 0))
+        sock.connect(("8.8.8.8", 80))
     except socket.gaierror:
         ip_ = "127.0.0.1"
     else:
