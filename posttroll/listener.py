@@ -37,7 +37,7 @@ class ListenerContainer(object):
 
     logger = logging.getLogger("ListenerContainer")
 
-    def __init__(self, topics=None):
+    def __init__(self, topics=None, services=""):
         self.listener = None
         self.output_queue = None
         self.thread = None
@@ -47,7 +47,7 @@ class ListenerContainer(object):
             self.output_queue = Queue()
 
             # Create a Listener instance
-            self.listener = Listener(topics=topics, queue=self.output_queue)
+            self.listener = Listener(topics=topics, queue=self.output_queue, services=services)
             # Start Listener instance into a new daemonized thread.
             self.thread = Thread(target=self.listener.run)
             self.thread.setDaemon(True)
@@ -81,11 +81,12 @@ class Listener(object):
 
     logger = logging.getLogger("Listener")
 
-    def __init__(self, topics=None, queue=None):
+    def __init__(self, topics=None, queue=None, services=""):
         '''Init Listener object
         '''
         self.topics = topics
         self.queue = queue
+        self.services = services
         self.subscriber = None
         self.recv = None
         self.create_subscriber()
@@ -97,7 +98,7 @@ class Listener(object):
         '''
         if self.subscriber is None:
             if self.topics:
-                self.subscriber = NSSubscriber("", self.topics,
+                self.subscriber = NSSubscriber(self.services, self.topics,
                                                addr_listener=True)
                 self.recv = self.subscriber.start().recv
 
