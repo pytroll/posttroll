@@ -37,15 +37,13 @@ from posttroll.message_broadcaster import sendaddressservice
 
 LOGGER = logging.getLogger(__name__)
 
-TEST_HOST = 'dmi.dk'
-
 
 def get_own_ip():
     """Get the host's ip number.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        sock.connect((TEST_HOST, 0))
+        sock.connect(("8.8.8.8", 80))
     except socket.gaierror:
         ip_ = "127.0.0.1"
     else:
@@ -156,8 +154,9 @@ class _PublisherHeartbeat(object):
             (datetime.utcnow() - self.lastbeat >=
              timedelta(seconds=min_interval))):
             self.lastbeat = datetime.utcnow()
-            LOGGER.debug("Publish heartbeat")
-            self.publisher.send(Message(self.subject, "beat").encode())
+            LOGGER.debug("Publish heartbeat (min_interval is %.1f sec)", min_interval)
+            self.publisher.send(Message(self.subject, "beat",
+                                        {"min_interval": min_interval}).encode())
 
 
 class NoisyPublisher(object):
@@ -201,8 +200,8 @@ class NoisyPublisher(object):
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name)
         LOGGER.debug("entering publish %s", str(self._publisher.destination))
-        addr = ("tcp://" + str(get_own_ip()) + ":"
-                + str(self._publisher.port_number))
+        addr = ("tcp://" + str(get_own_ip()) + ":" +
+                str(self._publisher.port_number))
         self._broadcaster = sendaddressservice(self._name, addr,
                                                self._aliases,
                                                self._broadcast_interval,
