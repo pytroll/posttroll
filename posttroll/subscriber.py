@@ -23,6 +23,7 @@
 
 """Simple library to subscribe to messages.
 """
+from time import sleep
 import logging
 import time
 from datetime import datetime, timedelta
@@ -192,6 +193,7 @@ class Subscriber(object):
         self._loop = True
         try:
             while self._loop:
+                sleep(0)
                 try:
                     socks = dict(self.poller.poll(timeout=timeout))
                     if socks:
