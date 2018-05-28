@@ -204,14 +204,14 @@ def run():
     import time
     try:
         tlogger = Logger((opts.server, opts.port))
-        #logger = Logger(("safe", 16543))
+        # logger = Logger(("safe", 16543))
         tlogger.start()
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         tlogger.stop()
-        print ("Thanks for using pytroll/logger. "
-               "See you soon on www.pytroll.org!")
+        print("Thanks for using pytroll/logger. "
+              "See you soon on www.pytroll.org!")
 
 if __name__ == '__main__':
     run()

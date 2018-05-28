@@ -87,7 +87,7 @@ class Publisher(object):
                 pub.send(str(message))
                 time.sleep(3)
         except KeyboardInterrupt:
-            print "terminating publisher..."
+            print("terminating publisher...")
             pub.stop()
 
     """
@@ -250,11 +250,11 @@ class Publish(NoisyPublisher):
                     while True:
                         counter += 1
                         message = Message("/counter", "info", str(counter))
-                        print "publishing", message
+                        print("publishing", message)
                         pub.send(str(message))
                         time.sleep(3)
             except KeyboardInterrupt:
-                print "terminating publisher..."
+                print("terminating publisher...")
 
     """
     # Make this one subclassable with another publisher.
