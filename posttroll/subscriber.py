@@ -27,7 +27,10 @@ import logging
 import time
 from datetime import datetime, timedelta
 from threading import Lock
-from urlparse import urlsplit
+try:
+    from urllib.parse import urlsplit
+except ImportError:
+    from urlparse import urlsplit
 
 # pylint: disable=E0611
 from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
