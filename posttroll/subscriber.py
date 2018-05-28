@@ -61,10 +61,10 @@ class Subscriber(object):
         sub = Subscriber([addr], 'my_topic')
         try:
             for msg in sub(timeout=2):
-                print "Consumer got", msg
+                print("Consumer got", msg)
 
         except KeyboardInterrupt:
-            print "terminating consumer..."
+            print("terminating consumer...")
             sub.close()
 
     """
@@ -358,7 +358,7 @@ class Subscribe(NSSubscriber):
 
         with Subscribe("a_service", "my_topic",) as sub:
             for msg in sub.recv():
-                print msg
+                print(msg)
 
     """
 
