@@ -216,7 +216,7 @@ class Subscriber(object):
                     else:
                         # timeout
                         yield None
-                except ZMQError, err:
+                except ZMQError as err:
                     LOGGER.exception("Receive failed: %s", str(err))
         finally:
             for sub in self.subscribers + self._hooks:
