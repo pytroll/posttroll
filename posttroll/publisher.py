@@ -126,7 +126,10 @@ class Publisher(object):
         """Send the given message.
         """
         with self._pub_lock:
-            self.publish.send(msg)
+            try:
+                self.publish.send(msg)
+            except TypeError:
+                self.publish.send_string(msg)
         return self
 
     def stop(self):
