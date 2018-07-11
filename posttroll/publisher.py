@@ -33,6 +33,7 @@ except ImportError:
     from urlparse import urlsplit, urlunsplit
 
 import zmq
+import six
 
 from posttroll import context
 from posttroll.message import Message
@@ -184,7 +185,7 @@ class NoisyPublisher(object):
         self._name = name
         self._aliases = [name]
         if aliases:
-            if isinstance(aliases, (str, unicode)):
+            if isinstance(aliases, six.string_types):
                 self._aliases += [aliases]
             else:
                 self._aliases += aliases
