@@ -30,6 +30,7 @@ from threading import Lock
 from six.moves.urllib.parse import urlsplit, urlunsplit
 import six
 import zmq
+import six
 
 from posttroll import context
 from posttroll.message import Message
