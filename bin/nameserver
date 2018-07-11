@@ -55,8 +55,8 @@ if __name__ == '__main__':
     else:
         handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
-                                                " %(name)s] %(message)s",
-                                                '%Y-%m-%d %H:%M:%S'))
+                                           " %(name)s] %(message)s",
+                                           '%Y-%m-%d %H:%M:%S'))
     if opts.verbose:
         loglevel = logging.DEBUG
     else:
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     logging.getLogger('').addHandler(handler)
     logger = logging.getLogger("nameserver")
 
-    multicast_enabled=(opts.no_multicast == False)
+    multicast_enabled = (opts.no_multicast == False)
 
     ns = NameServer(multicast_enabled=multicast_enabled)
 
@@ -79,10 +79,10 @@ if __name__ == '__main__':
             logger.exception("Something wrong happened...")
             raise
         finally:
-            print ("Thanks for using pytroll/nameserver. "
-                   "See you soon on www.pytroll.org!")
+            print("Thanks for using pytroll/nameserver. "
+                  "See you soon on www.pytroll.org!")
 
-    else: # Running as a daemon
+    else:  # Running as a daemon
         if opts.daemon == "status":
             import os
             import sys
@@ -103,6 +103,7 @@ if __name__ == '__main__':
             import sys
 
             class App(object):
+
                 """App object for running the nameserver as daemon.
                 """
                 stdin_path = "/dev/null"
@@ -118,9 +119,7 @@ if __name__ == '__main__':
                 del args
                 ns.stop()
 
-
             signal.signal(signal.SIGTERM, _terminate)
-
 
             APP = App()
             sys.argv = [sys.argv[0], opts.daemon]
@@ -130,4 +129,4 @@ if __name__ == '__main__':
             angel.parse_args([sys.argv[0], opts.daemon])
             sys.exit(angel.do_action())
         except ImportError:
-            print "Cannot run as a daemon, you need python-daemon installed."
+            print("Cannot run as a daemon, you need python-daemon installed.")
