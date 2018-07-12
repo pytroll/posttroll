@@ -29,7 +29,7 @@ import imp
 version = imp.load_source('posttroll.version', 'posttroll/version.py')
 
 
-requirements = ['pyzmq']
+requirements = ['pyzmq', 'six']
 if sys.version_info < (2, 6):
     requirements.append('simplejson')
 
