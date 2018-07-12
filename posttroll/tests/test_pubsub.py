@@ -25,8 +25,9 @@
 import unittest
 from datetime import timedelta
 from threading import Thread
-
 import time
+
+import six
 
 from posttroll.message import Message
 from posttroll.ns import (NameServer, get_pub_addresses,
@@ -56,24 +57,24 @@ class TestNS(unittest.TestCase):
         """Test retrieving addresses.
         """
 
-        with Publish("data_provider", 0, ["this_data"]):
+        with Publish(six.text_type("data_provider"), 0, ["this_data"]):
             time.sleep(3)
             res = get_pub_addresses(["this_data"])
-            self.assertEquals(len(res), 1)
+            self.assertEqual(len(res), 1)
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
                         u'name': u'address'}
             for key, val in expected.items():
-                self.assertEquals(res[0][key], val)
+                self.assertEqual(res[0][key], val)
             self.assertTrue("receive_time" in res[0])
             self.assertTrue("URI" in res[0])
-            res = get_pub_addresses(["data_provider"])
-            self.assertEquals(len(res), 1)
+            res = get_pub_addresses([six.text_type("data_provider")])
+            self.assertEqual(len(res), 1)
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
                         u'name': u'address'}
             for key, val in expected.items():
-                self.assertEquals(res[0][key], val)
+                self.assertEqual(res[0][key], val)
             self.assertTrue("receive_time" in res[0])
             self.assertTrue("URI" in res[0])
 
@@ -87,9 +88,9 @@ class TestNS(unittest.TestCase):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
                     time.sleep(1)
-                    msg = sub.recv(2).next()
+                    msg = six.next(sub.recv(2))
                     if msg is not None:
-                        self.assertEquals(str(msg), str(message))
+                        self.assertEqual(str(msg), str(message))
                     tested = True
         self.assertTrue(tested)
 
@@ -99,17 +100,17 @@ class TestNS(unittest.TestCase):
 
         with Subscribe("this_data", "counter", True) as sub:
             time.sleep(11)
-            self.assertEquals(len(sub.sub_addr), 0)
+            self.assertEqual(len(sub.sub_addr), 0)
             with Publish("data_provider", 0, ["this_data"]):
                 time.sleep(4)
-                sub.recv(2).next()
-                self.assertEquals(len(sub.sub_addr), 1)
+                six.next(sub.recv(2))
+                self.assertEqual(len(sub.sub_addr), 1)
             time.sleep(3)
             for msg in sub.recv(2):
                 if msg is None:
                     break
             time.sleep(3)
-            self.assertEquals(len(sub.sub_addr), 0)
+            self.assertEqual(len(sub.sub_addr), 0)
 
 
 class TestNSWithoutMulticasting(unittest.TestCase):
@@ -137,21 +138,21 @@ class TestNSWithoutMulticasting(unittest.TestCase):
                      nameservers=self.nameservers):
             time.sleep(3)
             res = get_pub_addresses(["this_data"])
-            self.assertEquals(len(res), 1)
+            self.assertEqual(len(res), 1)
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
                         u'name': u'address'}
             for key, val in expected.items():
-                self.assertEquals(res[0][key], val)
+                self.assertEqual(res[0][key], val)
             self.assertTrue("receive_time" in res[0])
             self.assertTrue("URI" in res[0])
             res = get_pub_addresses(["data_provider"])
-            self.assertEquals(len(res), 1)
+            self.assertEqual(len(res), 1)
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
                         u'name': u'address'}
             for key, val in expected.items():
-                self.assertEquals(res[0][key], val)
+                self.assertEqual(res[0][key], val)
             self.assertTrue("receive_time" in res[0])
             self.assertTrue("URI" in res[0])
 
@@ -166,9 +167,9 @@ class TestNSWithoutMulticasting(unittest.TestCase):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
                     time.sleep(1)
-                    msg = sub.recv(2).next()
+                    msg = six.next(sub.recv(2))
                     if msg is not None:
-                        self.assertEquals(str(msg), str(message))
+                        self.assertEqual(str(msg), str(message))
                     tested = True
         self.assertTrue(tested)
 
@@ -178,18 +179,18 @@ class TestNSWithoutMulticasting(unittest.TestCase):
 
         with Subscribe("this_data", "counter", True) as sub:
             time.sleep(11)
-            self.assertEquals(len(sub.sub_addr), 0)
+            self.assertEqual(len(sub.sub_addr), 0)
             with Publish("data_provider", 0, ["this_data"],
                          nameservers=self.nameservers):
                 time.sleep(4)
-                sub.recv(2).next()
-                self.assertEquals(len(sub.sub_addr), 1)
+                six.next(sub.recv(2))
+                self.assertEqual(len(sub.sub_addr), 1)
             time.sleep(3)
             for msg in sub.recv(2):
                 if msg is None:
                     break
             time.sleep(3)
-            self.assertEquals(len(sub.sub_addr), 0)
+            self.assertEqual(len(sub.sub_addr), 0)
 
 
 class TestPubSub(unittest.TestCase):
@@ -218,9 +219,9 @@ class TestPubSub(unittest.TestCase):
             pub.send(str(message))
             time.sleep(1)
 
-            msg = sub.recv(2).next()
+            msg = six.next(sub.recv(2))
             if msg is not None:
-                self.assertEquals(str(msg), str(message))
+                self.assertEqual(str(msg), str(message))
                 tested = True
         self.assertTrue(tested)
         pub.stop()
