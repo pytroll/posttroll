@@ -381,7 +381,7 @@ class _AddressListener(object):
     """
 
     def __init__(self, subscriber, services="", nameserver="localhost"):
-        if isinstance(services, (str, unicode)):
+        if isinstance(services, six.string_types):
             services = [services, ]
         self.services = services
         self.subscriber = subscriber
