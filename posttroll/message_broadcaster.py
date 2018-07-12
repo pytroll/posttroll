@@ -63,8 +63,8 @@ class DesignatedReceiversSender(object):
                 socket.connect("tcp://%s:%d" % (address, self.default_port))
             else:
                 socket.connect("tcp://%s" % address)
-            socket.send(data)
-            message = socket.recv()
+            socket.send_string(data)
+            message = socket.recv_string()
             if message != "ok":
                 logger.warn("invalid acknowledge received: %s" % message)
 
