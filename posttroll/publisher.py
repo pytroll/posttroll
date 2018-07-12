@@ -27,13 +27,9 @@ import logging
 import socket
 from datetime import datetime, timedelta
 from threading import Lock
-try:
-    from urllib.parse import urlsplit, urlunsplit
-except ImportError:
-    from urlparse import urlsplit, urlunsplit
-
-import zmq
+from six.moves.urllib.parse import urlsplit, urlunsplit
 import six
+import zmq
 
 from posttroll import context
 from posttroll.message import Message
@@ -85,7 +81,7 @@ class Publisher(object):
             while True:
                 counter += 1
                 message = Message("/counter", "info", str(counter))
-                pub.send(str(message))
+                pub.send_string(str(message))
                 time.sleep(3)
         except KeyboardInterrupt:
             print("terminating publisher...")
