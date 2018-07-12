@@ -24,7 +24,7 @@
 '''Listener module.'''
 
 from posttroll.subscriber import NSSubscriber
-from Queue import Queue
+from six.moves.queue import Queue
 from threading import Thread
 import time
 import logging
