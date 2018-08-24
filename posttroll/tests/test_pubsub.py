@@ -254,7 +254,7 @@ class TestListenerContainer(unittest.TestCase):
 
             msg_in = sub.output_queue.get(True, 1)
             if msg_in is not None:
-                self.assertEquals(str(msg_in), str(msg_out))
+                self.assertEqual(str(msg_in), str(msg_out))
                 tested = True
             self.assertTrue(tested)
         pub.stop()
