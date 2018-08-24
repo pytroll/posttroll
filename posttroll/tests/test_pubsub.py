@@ -24,7 +24,7 @@
 """
 import unittest
 from datetime import timedelta
-from threading import Thread
+from threading import Thread, Lock
 import time
 
 import six
@@ -38,12 +38,15 @@ from posttroll.listener import ListenerContainer
 from posttroll.subscriber import Subscribe, Subscriber
 
 
+test_lock = Lock()
+
 class TestNS(unittest.TestCase):
 
     """Test the nameserver.
     """
 
     def setUp(self):
+        test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
         self.thr = Thread(target=self.ns.run)
         self.thr.start()
@@ -52,6 +55,7 @@ class TestNS(unittest.TestCase):
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
+        test_lock.release()
 
     def test_pub_addresses(self):
         """Test retrieving addresses.
@@ -119,6 +123,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
     """
 
     def setUp(self):
+        test_lock.acquire()
         self.nameservers = ['localhost']
         self.ns = NameServer(max_age=timedelta(seconds=3),
                              multicast_enabled=False)
@@ -129,6 +134,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
+        test_lock.release()
 
     def test_pub_addresses(self):
         """Test retrieving addresses.
@@ -232,6 +238,7 @@ class TestListenerContainer(unittest.TestCase):
     """Testing listener container"""
 
     def setUp(self):
+        test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
         self.thr = Thread(target=self.ns.run)
         self.thr.start()
@@ -240,6 +247,7 @@ class TestListenerContainer(unittest.TestCase):
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
+        test_lock.release()
 
     def test_listener_container(self):
         """Test listener container"""
