@@ -30,6 +30,7 @@ import time
 from datetime import datetime, timedelta
 
 import six
+from threading import Lock
 # pylint: disable=E0611
 from zmq import LINGER, NOBLOCK, POLLIN, REP, REQ, Poller
 
@@ -44,6 +45,7 @@ PORT = int(os.environ.get("NAMESERVER_PORT", 5557))
 
 logger = logging.getLogger(__name__)
 
+nslock = Lock()
 
 class TimeoutError(BaseException):
 
@@ -136,31 +138,35 @@ class NameServer(object):
         port = PORT
 
         try:
-            self.listener = context.socket(REP)
-            self.listener.bind("tcp://*:" + str(port))
-            logger.debug('Listening on port %s', str(port))
-            poller = Poller()
-            poller.register(self.listener, POLLIN)
+            with nslock:
+                self.listener = context.socket(REP)
+                self.listener.bind("tcp://*:" + str(port))
+                logger.debug('Listening on port %s', str(port))
+                poller = Poller()
+                poller.register(self.listener, POLLIN)
             while self.loop:
-                socks = dict(poller.poll(1000))
-                if socks:
-                    if socks.get(self.listener) == POLLIN:
-                        msg = self.listener.recv_string()
-                else:
-                    continue
-                logger.debug("Replying to request: " + str(msg))
-                msg = Message.decode(msg)
-                self.listener.send_unicode(six.text_type(get_active_address(
-                    msg.data["service"], arec)))
+                with nslock:
+                    socks = dict(poller.poll(1000))
+                    if socks:
+                        if socks.get(self.listener) == POLLIN:
+                            msg = self.listener.recv_string()
+                    else:
+                        continue
+                    logger.debug("Replying to request: " + str(msg))
+                    msg = Message.decode(msg)
+                    self.listener.send_unicode(six.text_type(get_active_address(
+                        msg.data["service"], arec)))
         except KeyboardInterrupt:
             # Needed to stop the nameserver.
             pass
         finally:
             arec.stop()
-            self.listener.close()
+            self.stop()
 
     def stop(self):
         """Stop the name server.
         """
         self.listener.setsockopt(LINGER, 0)
         self.loop = False
+        with nslock:
+            self.listener.close()
