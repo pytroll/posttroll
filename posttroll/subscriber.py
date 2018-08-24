@@ -235,8 +235,11 @@ class Subscriber(object):
         """
         self.stop()
         for sub in list(self.subscribers) + self._hooks:
-            sub.setsockopt(LINGER, 0)
-            sub.close()
+            try:
+                sub.setsockopt(LINGER, 0)
+                sub.close()
+            except ZMQError:
+                pass
 
     @staticmethod
     def _magickfy_topics(topics):
