@@ -96,6 +96,7 @@ class TestNS(unittest.TestCase):
                     if msg is not None:
                         self.assertEqual(str(msg), str(message))
                     tested = True
+                sub.close()
         self.assertTrue(tested)
 
     def test_pub_sub_add_rm(self):
@@ -115,6 +116,7 @@ class TestNS(unittest.TestCase):
                     break
             time.sleep(3)
             self.assertEqual(len(sub.sub_addr), 0)
+            sub.close()
 
 
 class TestNSWithoutMulticasting(unittest.TestCase):
@@ -177,6 +179,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
                     if msg is not None:
                         self.assertEqual(str(msg), str(message))
                     tested = True
+                sub.close()
         self.assertTrue(tested)
 
     def test_pub_sub_add_rm(self):
