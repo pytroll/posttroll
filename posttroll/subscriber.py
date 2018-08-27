@@ -236,7 +236,7 @@ class Subscriber(object):
         self.stop()
         for sub in list(self.subscribers) + self._hooks:
             try:
-                sub.setsockopt(LINGER, 0)
+                sub.setsockopt(LINGER, 1)
                 sub.close()
             except ZMQError:
                 pass

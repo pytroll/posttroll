@@ -33,7 +33,7 @@ import struct
 from socket import (AF_INET, INADDR_ANY, IP_ADD_MEMBERSHIP, IP_MULTICAST_LOOP,
                     IP_MULTICAST_TTL, IPPROTO_IP, SO_BROADCAST, SO_REUSEADDR,
                     SOCK_DGRAM, SOL_IP, SOL_SOCKET, gethostbyname, socket,
-                    timeout)
+                    timeout, SO_LINGER)
 
 __all__ = ('MulticastSender', 'MulticastReceiver', 'mcast_sender',
            'mcast_receiver', 'SocketTimeout')
@@ -125,6 +125,8 @@ class MulticastReceiver(object):
     def close(self):
         """Close the receiver.
         """
+        self.socket.setsockopt(SOL_SOCKET, SO_LINGER,
+                               struct.pack('ii', 1, 1))
         self.socket.close()
 
 # Allow non-object interface

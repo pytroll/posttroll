@@ -126,7 +126,7 @@ class Publisher(object):
     def stop(self):
         """Stop the publisher.
         """
-        self.publish.setsockopt(zmq.LINGER, 0)
+        self.publish.setsockopt(zmq.LINGER, 1)
         self.publish.close()
         return self
 

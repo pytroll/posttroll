@@ -166,7 +166,7 @@ class NameServer(object):
     def stop(self):
         """Stop the name server.
         """
-        self.listener.setsockopt(LINGER, 0)
+        self.listener.setsockopt(LINGER, 1)
         self.loop = False
         with nslock:
             self.listener.close()

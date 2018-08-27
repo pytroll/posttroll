@@ -186,8 +186,8 @@ class TestNSWithoutMulticasting(unittest.TestCase):
         """Test adding and removing publishers.
         """
 
+        time.sleep(4)
         with Subscribe("this_data", "counter", True) as sub:
-            time.sleep(11)
             self.assertEqual(len(sub.sub_addr), 0)
             with Publish("data_provider", 0, ["this_data"],
                          nameservers=self.nameservers):
@@ -198,6 +198,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
             for msg in sub.recv(2):
                 if msg is None:
                     break
+
             time.sleep(3)
             self.assertEqual(len(sub.sub_addr), 0)
 
