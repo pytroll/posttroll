@@ -25,6 +25,7 @@
 from setuptools import setup
 import sys
 import imp
+import versioneer
 
 version = imp.load_source('posttroll.version', 'posttroll/version.py')
 
@@ -35,7 +36,8 @@ if sys.version_info < (2, 6):
 
 
 setup(name="posttroll",
-      version=version.__version__,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       description='Messaging system for pytroll',
       author='The pytroll team',
       author_email='martin.raspaud@smhi.se',
