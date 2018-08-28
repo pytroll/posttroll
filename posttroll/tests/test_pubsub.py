@@ -103,8 +103,8 @@ class TestNS(unittest.TestCase):
         """Test adding and removing publishers.
         """
 
+        time.sleep(4)
         with Subscribe("this_data", "counter", True) as sub:
-            time.sleep(11)
             self.assertEqual(len(sub.sub_addr), 0)
             with Publish("data_provider", 0, ["this_data"]):
                 time.sleep(4)

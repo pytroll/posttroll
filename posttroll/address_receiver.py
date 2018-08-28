@@ -223,6 +223,7 @@ class _SimpleReceiver(object):
     def close(self):
         """Close the receiver.
         """
+        self._socket.setsockopt(LINGER, 1)
         self._socket.close()
 
 #-----------------------------------------------------------------------------
