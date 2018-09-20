@@ -26,6 +26,7 @@
 from posttroll.tests import test_bbmcast, test_message, test_pubsub
 import unittest
 
+
 def suite():
     """The global test suite.
     """
@@ -37,6 +38,7 @@ def suite():
     mysuite.addTests(test_pubsub.suite())
 
     return mysuite
+
 
 def load_tests(loader, tests, pattern):
     return suite()

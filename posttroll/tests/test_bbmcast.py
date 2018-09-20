@@ -3,7 +3,7 @@
 # Copyright (c) 2010-2011, 2014.
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of pytroll.
@@ -28,6 +28,7 @@ from posttroll import bbmcast
 
 
 class TestBB(unittest.TestCase):
+
     """Test class.
     """
 
@@ -40,24 +41,24 @@ class TestBB(unittest.TestCase):
                    str(random.randint(0, 255)))
         socket, group = bbmcast.mcast_sender(mcgroup)
         if mcgroup in ("0.0.0.0", "255.255.255.255"):
-            self.assertEquals(group, "<broadcast>")
-            self.assertEquals(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
+            self.assertEqual(group, "<broadcast>")
+            self.assertEqual(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
         else:
-            self.assertEquals(group, mcgroup)
-            self.assertEquals(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 0)
+            self.assertEqual(group, mcgroup)
+            self.assertEqual(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 0)
 
         socket.close()
-            
+
         mcgroup = "0.0.0.0"
         socket, group = bbmcast.mcast_sender(mcgroup)
-        self.assertEquals(group, "<broadcast>")
-        self.assertEquals(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
+        self.assertEqual(group, "<broadcast>")
+        self.assertEqual(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
         socket.close()
 
         mcgroup = "255.255.255.255"
         socket, group = bbmcast.mcast_sender(mcgroup)
-        self.assertEquals(group, "<broadcast>")
-        self.assertEquals(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
+        self.assertEqual(group, "<broadcast>")
+        self.assertEqual(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
         socket.close()
 
         mcgroup = (str(random.randint(0, 223)) + "." +
@@ -78,12 +79,12 @@ class TestBB(unittest.TestCase):
         mcport = random.randint(1025, 65535)
         mcgroup = "0.0.0.0"
         socket, group = bbmcast.mcast_receiver(mcport, mcgroup)
-        self.assertEquals(group, "<broadcast>")
+        self.assertEqual(group, "<broadcast>")
         socket.close()
 
         mcgroup = "255.255.255.255"
         socket, group = bbmcast.mcast_receiver(mcport, mcgroup)
-        self.assertEquals(group, "<broadcast>")
+        self.assertEqual(group, "<broadcast>")
         socket.close()
 
         # Valid multicast range is 224.0.0.0 to 239.255.255.255
@@ -92,7 +93,7 @@ class TestBB(unittest.TestCase):
                    str(random.randint(0, 255)) + "." +
                    str(random.randint(0, 255)))
         socket, group = bbmcast.mcast_receiver(mcport, mcgroup)
-        self.assertEquals(group, mcgroup)
+        self.assertEqual(group, mcgroup)
         socket.close()
 
         mcgroup = (str(random.randint(0, 223)) + "." +
@@ -107,12 +108,12 @@ class TestBB(unittest.TestCase):
                    str(random.randint(0, 255)))
         self.assertRaises(error, bbmcast.mcast_receiver, mcport, mcgroup)
 
+
 def suite():
     """The suite for test_bbmcast.
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestBB))
-    
-    return mysuite
 
+    return mysuite

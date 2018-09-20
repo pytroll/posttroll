@@ -25,21 +25,23 @@
 from setuptools import setup
 import sys
 import imp
+import versioneer
 
 version = imp.load_source('posttroll.version', 'posttroll/version.py')
 
 
-requirements = ['pyzmq']
+requirements = ['pyzmq', 'six']
 if sys.version_info < (2, 6):
     requirements.append('simplejson')
 
 
 setup(name="posttroll",
-      version=version.__version__,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       description='Messaging system for pytroll',
       author='The pytroll team',
       author_email='martin.raspaud@smhi.se',
-      url="http://github.com/mraspaud/posttroll",
+      url="http://github.com/pytroll/posttroll",
       packages=['posttroll'],
       entry_points={
           'console_scripts': ['pytroll-logger = posttroll.logger:run', ]},

@@ -33,7 +33,7 @@ import struct
 from socket import (AF_INET, INADDR_ANY, IP_ADD_MEMBERSHIP, IP_MULTICAST_LOOP,
                     IP_MULTICAST_TTL, IPPROTO_IP, SO_BROADCAST, SO_REUSEADDR,
                     SOCK_DGRAM, SOL_IP, SOL_SOCKET, gethostbyname, socket,
-                    timeout)
+                    timeout, SO_LINGER)
 
 __all__ = ('MulticastSender', 'MulticastReceiver', 'mcast_sender',
            'mcast_receiver', 'SocketTimeout')
@@ -67,7 +67,7 @@ class MulticastSender(object):
         logger.debug('Started multicast group %s', mcgroup)
 
     def __call__(self, data):
-        self.socket.sendto(data, (self.group, self.port))
+        self.socket.sendto(data.encode(), (self.group, self.port))
 
     def close(self):
         """Close the sender.
@@ -120,11 +120,13 @@ class MulticastReceiver(object):
 
     def __call__(self):
         data, sender = self.socket.recvfrom(self.BUFSIZE)
-        return data, sender
+        return data.decode(), sender
 
     def close(self):
         """Close the receiver.
         """
+        self.socket.setsockopt(SOL_SOCKET, SO_LINGER,
+                               struct.pack('ii', 1, 1))
         self.socket.close()
 
 # Allow non-object interface

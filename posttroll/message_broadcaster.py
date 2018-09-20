@@ -53,7 +53,6 @@ class DesignatedReceiversSender(object):
             self._send_to_address(receiver, data)
 
     def _send_to_address(self, address, data, timeout=10):
-
         """send data to *address* and *port* without verification of response.
         """
         # Socket to talk to server
@@ -64,8 +63,8 @@ class DesignatedReceiversSender(object):
                 socket.connect("tcp://%s:%d" % (address, self.default_port))
             else:
                 socket.connect("tcp://%s" % address)
-            socket.send(data)
-            message = socket.recv()
+            socket.send_string(data)
+            message = socket.recv_string()
             if message != "ok":
                 logger.warn("invalid acknowledge received: %s" % message)
 
@@ -137,7 +136,7 @@ class MessageBroadcaster(object):
                         LOGGER.info("Network connection re-established!")
                         network_fail = False
                     self._sender(self._message)
-                except IOError, err:
+                except IOError as err:
                     if err.errno == errno.ENETUNREACH:
                         LOGGER.error("Network unreachable. "
                                      "Trying again in %d s.",

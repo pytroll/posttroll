@@ -24,7 +24,7 @@
 '''Listener module.'''
 
 from posttroll.subscriber import NSSubscriber
-from Queue import Queue
+from six.moves.queue import Queue
 from threading import Thread
 import time
 import logging
@@ -74,8 +74,9 @@ class ListenerContainer(object):
         '''Stop listener.'''
         self.logger.debug("Stopping listener.")
         self.listener.stop()
-        self.thread.join()
-        self.thread = None
+        if self.thread is not None:
+            self.thread.join()
+            self.thread = None
         self.logger.debug("Listener stopped.")
 
 

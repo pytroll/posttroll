@@ -28,7 +28,8 @@ import logging
 import time
 from datetime import datetime, timedelta
 from threading import Lock
-from urlparse import urlsplit
+from six.moves.urllib.parse import urlsplit
+import six
 
 # pylint: disable=E0611
 from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
@@ -58,10 +59,10 @@ class Subscriber(object):
         sub = Subscriber([addr], 'my_topic')
         try:
             for msg in sub(timeout=2):
-                print "Consumer got", msg
+                print("Consumer got", msg)
 
         except KeyboardInterrupt:
-            print "terminating consumer..."
+            print("terminating consumer...")
             sub.close()
 
     """
@@ -100,7 +101,7 @@ class Subscriber(object):
                         str(address), str(topics))
             subscriber = context.socket(SUB)
             for t__ in topics:
-                subscriber.setsockopt(SUBSCRIBE, t__)
+                subscriber.setsockopt_string(SUBSCRIBE, six.text_type(t__))
             subscriber.connect(address)
             self.sub_addr[subscriber] = address
             self.addr_sub[address] = subscriber
@@ -127,7 +128,7 @@ class Subscriber(object):
     def update(self, addresses):
         """Updating with a set of addresses.
         """
-        if isinstance(addresses, (str, unicode)):
+        if isinstance(addresses, six.string_types):
             addresses = [addresses, ]
         s0_, s1_ = set(self.addresses), set(addresses)
         sr_, sa_ = s0_.difference(s1_), s1_.difference(s0_)
@@ -149,7 +150,7 @@ class Subscriber(object):
                     str(address), str(topics))
         socket = context.socket(SUB)
         for t__ in self._magickfy_topics(topics):
-            socket.setsockopt(SUBSCRIBE, t__)
+            socket.setsockopt_string(SUBSCRIBE, six.text_type(t__))
         socket.connect(address)
         self._add_hook(socket, callback)
 
@@ -188,7 +189,7 @@ class Subscriber(object):
         if timeout:
             timeout *= 1000.
 
-        for sub in self.subscribers + self._hooks:
+        for sub in list(self.subscribers) + self._hooks:
             self.poller.register(sub, POLLIN)
         self._loop = True
         try:
@@ -199,7 +200,7 @@ class Subscriber(object):
                     if socks:
                         for sub in self.subscribers:
                             if sub in socks and socks[sub] == POLLIN:
-                                m__ = Message.decode(sub.recv(NOBLOCK))
+                                m__ = Message.decode(sub.recv_string(NOBLOCK))
                                 if not self._filter or self._filter(m__):
                                     if self._translate:
                                         url = urlsplit(self.sub_addr[sub])
@@ -210,15 +211,15 @@ class Subscriber(object):
 
                         for sub in self._hooks:
                             if sub in socks and socks[sub] == POLLIN:
-                                m__ = Message.decode(sub.recv(NOBLOCK))
+                                m__ = Message.decode(sub.recv_string(NOBLOCK))
                                 self._hooks_cb[sub](m__)
                     else:
                         # timeout
                         yield None
-                except ZMQError, err:
+                except ZMQError as err:
                     LOGGER.exception("Receive failed: %s", str(err))
         finally:
-            for sub in self.subscribers + self._hooks:
+            for sub in list(self.subscribers) + self._hooks:
                 self.poller.unregister(sub)
 
     def __call__(self, **kwargs):
@@ -233,9 +234,12 @@ class Subscriber(object):
         """Close the subscriber: stop it and close the local subscribers.
         """
         self.stop()
-        for sub in self.subscribers + self._hooks:
-            sub.setsockopt(LINGER, 0)
-            sub.close()
+        for sub in list(self.subscribers) + self._hooks:
+            try:
+                sub.setsockopt(LINGER, 1)
+                sub.close()
+            except ZMQError:
+                pass
 
     @staticmethod
     def _magickfy_topics(topics):
@@ -245,7 +249,7 @@ class Subscriber(object):
         # prepended.
         if topics is None:
             return None
-        if isinstance(topics, (str, unicode)):
+        if isinstance(topics, six.string_types):
             topics = [topics, ]
         ts_ = []
         for t__ in topics:
@@ -258,7 +262,7 @@ class Subscriber(object):
         return ts_
 
     def __del__(self):
-        for sub in self.subscribers + self._hooks:
+        for sub in list(self.subscribers) + self._hooks:
             try:
                 sub.close()
             except:
@@ -355,7 +359,7 @@ class Subscribe(NSSubscriber):
 
         with Subscribe("a_service", "my_topic",) as sub:
             for msg in sub.recv():
-                print msg
+                print(msg)
 
     """
 
@@ -369,7 +373,7 @@ class Subscribe(NSSubscriber):
 def _to_array(obj):
     """Convert *obj* to list if not already one.
     """
-    if isinstance(obj, (str, unicode)):
+    if isinstance(obj, six.string_types):
         return [obj, ]
     if obj is None:
         return []
@@ -382,7 +386,7 @@ class _AddressListener(object):
     """
 
     def __init__(self, subscriber, services="", nameserver="localhost"):
-        if isinstance(services, (str, unicode)):
+        if isinstance(services, six.string_types):
             services = [services, ]
         self.services = services
         self.subscriber = subscriber
