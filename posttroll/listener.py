@@ -24,7 +24,7 @@
 '''Listener module.'''
 
 from posttroll.subscriber import NSSubscriber
-from Queue import Queue
+from six.moves.queue import Queue
 from threading import Thread
 import time
 import logging
@@ -37,17 +37,23 @@ class ListenerContainer(object):
 
     logger = logging.getLogger("ListenerContainer")
 
-    def __init__(self, topics=None):
+    def __init__(self, topics=None, addresses=None, nameserver="localhost", services=""):
         self.listener = None
         self.output_queue = None
         self.thread = None
+        self.addresses = addresses
+        self.nameserver = nameserver
 
         if topics is not None:
             # Create output_queue for the messages
             self.output_queue = Queue()
 
             # Create a Listener instance
-            self.listener = Listener(topics=topics, queue=self.output_queue)
+            self.listener = Listener(topics=topics, queue=self.output_queue,
+                                     addresses=self.addresses,
+                                     nameserver=self.nameserver,
+                                     services=services)
+
             # Start Listener instance into a new daemonized thread.
             self.thread = Thread(target=self.listener.run)
             self.thread.setDaemon(True)
@@ -68,8 +74,9 @@ class ListenerContainer(object):
         '''Stop listener.'''
         self.logger.debug("Stopping listener.")
         self.listener.stop()
-        self.thread.join()
-        self.thread = None
+        if self.thread is not None:
+            self.thread.join()
+            self.thread = None
         self.logger.debug("Listener stopped.")
 
 
@@ -81,13 +88,17 @@ class Listener(object):
 
     logger = logging.getLogger("Listener")
 
-    def __init__(self, topics=None, queue=None):
+    def __init__(self, topics=None, queue=None, addresses=None,
+                 nameserver="localhost", services=""):
         '''Init Listener object
         '''
         self.topics = topics
         self.queue = queue
+        self.services = services
         self.subscriber = None
         self.recv = None
+        self.addresses = addresses
+        self.nameserver = nameserver
         self.create_subscriber()
         self.running = False
 
@@ -97,8 +108,10 @@ class Listener(object):
         '''
         if self.subscriber is None:
             if self.topics:
-                self.subscriber = NSSubscriber("", self.topics,
-                                               addr_listener=True)
+                self.subscriber = NSSubscriber(self.services, self.topics,
+                                               addr_listener=True,
+                                               addresses=self.addresses,
+                                               nameserver=self.nameserver)
                 self.recv = self.subscriber.start().recv
 
     def add_to_queue(self, msg):

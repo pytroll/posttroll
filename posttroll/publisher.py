@@ -27,8 +27,8 @@ import logging
 import socket
 from datetime import datetime, timedelta
 from threading import Lock
-from urlparse import urlsplit, urlunsplit
-
+from six.moves.urllib.parse import urlsplit, urlunsplit
+import six
 import zmq
 
 from posttroll import context
@@ -37,15 +37,13 @@ from posttroll.message_broadcaster import sendaddressservice
 
 LOGGER = logging.getLogger(__name__)
 
-TEST_HOST = 'dmi.dk'
-
 
 def get_own_ip():
     """Get the host's ip number.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        sock.connect((TEST_HOST, 0))
+        sock.connect(("8.8.8.8", 80))
     except socket.gaierror:
         ip_ = "127.0.0.1"
     else:
@@ -81,10 +79,10 @@ class Publisher(object):
             while True:
                 counter += 1
                 message = Message("/counter", "info", str(counter))
-                pub.send(str(message))
+                pub.send_string(str(message))
                 time.sleep(3)
         except KeyboardInterrupt:
-            print "terminating publisher..."
+            print("terminating publisher...")
             pub.stop()
 
     """
@@ -122,13 +120,13 @@ class Publisher(object):
         """Send the given message.
         """
         with self._pub_lock:
-            self.publish.send(msg)
+            self.publish.send_string(msg)
         return self
 
     def stop(self):
         """Stop the publisher.
         """
-        self.publish.setsockopt(zmq.LINGER, 0)
+        self.publish.setsockopt(zmq.LINGER, 1)
         self.publish.close()
         return self
 
@@ -156,8 +154,9 @@ class _PublisherHeartbeat(object):
             (datetime.utcnow() - self.lastbeat >=
              timedelta(seconds=min_interval))):
             self.lastbeat = datetime.utcnow()
-            LOGGER.debug("Publish heartbeat")
-            self.publisher.send(Message(self.subject, "beat").encode())
+            LOGGER.debug("Publish heartbeat (min_interval is %.1f sec)", min_interval)
+            self.publisher.send(Message(self.subject, "beat",
+                                        {"min_interval": min_interval}).encode())
 
 
 class NoisyPublisher(object):
@@ -181,7 +180,7 @@ class NoisyPublisher(object):
         self._name = name
         self._aliases = [name]
         if aliases:
-            if isinstance(aliases, (str, unicode)):
+            if isinstance(aliases, six.string_types):
                 self._aliases += [aliases]
             else:
                 self._aliases += aliases
@@ -201,8 +200,8 @@ class NoisyPublisher(object):
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name)
         LOGGER.debug("entering publish %s", str(self._publisher.destination))
-        addr = ("tcp://" + str(get_own_ip()) + ":"
-                + str(self._publisher.port_number))
+        addr = ("tcp://" + str(get_own_ip()) + ":" +
+                str(self._publisher.port_number))
         self._broadcaster = sendaddressservice(self._name, addr,
                                                self._aliases,
                                                self._broadcast_interval,
@@ -247,11 +246,11 @@ class Publish(NoisyPublisher):
                     while True:
                         counter += 1
                         message = Message("/counter", "info", str(counter))
-                        print "publishing", message
+                        print("publishing", message)
                         pub.send(str(message))
                         time.sleep(3)
             except KeyboardInterrupt:
-                print "terminating publisher..."
+                print("terminating publisher...")
 
     """
     # Make this one subclassable with another publisher.

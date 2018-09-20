@@ -116,8 +116,7 @@ class Logger(object):
     Contains a thread listening to incomming messages, and a thread logging.
     """
 
-    def __init__(self,
-                 (nameserver_address, nameserver_port)=("localhost", 16543)):
+    def __init__(self, nameserver_address="localhost", nameserver_port=16543):
         del nameserver_address, nameserver_port
         self.log_thread = Thread(target=self.log)
         self.loop = True
@@ -203,15 +202,15 @@ def run():
 
     import time
     try:
-        tlogger = Logger((opts.server, opts.port))
-        #logger = Logger(("safe", 16543))
+        tlogger = Logger(opts.server, opts.port)
+        # logger = Logger("safe", 16543)
         tlogger.start()
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         tlogger.stop()
-        print ("Thanks for using pytroll/logger. "
-               "See you soon on www.pytroll.org!")
+        print("Thanks for using pytroll/logger. "
+              "See you soon on www.pytroll.org!")
 
 if __name__ == '__main__':
     run()
