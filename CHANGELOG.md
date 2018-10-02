@@ -1,4 +1,4 @@
-## Version <RELEASE_VERSION> (2018/10/02)
+## Version 1.4.0 (2018/10/02)
 
 
 ### Pull Requests Merged
