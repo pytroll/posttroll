@@ -27,8 +27,6 @@ import sys
 import imp
 import versioneer
 
-version = imp.load_source('posttroll.version', 'posttroll/version.py')
-
 
 requirements = ['pyzmq', 'six']
 if sys.version_info < (2, 6):
