@@ -281,13 +281,15 @@ class NSSubscriber(object):
     requests, defaulting to "localhost".
 
     Note: 'services = None', means no services, and 'services =""' means all
-    services.
+    services. Default is to listen to all _services.
     """
 
-    def __init__(self, services=None, topics=_MAGICK, addr_listener=False,
+    def __init__(self, services="", topics=_MAGICK, addr_listener=False,
                  addresses=None, timeout=10, translate=False, nameserver="localhost"):
         """ Note: services = None, means no services
                   services = "", means all services
+
+                  Default is to listen to everything.
         """
 
         self._services = _to_array(services)
