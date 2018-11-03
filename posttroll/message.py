@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2010-2012, 2014, 2015.
+# Copyright (c) 2010 - 2018 PyTroll Community
 
 # Author(s):
 
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud    <martin.raspaud@smhi.se>
 
-# This file is part of pytroll.
+# This file is part of PyTroll.
 
 # Pytroll is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
@@ -57,11 +57,11 @@ class MessageError(Exception):
     """
     pass
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Utillities.
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 def is_valid_subject(obj):
@@ -93,11 +93,11 @@ def is_valid_data(obj):
             return False
     return True
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Message class.
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 class Message(object):
@@ -108,7 +108,7 @@ class Message(object):
     - Has to be initialized with a *subject*, *type* and optionally *data*, in
       which case:
 
-      - It will add add few extra attributes.
+      - It will add a few extra attributes.
       - It will make a Message pickleable.
     """
 
@@ -194,11 +194,11 @@ class Message(object):
         self.__dict__.clear()
         self.__dict__ = _decode(state)
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Decode / encode
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 def _is_valid_version(version):
@@ -311,11 +311,11 @@ def _encode(msg, head=False, binary=False):
                     'binary/octet-stream' + ' ' + msg.data)
     return rawstr
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Small internal helpers.
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 def _getsender():
