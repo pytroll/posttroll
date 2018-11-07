@@ -234,6 +234,10 @@ def _decode(rawstr):
     """Convert a raw string to a Message.
     """
     # Check for the magick word.
+    try:
+        rawstr = rawstr.decode()
+    except AttributeError:
+        pass
     if not rawstr.startswith(_MAGICK):
         raise MessageError("This is not a '%s' message (wrong magick word)"
                            % _MAGICK)
