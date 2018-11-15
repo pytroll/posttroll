@@ -42,7 +42,7 @@ __all__ = ('MulticastSender', 'MulticastReceiver', 'mcast_sender',
 MC_GROUP = os.environ.get('PYTROLL_MC_GROUP', '225.0.0.212')
 
 # local network multicast (<32)
-TTL_LOCALNET = 31
+TTL_LOCALNET = int(os.environ.get('PYTROLL_MC_TTL', 31))
 
 logger = logging.getLogger(__name__)
 
