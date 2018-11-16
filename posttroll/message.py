@@ -119,7 +119,14 @@ class Message(object):
         if rawstr:
             self.__dict__ = _decode(rawstr)
         else:
-            self.subject = subject
+            try:
+                self.subject = subject.decode('utf-8')
+            except AttributeError:
+                self.subject = subject
+            try:
+                self.type = atype.decode('utf-8')
+            except AttributeError:
+                self.type = atype
             self.type = atype
             self.sender = _getsender()
             self.time = datetime.utcnow()
@@ -168,8 +175,15 @@ class Message(object):
     def __repr__(self):
         return self.encode()
 
-    def __str__(self):
+    def __unicode__(self):
         return self.encode()
+
+    def __str__(self):
+        try:
+            return unicode(self).encode('utf-8')
+        except NameError:
+            return self.encode()
+
 
     def _validate(self):
         """Validate a messages attributes.
@@ -299,7 +313,7 @@ def datetime_encoder(obj):
 def _encode(msg, head=False, binary=False):
     """Convert a Message to a raw string.
     """
-    rawstr = str(_MAGICK) + "{0:s} {1:s} {2:s} {3:s} {4:s}".format(
+    rawstr = str(_MAGICK) + u"{0:s} {1:s} {2:s} {3:s} {4:s}".format(
         msg.subject, msg.type, msg.sender, msg.time.isoformat(), msg.version)
 
     if not head and msg.data:

@@ -79,7 +79,7 @@ class Publisher(object):
             while True:
                 counter += 1
                 message = Message("/counter", "info", str(counter))
-                pub.send_string(str(message))
+                pub.send_string(message.encode())
                 time.sleep(3)
         except KeyboardInterrupt:
             print("terminating publisher...")
@@ -247,7 +247,7 @@ class Publish(NoisyPublisher):
                         counter += 1
                         message = Message("/counter", "info", str(counter))
                         print("publishing", message)
-                        pub.send(str(message))
+                        pub.send(message.encode())
                         time.sleep(3)
             except KeyboardInterrupt:
                 print("terminating publisher...")

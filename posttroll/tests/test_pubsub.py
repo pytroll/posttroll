@@ -236,6 +236,24 @@ class TestPubSub(unittest.TestCase):
         self.assertTrue(tested)
         pub.stop()
 
+class TestPub(unittest.TestCase):
+
+    """Testing the publishing capabilities.
+    """
+
+    def setUp(self):
+        test_lock.acquire()
+
+    def tearDown(self):
+        test_lock.release()
+
+    def test_pub_unicode(self):
+        message = Message("/pџтяöll", "info", 'hej')
+        with Publish("a_service", 9000) as pub:
+            try:
+                pub.send(message.encode())
+            except UnicodeDecodeError:
+                self.fail("Sending raised UnicodeDecodeError unexpectedly!")
 
 class TestListenerContainer(unittest.TestCase):
 
@@ -282,5 +300,6 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestNS))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNSWithoutMulticasting))
     mysuite.addTest(loader.loadTestsFromTestCase(TestListenerContainer))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPub))
 
     return mysuite
