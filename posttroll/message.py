@@ -249,7 +249,7 @@ def _decode(rawstr):
     """
     # Check for the magick word.
     try:
-        rawstr = rawstr.decode()
+        rawstr = rawstr.decode('utf-8')
     except AttributeError:
         pass
     if not rawstr.startswith(_MAGICK):
