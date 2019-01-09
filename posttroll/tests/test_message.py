@@ -105,6 +105,12 @@ class Test(unittest.TestCase):
         except UnicodeDecodeError:
             self.fail('Unexpected unicode decoding error')
 
+        try:
+            Message(rawstr=u'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171'
+                    ' v1.01 application/json {"station": "norrk\u00f6ping"}')
+        except UnicodeDecodeError:
+            self.fail('Unexpected unicode decoding error')
+
 
     def test_pickle(self):
         """Test pickling.
@@ -170,3 +176,6 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(Test))
 
     return mysuite
+
+if __name__ == '__main__':
+    unittest.main()
