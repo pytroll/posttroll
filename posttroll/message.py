@@ -252,6 +252,8 @@ def _decode(rawstr):
         rawstr = rawstr.decode('utf-8')
     except AttributeError:
         pass
+    except UnicodeEncodeError:
+        pass
     if not rawstr.startswith(_MAGICK):
         raise MessageError("This is not a '%s' message (wrong magick word)"
                            % _MAGICK)
