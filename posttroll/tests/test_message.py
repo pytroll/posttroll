@@ -97,11 +97,7 @@ class Test(unittest.TestCase):
         try:
             msg = ('pytroll://PPS-monitorplot/3/norrköping/utv/polar/direct_readout/ file '
                    'safusr.u@lxserv1096.smhi.se 2018-11-16T12:19:29.934025 v1.01 application/json'
-                   ' {"uid": "all_proc_times_24hours_ctth.png", "format": "PPS-monitorplot", "type":'
-                   ' "PNG", "start_time": "2018-11-16T12:02:43.700000", "orbit_number": 69528, "uri": '
-                   '"ssh://lxserv1096.smhi.se//san1/pps/www/monitoring/direct_readout/all_proc_times_24hours_ctth.png", '
-                   '"platform_name": "NOAA-18", "end_time": "2018-11-16T12:12:59.500000", "sensor": '
-                   '["avhrr/3", "mhs", "amsu-a"], "data_processing_level": "3"}')
+                   ' {"start_time": "2018-11-16T12:02:43.700000"}')
             self.assertEqual(msg, str(Message(rawstr=msg)))
         except UnicodeDecodeError:
             self.fail('Unexpected unicode decoding error')
