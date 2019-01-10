@@ -323,7 +323,7 @@ def _encode(msg, head=False, binary=False):
 
     if not head and msg.data:
         if not binary and isinstance(msg.data, six.string_types):
-            return (rawstr.encode('utf-8') + ' ' +
+            return (rawstr + ' ' +
                     'text/ascii' + ' ' + msg.data)
         elif not binary:
             return (rawstr + ' ' +
