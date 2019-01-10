@@ -250,10 +250,13 @@ def _decode(rawstr):
     # Check for the magick word.
     try:
         rawstr = rawstr.decode('utf-8')
-    except AttributeError:
+    except (AttributeError, UnicodeEncodeError):
         pass
-    except UnicodeEncodeError:
-        pass
+    except (UnicodeDecodeError):
+        try:
+            rawstr = rawstr.decode('iso-8859-1')
+        except (UnicodeDecodeError):
+            rawstr = rawstr.decode('utf-8', 'ignore')
     if not rawstr.startswith(_MAGICK):
         raise MessageError("This is not a '%s' message (wrong magick word)"
                            % _MAGICK)

@@ -95,22 +95,34 @@ class Test(unittest.TestCase):
     def test_unicode(self):
         """Test handling of unicode."""
         try:
-            Message(rawstr='pytroll://PPS-monitorplot/3/norrköping/utv/polar/direct_readout/ file '
-                    'safusr.u@lxserv1096.smhi.se 2018-11-16T12:19:29.934025 v1.01 application/json'
-                    ' {"uid": "all_proc_times_24hours_ctth.png", "format": "PPS-monitorplot", "type":'
-                    ' "PNG", "start_time": "2018-11-16T12:02:43.700000", "orbit_number": 69528, "uri": '
-                    '"ssh://lxserv1096.smhi.se//san1/pps/www/monitoring/direct_readout/all_proc_times_24hours_ctth.png", '
-                    '"platform_name": "NOAA-18", "end_time": "2018-11-16T12:12:59.500000", "sensor": '
-                    '["avhrr/3", "mhs", "amsu-a"], "data_processing_level": "3"}')
+            msg = ('pytroll://PPS-monitorplot/3/norrköping/utv/polar/direct_readout/ file '
+                   'safusr.u@lxserv1096.smhi.se 2018-11-16T12:19:29.934025 v1.01 application/json'
+                   ' {"start_time": "2018-11-16T12:02:43.700000"}')
+            self.assertEqual(msg, str(Message(rawstr=msg)))
         except UnicodeDecodeError:
             self.fail('Unexpected unicode decoding error')
 
         try:
-            Message(rawstr=u'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171'
-                    ' v1.01 application/json {"station": "norrk\u00f6ping"}')
+            msg = (u'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171'
+                   r' v1.01 application/json {"station": "norrk\u00f6ping"}')
+            try:
+                self.assertEqual(msg, str(Message(rawstr=msg)).decode('utf-8'))
+            except AttributeError:
+                self.assertEqual(msg, str(Message(rawstr=msg)))
         except UnicodeDecodeError:
             self.fail('Unexpected unicode decoding error')
 
+    def test_iso(self):
+        """Test handling of iso-8859-1."""
+        msg = 'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}'
+        try:
+            iso_msg = msg.decode('utf-8').encode('iso-8859-1')
+        except AttributeError:
+            iso_msg = msg.encode('iso-8859-1')
+        try:
+            Message(rawstr=iso_msg)
+        except UnicodeDecodeError:
+            self.fail('Unexpected iso decoding error')
 
     def test_pickle(self):
         """Test pickling.
