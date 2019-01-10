@@ -108,16 +108,21 @@ class Test(unittest.TestCase):
 
         try:
             msg = (u'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171'
-                   ' v1.01 application/json {"station": "norrk\u00f6ping"}')
-            self.assertEqual(msg, str(Message(rawstr=msg)).decode('utf-8'))
+                   r' v1.01 application/json {"station": "norrk\u00f6ping"}')
+            try:
+                self.assertEqual(msg, str(Message(rawstr=msg)).decode('utf-8'))
+            except AttributeError:
+                self.assertEqual(msg, str(Message(rawstr=msg)))
         except UnicodeDecodeError:
             self.fail('Unexpected unicode decoding error')
 
     def test_iso(self):
         """Test handling of iso-8859-1."""
         msg = 'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}'
-
-        iso_msg = msg.decode('utf-8').encode('iso-8859-1')
+        try:
+            iso_msg = msg.decode('utf-8').encode('iso-8859-1')
+        except AttributeError:
+            iso_msg = msg.encode('iso-8859-1')
         try:
             Message(rawstr=iso_msg)
         except UnicodeDecodeError:
