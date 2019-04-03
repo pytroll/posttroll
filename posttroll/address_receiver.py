@@ -39,7 +39,7 @@ from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
 from posttroll.message import Message
 from posttroll.publisher import Publish
-from posttroll import context
+from posttroll import get_context
 
 
 __all__ = ('AddressReceiver', 'getaddress')
@@ -212,7 +212,7 @@ class _SimpleReceiver(object):
 
     def __init__(self, port=None):
         self._port = port or default_publish_port
-        self._socket = context.socket(REP)
+        self._socket = get_context().socket(REP)
         self._socket.bind("tcp://*:" + str(port))
 
     def __call__(self):

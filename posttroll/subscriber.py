@@ -35,7 +35,7 @@ import six
 from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
 
 # pylint: enable=E0611
-from posttroll import context
+from posttroll import get_context
 from posttroll.message import _MAGICK, Message
 from posttroll.ns import get_pub_address
 
@@ -99,7 +99,7 @@ class Subscriber(object):
             topics = self._magickfy_topics(topics) or self._topics
             LOGGER.info("Subscriber adding address %s with topics %s",
                         str(address), str(topics))
-            subscriber = context.socket(SUB)
+            subscriber = get_context().socket(SUB)
             for t__ in topics:
                 subscriber.setsockopt_string(SUBSCRIBE, six.text_type(t__))
             subscriber.connect(address)
@@ -148,7 +148,7 @@ class Subscriber(object):
         """
         LOGGER.info("Subscriber adding SUB hook %s for topics %s",
                     str(address), str(topics))
-        socket = context.socket(SUB)
+        socket = get_context().socket(SUB)
         for t__ in self._magickfy_topics(topics):
             socket.setsockopt_string(SUBSCRIBE, six.text_type(t__))
         socket.connect(address)
@@ -159,7 +159,7 @@ class Subscriber(object):
         (e.g good for pushed 'inproc' messages from another thread).
         """
         LOGGER.info("Subscriber adding PULL hook %s", str(address))
-        socket = context.socket(PULL)
+        socket = get_context().socket(PULL)
         socket.connect(address)
         self._add_hook(socket, callback)
 

@@ -31,7 +31,7 @@ from six.moves.urllib.parse import urlsplit, urlunsplit
 import six
 import zmq
 
-from posttroll import context
+from posttroll import get_context
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
 
@@ -93,7 +93,7 @@ class Publisher(object):
         # pylint: disable=E1103
         self.name = name
         self.destination = address
-        self.publish = context.socket(zmq.PUB)
+        self.publish = get_context().socket(zmq.PUB)
 
         # Check for port 0 (random port)
         u__ = urlsplit(self.destination)
