@@ -32,7 +32,12 @@ import logging
 context = {}
 logger = logging.getLogger(__name__)
 
+
 def get_context():
+    """Provide the context to use.
+
+    This function takes care of creating new contexts in case of forks.
+    """
     pid = os.getpid()
     if pid not in context:
         context[pid] = zmq.Context()
