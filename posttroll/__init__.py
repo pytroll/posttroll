@@ -28,6 +28,7 @@ import _strptime
 import os
 import zmq
 import logging
+from .version import get_versions
 
 context = {}
 logger = logging.getLogger(__name__)
@@ -43,7 +44,6 @@ def get_context():
         context[pid] = zmq.Context()
         logger.debug('renewed context for PID %d', pid)
     return context[pid]
-
 
 
 def strp_isoformat(strg):
@@ -68,6 +68,6 @@ def strp_isoformat(strg):
         mis = int(float('.' + mis)*1000000)
         return dat.replace(microsecond=mis)
 
-from .version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions
