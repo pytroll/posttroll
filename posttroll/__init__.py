@@ -22,17 +22,28 @@
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-assert sys.version[0:3] >= '2.5', 'Python version 2.5 or above is required.'
+
 from datetime import datetime
 import _strptime
-
+import os
 import zmq
-context = zmq.Context()
+import logging
+from .version import get_versions
+
+context = {}
+logger = logging.getLogger(__name__)
 
 
-def renew_context():
-    global context
-    context = zmq.Context()
+def get_context():
+    """Provide the context to use.
+
+    This function takes care of creating new contexts in case of forks.
+    """
+    pid = os.getpid()
+    if pid not in context:
+        context[pid] = zmq.Context()
+        logger.debug('renewed context for PID %d', pid)
+    return context[pid]
 
 
 def strp_isoformat(strg):
@@ -57,6 +68,6 @@ def strp_isoformat(strg):
         mis = int(float('.' + mis)*1000000)
         return dat.replace(microsecond=mis)
 
-from .version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions

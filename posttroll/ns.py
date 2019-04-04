@@ -34,7 +34,7 @@ from threading import Lock
 # pylint: disable=E0611
 from zmq import LINGER, NOBLOCK, POLLIN, REP, REQ, Poller
 
-from posttroll import context
+from posttroll import get_context
 from posttroll.address_receiver import AddressReceiver
 from posttroll.message import Message
 
@@ -79,7 +79,7 @@ def get_pub_address(name, timeout=10, nameserver="localhost"):
     """
 
     # Socket to talk to server
-    socket = context.socket(REQ)
+    socket = get_context().socket(REQ)
     try:
         socket.setsockopt(LINGER, timeout * 1000)
         socket.connect("tcp://" + nameserver + ":" + str(PORT))
@@ -139,7 +139,7 @@ class NameServer(object):
 
         try:
             with nslock:
-                self.listener = context.socket(REP)
+                self.listener = get_context().socket(REP)
                 self.listener.bind("tcp://*:" + str(port))
                 logger.debug('Listening on port %s', str(port))
                 poller = Poller()

@@ -28,7 +28,7 @@ import errno
 
 from posttroll import message
 from posttroll.bbmcast import MulticastSender, MC_GROUP
-from posttroll import context
+from posttroll import get_context
 from zmq import REQ, REP, LINGER
 
 __all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
@@ -56,7 +56,7 @@ class DesignatedReceiversSender(object):
         """send data to *address* and *port* without verification of response.
         """
         # Socket to talk to server
-        socket = context.socket(REQ)
+        socket = get_context().socket(REQ)
         try:
             socket.setsockopt(LINGER, timeout * 1000)
             if address.find(":") == -1:
@@ -66,7 +66,7 @@ class DesignatedReceiversSender(object):
             socket.send_string(data)
             message = socket.recv_string()
             if message != "ok":
-                logger.warn("invalid acknowledge received: %s" % message)
+                LOGGER.warn("invalid acknowledge received: %s" % message)
 
         finally:
             socket.close()
