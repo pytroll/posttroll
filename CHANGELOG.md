@@ -1,3 +1,15 @@
+## Version v1.5.1 (2019/04/04)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 19](https://github.com/pytroll/posttroll/pull/19) - Allow posttroll to be used in multiprocessing context
+
+In this release 1 pull request was closed.
+
+
 ## Version v1.5.0 (2019/01/21)
 
 
