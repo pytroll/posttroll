@@ -23,6 +23,7 @@
 
 """The publisher module gives high-level tools to publish messages on a port.
 """
+import os
 import logging
 import socket
 from datetime import datetime, timedelta
@@ -36,6 +37,10 @@ from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
 
 LOGGER = logging.getLogger(__name__)
+
+# Limit port range or use the defaults
+MIN_PORT = os.environ.get('POSTTROLL_PUB_MIN_PORT', 49152)
+MAX_PORT = os.environ.get('POSTTROLL_PUB_MAX_PORT', 65536)
 
 
 def get_own_ip():
@@ -61,7 +66,11 @@ class Publisher(object):
 
       tcp://localhost:1234
 
-    Setting the port to 0 means that a random free port will be chosen for you.
+    Setting the port to 0 means that a random free port will be chosen for
+    you. It is still possible to limit the range from which the port is
+    selected by either setting environment variables POSTTROLL_PUB_MIN_PORT
+    and POSTTROLL_PUB_MAX_PORT, or passing the values, as integers, using
+    arguments min_port and max_port when creating the Publisher.
 
     *name* is simply the name of the publisher.
 
@@ -87,7 +96,7 @@ class Publisher(object):
 
     """
 
-    def __init__(self, address, name=""):
+    def __init__(self, address, name="", min_port=None, max_port=None):
         """Bind the publisher class to a port.
         """
         # pylint: disable=E1103
@@ -102,7 +111,12 @@ class Publisher(object):
         if port == 0:
             dest = urlunsplit((u__.scheme, u__.hostname,
                                u__.path, u__.query, u__.fragment))
-            self.port_number = self.publish.bind_to_random_port(dest)
+            min_port = min_port or MIN_PORT
+            max_port = max_port or MAX_PORT
+            self.port_number = self.publish.bind_to_random_port(
+                dest,
+                min_port=min_port,
+                max_port=max_port)
             netloc = u__.hostname + ":" + str(self.port_number)
             self.destination = urlunsplit((u__.scheme, netloc, u__.path,
                                            u__.query, u__.fragment))
@@ -176,7 +190,7 @@ class NoisyPublisher(object):
     _publisher_class = Publisher
 
     def __init__(self, name, port=0, aliases=None, broadcast_interval=2,
-                 nameservers=None):
+                 nameservers=None, min_port=None, max_port=None):
         self._name = name
         self._aliases = [name]
         if aliases:
@@ -198,7 +212,9 @@ class NoisyPublisher(object):
         """Start the publisher.
         """
         pub_addr = "tcp://*:" + str(self._port)
-        self._publisher = self._publisher_class(pub_addr, self._name)
+        self._publisher = self._publisher_class(pub_addr, self._name,
+                                                min_port=self.min_port,
+                                                max_port=self.max_port)
         LOGGER.debug("entering publish %s", str(self._publisher.destination))
         addr = ("tcp://" + str(get_own_ip()) + ":" +
                 str(self._publisher.port_number))
