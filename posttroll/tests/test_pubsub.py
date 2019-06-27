@@ -255,6 +255,21 @@ class TestPub(unittest.TestCase):
             except UnicodeDecodeError:
                 self.fail("Sending raised UnicodeDecodeError unexpectedly!")
 
+    def test_pub_minmax_port(self):
+        """Test user defined port range"""
+        from zmq.error import ZMQError
+        # Try over a range of ports just in case the single port is reserved
+        for p in range(50000, 60000):
+            try:
+                # Create a publisher to a port selected randomly from
+                # a 1-port "range"
+                with Publish("a_service", min_port=p, max_port=p+1) as pub:
+                    self.assertEqual(pub.port_number, p)
+                break
+            except ZMQError:
+                pass
+
+
 class TestListenerContainer(unittest.TestCase):
 
     """Testing listener container"""
