@@ -39,8 +39,8 @@ from posttroll.message_broadcaster import sendaddressservice
 LOGGER = logging.getLogger(__name__)
 
 # Limit port range or use the defaults
-MIN_PORT = os.environ.get('POSTTROLL_PUB_MIN_PORT', 49152)
-MAX_PORT = os.environ.get('POSTTROLL_PUB_MAX_PORT', 65536)
+MIN_PORT = int(os.environ.get('POSTTROLL_PUB_MIN_PORT', 49152))
+MAX_PORT = int(os.environ.get('POSTTROLL_PUB_MAX_PORT', 65536))
 
 
 def get_own_ip():
@@ -107,7 +107,6 @@ class Publisher(object):
         # Check for port 0 (random port)
         u__ = urlsplit(self.destination)
         port = u__.port
-
         if port == 0:
             dest = urlunsplit((u__.scheme, u__.hostname,
                                u__.path, u__.query, u__.fragment))
@@ -207,6 +206,8 @@ class NoisyPublisher(object):
             self._nameservers = nameservers
         else:
             self._nameservers = []
+        self.min_port = min_port
+        self.max_port = max_port
 
     def start(self):
         """Start the publisher.
