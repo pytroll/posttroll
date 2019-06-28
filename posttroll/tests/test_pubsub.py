@@ -216,6 +216,12 @@ class TestPubSub(unittest.TestCase):
     """Testing the publishing and subscribing capabilities.
     """
 
+    def setUp(self):
+        test_lock.acquire()
+
+    def tearDown(self):
+        test_lock.release()
+
     def test_pub_address_timeout(self):
         """Test timeout in offline nameserver.
         """
