@@ -38,10 +38,6 @@ from posttroll.message_broadcaster import sendaddressservice
 
 LOGGER = logging.getLogger(__name__)
 
-# Limit port range or use the defaults
-MIN_PORT = int(os.environ.get('POSTTROLL_PUB_MIN_PORT', 49152))
-MAX_PORT = int(os.environ.get('POSTTROLL_PUB_MAX_PORT', 65536))
-
 
 def get_own_ip():
     """Get the host's ip number.
@@ -104,14 +100,19 @@ class Publisher(object):
         self.destination = address
         self.publish = get_context().socket(zmq.PUB)
 
+        # Limit port range or use the defaults when no port is defined
+        # by the user
+        min_port = min_port or int(os.environ.get('POSTTROLL_PUB_MIN_PORT',
+                                                  49152))
+        max_port = max_port or int(os.environ.get('POSTTROLL_PUB_MAX_PORT',
+                                                  65536))
+
         # Check for port 0 (random port)
         u__ = urlsplit(self.destination)
         port = u__.port
         if port == 0:
             dest = urlunsplit((u__.scheme, u__.hostname,
                                u__.path, u__.query, u__.fragment))
-            min_port = min_port or MIN_PORT
-            max_port = max_port or MAX_PORT
             self.port_number = self.publish.bind_to_random_port(
                 dest,
                 min_port=min_port,
