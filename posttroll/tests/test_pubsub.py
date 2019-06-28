@@ -281,6 +281,8 @@ class TestPub(unittest.TestCase):
 
     def test_pub_minmax_port(self):
         """Test user defined port range"""
+        import os
+
         # Using environment variables to set port range
         # Try over a range of ports just in case the single port is reserved
         for port in range(40000, 50000):
@@ -310,7 +312,6 @@ class TestPub(unittest.TestCase):
 def _get_port(min_port=None, max_port=None):
     from zmq.error import ZMQError
     from posttroll.publisher import Publish
-    import os
 
     try:
         # Create a publisher to a port selected randomly from
