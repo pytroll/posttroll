@@ -29,16 +29,8 @@ import time
 
 import six
 
-from posttroll.message import Message
-from posttroll.ns import (NameServer, get_pub_addresses,
-                          get_pub_address, TimeoutError)
-from posttroll.publisher import (Publish, Publisher, get_own_ip,
-                                 NoisyPublisher)
-from posttroll.listener import ListenerContainer
-from posttroll.subscriber import Subscribe, Subscriber
-
-
 test_lock = Lock()
+
 
 class TestNS(unittest.TestCase):
 
@@ -46,6 +38,7 @@ class TestNS(unittest.TestCase):
     """
 
     def setUp(self):
+        from posttroll.ns import NameServer
         test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
         self.thr = Thread(target=self.ns.run)
@@ -60,6 +53,8 @@ class TestNS(unittest.TestCase):
     def test_pub_addresses(self):
         """Test retrieving addresses.
         """
+        from posttroll.ns import get_pub_addresses
+        from posttroll.publisher import Publish
 
         with Publish(six.text_type("data_provider"), 0, ["this_data"]):
             time.sleep(3)
@@ -85,6 +80,9 @@ class TestNS(unittest.TestCase):
     def test_pub_sub_ctx(self):
         """Test publish and subscribe.
         """
+        from posttroll.message import Message
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
 
         with Publish("data_provider", 0, ["this_data"]) as pub:
             with Subscribe("this_data", "counter") as sub:
@@ -102,6 +100,8 @@ class TestNS(unittest.TestCase):
     def test_pub_sub_add_rm(self):
         """Test adding and removing publishers.
         """
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
 
         time.sleep(4)
         with Subscribe("this_data", "counter", True) as sub:
@@ -125,6 +125,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
     """
 
     def setUp(self):
+        from posttroll.ns import NameServer
         test_lock.acquire()
         self.nameservers = ['localhost']
         self.ns = NameServer(max_age=timedelta(seconds=3),
@@ -141,6 +142,8 @@ class TestNSWithoutMulticasting(unittest.TestCase):
     def test_pub_addresses(self):
         """Test retrieving addresses.
         """
+        from posttroll.ns import get_pub_addresses
+        from posttroll.publisher import Publish
 
         with Publish("data_provider", 0, ["this_data"],
                      nameservers=self.nameservers):
@@ -167,6 +170,9 @@ class TestNSWithoutMulticasting(unittest.TestCase):
     def test_pub_sub_ctx(self):
         """Test publish and subscribe.
         """
+        from posttroll.message import Message
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
 
         with Publish("data_provider", 0, ["this_data"],
                      nameservers=self.nameservers) as pub:
@@ -185,6 +191,8 @@ class TestNSWithoutMulticasting(unittest.TestCase):
     def test_pub_sub_add_rm(self):
         """Test adding and removing publishers.
         """
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
 
         time.sleep(4)
         with Subscribe("this_data", "counter", True) as sub:
@@ -208,9 +216,17 @@ class TestPubSub(unittest.TestCase):
     """Testing the publishing and subscribing capabilities.
     """
 
+    def setUp(self):
+        test_lock.acquire()
+
+    def tearDown(self):
+        test_lock.release()
+
     def test_pub_address_timeout(self):
         """Test timeout in offline nameserver.
         """
+        from posttroll.ns import get_pub_address
+        from posttroll.ns import TimeoutError
 
         self.assertRaises(TimeoutError,
                           get_pub_address, ["this_data"])
@@ -218,6 +234,10 @@ class TestPubSub(unittest.TestCase):
     def test_pub_suber(self):
         """Test publisher and subscriber.
         """
+        from posttroll.message import Message
+        from posttroll.publisher import Publisher
+        from posttroll.publisher import get_own_ip
+        from posttroll.subscriber import Subscriber
 
         pub_address = "tcp://" + str(get_own_ip()) + ":0"
         pub = Publisher(pub_address)
@@ -236,6 +256,7 @@ class TestPubSub(unittest.TestCase):
         self.assertTrue(tested)
         pub.stop()
 
+
 class TestPub(unittest.TestCase):
 
     """Testing the publishing capabilities.
@@ -248,6 +269,9 @@ class TestPub(unittest.TestCase):
         test_lock.release()
 
     def test_pub_unicode(self):
+        from posttroll.message import Message
+        from posttroll.publisher import Publish
+
         message = Message("/pџтяöll", "info", 'hej')
         with Publish("a_service", 9000) as pub:
             try:
@@ -255,11 +279,57 @@ class TestPub(unittest.TestCase):
             except UnicodeDecodeError:
                 self.fail("Sending raised UnicodeDecodeError unexpectedly!")
 
+    def test_pub_minmax_port(self):
+        """Test user defined port range"""
+        import os
+
+        # Using environment variables to set port range
+        # Try over a range of ports just in case the single port is reserved
+        for port in range(40000, 50000):
+            # Set the port range to environment variables
+            os.environ['POSTTROLL_PUB_MIN_PORT'] = str(port)
+            os.environ['POSTTROLL_PUB_MAX_PORT'] = str(port + 1)
+            res = _get_port(min_port=None, max_port=None)
+            if res is False:
+                # The port wasn't free, try again
+                continue
+            # Port was selected, make sure it's within the "range" of one
+            self.assertEqual(res, port)
+            break
+
+        # Using range of ports defined at instantation time, this
+        # should override environment variables
+        for port in range(50000, 60000):
+            res = _get_port(min_port=port, max_port=port+1)
+            if res is False:
+                # The port wasn't free, try again
+                continue
+            # Port was selected, make sure it's within the "range" of one
+            self.assertEqual(res, port)
+            break
+
+
+def _get_port(min_port=None, max_port=None):
+    from zmq.error import ZMQError
+    from posttroll.publisher import Publish
+
+    try:
+        # Create a publisher to a port selected randomly from
+        # the given range
+        with Publish("a_service",
+                     min_port=min_port,
+                     max_port=max_port) as pub:
+            return pub.port_number
+    except ZMQError:
+        return False
+
+
 class TestListenerContainer(unittest.TestCase):
 
     """Testing listener container"""
 
     def setUp(self):
+        from posttroll.ns import NameServer
         test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
         self.thr = Thread(target=self.ns.run)
@@ -273,6 +343,10 @@ class TestListenerContainer(unittest.TestCase):
 
     def test_listener_container(self):
         """Test listener container"""
+        from posttroll.message import Message
+        from posttroll.publisher import NoisyPublisher
+        from posttroll.listener import ListenerContainer
+
         pub = NoisyPublisher("test")
         pub.start()
         sub = ListenerContainer(topics=["/counter"])
