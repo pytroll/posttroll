@@ -250,6 +250,7 @@ class TestPubSub(unittest.TestCase):
         self.assertTrue(tested)
         pub.stop()
 
+
 class TestPub(unittest.TestCase):
 
     """Testing the publishing capabilities.
@@ -274,48 +275,48 @@ class TestPub(unittest.TestCase):
 
     def test_pub_minmax_port(self):
         """Test user defined port range"""
-        from zmq.error import ZMQError
-        from posttroll.publisher import Publish
-
-        # Try over a range of ports just in case the single port is reserved
-        for p in range(50000, 60000):
-            try:
-                # Create a publisher to a port selected randomly from
-                # a 1-port "range"
-                with Publish("a_service", min_port=p, max_port=p+1) as pub:
-                    self.assertEqual(pub.port_number, p)
-                break
-            except ZMQError:
-                pass
-
-    def test_pub_minmax_port_env(self):
-        """Test user defined port range"""
         import os
 
-        def _get_port(port):
-            from zmq.error import ZMQError
-            from posttroll.publisher import Publish
-
-            try:
-                # Create a publisher to a port selected randomly from
-                # a 1-port "range"
-                with Publish("a_service") as pub:
-                    return pub.port_number
-            except ZMQError:
-                return False
-
+        # Using environment variables to set port range
         # Try over a range of ports just in case the single port is reserved
-        for port in range(50000, 60000):
+        for port in range(40000, 50000):
             # Set the port range to environment variables
             os.environ['POSTTROLL_PUB_MIN_PORT'] = str(port)
             os.environ['POSTTROLL_PUB_MAX_PORT'] = str(port + 1)
-            res = _get_port(port)
+            res = _get_port(min_port=None, max_port=None)
             if res is False:
                 # The port wasn't free, try again
                 continue
             # Port was selected, make sure it's within the "range" of one
             self.assertEqual(res, port)
             break
+
+        # Using range of ports defined at instantation time, this
+        # should override environment variables
+        for port in range(50000, 60000):
+            res = _get_port(min_port=port, max_port=port+1)
+            if res is False:
+                # The port wasn't free, try again
+                continue
+            # Port was selected, make sure it's within the "range" of one
+            self.assertEqual(res, port)
+            break
+
+
+def _get_port(min_port=None, max_port=None):
+    from zmq.error import ZMQError
+    from posttroll.publisher import Publish
+    import os
+
+    try:
+        # Create a publisher to a port selected randomly from
+        # the given range
+        with Publish("a_service",
+                     min_port=min_port,
+                     max_port=max_port) as pub:
+            return pub.port_number
+    except ZMQError:
+        return False
 
 
 class TestListenerContainer(unittest.TestCase):
