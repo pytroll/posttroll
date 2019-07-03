@@ -45,6 +45,8 @@ if __name__ == '__main__':
                         action="store_true")
     parser.add_argument("--no-multicast", help="disable multicasting",
                         action="store_true")
+    parser.add_argument("-r", "--restrict-to-localhost", help="restrict incomming processes to localhost",
+                        action="store_true")
     opts = parser.parse_args()
 
     if opts.log:
@@ -67,8 +69,9 @@ if __name__ == '__main__':
     logger = logging.getLogger("nameserver")
 
     multicast_enabled = (opts.no_multicast == False)
+    local_only = (opts.restrict_to_localhost)
 
-    ns = NameServer(multicast_enabled=multicast_enabled)
+    ns = NameServer(multicast_enabled=multicast_enabled, restrict_to_localhost=local_only)
 
     if opts.daemon is None:
         try:

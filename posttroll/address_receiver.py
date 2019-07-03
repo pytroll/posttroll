@@ -34,6 +34,7 @@ import time
 
 from datetime import datetime, timedelta
 
+import netifaces
 from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK
 
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
@@ -51,6 +52,16 @@ broadcast_port = 21200
 
 default_publish_port = 16543
 
+def get_local_ips():
+    inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
+                  for iface in netifaces.interfaces()]
+    ips = []
+    for addr in inet_addrs:
+        if addr is not None:
+            for add in addr:
+                ips.append(add['addr'])
+    return ips
+
 #-----------------------------------------------------------------------------
 #
 # General thread to receive broadcast addresses.
@@ -64,7 +75,7 @@ class AddressReceiver(object):
     """
 
     def __init__(self, max_age=timedelta(minutes=10), port=None,
-                 do_heartbeat=True, multicast_enabled=True):
+                 do_heartbeat=True, multicast_enabled=True, restrict_to_localhost=False):
         self._max_age = max_age
         self._port = port or default_publish_port
         self._address_lock = threading.Lock()
@@ -76,6 +87,8 @@ class AddressReceiver(object):
         self._do_run = False
         self._is_running = False
         self._thread = threading.Thread(target=self._run)
+        self._restrict_to_localhost = restrict_to_localhost
+        self._local_ips = get_local_ips()
 
     def start(self):
         """Start the receiver.
@@ -167,8 +180,12 @@ class AddressReceiver(object):
                 while self._do_run:
                     try:
                         data, fromaddr = recv()
+                        ip_, port = fromaddr
+                        if self._restrict_to_localhost and ip_ not in self._local_ips:
+                            # discard external message
+                            LOGGER.debug('Discard external message')
+                            continue
                         LOGGER.debug("data %s", data)
-                        del fromaddr
                     except SocketTimeout:
                         if self._multicast_enabled:
                             LOGGER.debug("Multicast socket timed out on recv!")
