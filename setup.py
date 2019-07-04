@@ -28,7 +28,7 @@ import imp
 import versioneer
 
 
-requirements = ['pyzmq', 'six']
+requirements = ['pyzmq', 'six', 'netifaces']
 if sys.version_info < (2, 6):
     requirements.append('simplejson')
 
