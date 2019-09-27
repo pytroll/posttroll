@@ -402,7 +402,7 @@ class _AddressListener(object):
         addr_ = msg.data["URI"]
         status = msg.data.get('status', True)
         if status:
-            msg_services = msg.data.get('service')            
+            msg_services = msg.data.get('service')
             for service in self.services:
                 if not service or service in msg_services:
                     LOGGER.debug("Adding address %s %s", str(addr_),
