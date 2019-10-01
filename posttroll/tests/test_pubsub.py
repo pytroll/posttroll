@@ -116,6 +116,10 @@ class TestNS(unittest.TestCase):
                     break
             time.sleep(3)
             self.assertEqual(len(sub.sub_addr), 0)
+            with Publish("data_provider_2", 0, ["another_data"]):
+                time.sleep(4)
+                six.next(sub.recv(2))
+                self.assertEqual(len(sub.sub_addr), 0)
             sub.close()
 
 
@@ -209,6 +213,11 @@ class TestNSWithoutMulticasting(unittest.TestCase):
 
             time.sleep(3)
             self.assertEqual(len(sub.sub_addr), 0)
+            with Publish("data_provider_2", 0, ["another_data"],
+                         nameservers=self.nameservers):
+                time.sleep(4)
+                six.next(sub.recv(2))
+                self.assertEqual(len(sub.sub_addr), 0)
 
 
 class TestPubSub(unittest.TestCase):
