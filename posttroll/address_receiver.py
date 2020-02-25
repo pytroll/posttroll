@@ -52,6 +52,7 @@ broadcast_port = 21200
 
 default_publish_port = 16543
 
+
 def get_local_ips():
     inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
                   for iface in netifaces.interfaces()]
