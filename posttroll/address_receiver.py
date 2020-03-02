@@ -178,11 +178,12 @@ class AddressReceiver(object):
                 while self._do_run:
                     try:
                         data, fromaddr = recv()
-                        ip_, port = fromaddr
-                        if self._restrict_to_localhost and ip_ not in self._local_ips:
-                            # discard external message
-                            LOGGER.debug('Discard external message')
-                            continue
+                        if self._multicast_enabled:
+                            ip_, port = fromaddr
+                            if self._restrict_to_localhost and ip_ not in self._local_ips:
+                                # discard external message
+                                LOGGER.debug('Discard external message')
+                                continue
                         LOGGER.debug("data %s", data)
                     except SocketTimeout:
                         if self._multicast_enabled:
