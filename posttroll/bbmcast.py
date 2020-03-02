@@ -85,7 +85,7 @@ def mcast_sender(mcgroup=MC_GROUP):
             group = '<broadcast>'
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         elif((int(mcgroup.split(".")[0]) > 239) or
-            (int(mcgroup.split(".")[0]) < 224)):
+             (int(mcgroup.split(".")[0]) < 224)):
             raise IOError("Invalid multicast address.")
         else:
             group = mcgroup
