@@ -22,6 +22,7 @@
 # posttroll.  If not, see <http://www.gnu.org/licenses/>.
 
 """Send/receive UDP multicast packets.
+
 Requires that your OS kernel supports IP multicast.
 
 This is based on python-examples Demo/sockets/mcast.py
@@ -48,17 +49,15 @@ logger = logging.getLogger(__name__)
 
 SocketTimeout = timeout  # for easy access to socket.timeout
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Sender.
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 class MulticastSender(object):
-
-    """Multicast sender on *port* and *mcgroup*.
-    """
+    """Multicast sender on *port* and *mcgroup*."""
 
     def __init__(self, port, mcgroup=MC_GROUP):
         self.port = port
@@ -70,8 +69,7 @@ class MulticastSender(object):
         self.socket.sendto(data.encode(), (self.group, self.port))
 
     def close(self):
-        """Close the sender.
-        """
+        """Close the sender."""
         self.socket.close()
 
 # Allow non-object interface
@@ -81,30 +79,32 @@ def mcast_sender(mcgroup=MC_GROUP):
     """Non-object interface for sending multicast messages.
     """
     sock = socket(AF_INET, SOCK_DGRAM)
-    sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    if _is_broadcast_group(mcgroup):
-        group = '<broadcast>'
-        sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    elif((int(mcgroup.split(".")[0]) > 239) or
-         (int(mcgroup.split(".")[0]) < 224)):
-        raise IOError("Invalid multicast address.")
-    else:
-        group = mcgroup
-        ttl = struct.pack('b', TTL_LOCALNET)  # Time-to-live
-        sock.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, ttl)
+    try:
+        sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        if _is_broadcast_group(mcgroup):
+            group = '<broadcast>'
+            sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        elif((int(mcgroup.split(".")[0]) > 239) or
+            (int(mcgroup.split(".")[0]) < 224)):
+            raise IOError("Invalid multicast address.")
+        else:
+            group = mcgroup
+            ttl = struct.pack('b', TTL_LOCALNET)  # Time-to-live
+            sock.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, ttl)
+    except Exception:
+        sock.close()
+        raise
     return sock, group
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Receiver.
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 class MulticastReceiver(object):
-
-    """Multicast receiver on *port* for an *mcgroup*.
-    """
+    """Multicast receiver on *port* for an *mcgroup*."""
     BUFSIZE = 1024
 
     def __init__(self, port, mcgroup=MC_GROUP):
@@ -123,10 +123,8 @@ class MulticastReceiver(object):
         return data.decode(), sender
 
     def close(self):
-        """Close the receiver.
-        """
-        self.socket.setsockopt(SOL_SOCKET, SO_LINGER,
-                               struct.pack('ii', 1, 1))
+        """Close the receiver."""
+        self.socket.setsockopt(SOL_SOCKET, SO_LINGER, struct.pack('ii', 1, 1))
         self.socket.close()
 
 # Allow non-object interface
@@ -144,41 +142,45 @@ def mcast_receiver(port, mcgroup=MC_GROUP):
     # Create a socket
     sock = socket(AF_INET, SOCK_DGRAM)
 
-    # Allow multiple copies of this program on one machine
-    # (not strictly needed)
-    sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    if group:
-        sock.setsockopt(SOL_IP, IP_MULTICAST_TTL, TTL_LOCALNET)  # default
-        sock.setsockopt(SOL_IP, IP_MULTICAST_LOOP, 1)  # default
+    try:
+        # Allow multiple copies of this program on one machine
+        # (not strictly needed)
+        sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        if group:
+            sock.setsockopt(SOL_IP, IP_MULTICAST_TTL, TTL_LOCALNET)  # default
+            sock.setsockopt(SOL_IP, IP_MULTICAST_LOOP, 1)  # default
 
-    # Bind it to the port
-    sock.bind(('', port))
+        # Bind it to the port
+        sock.bind(('', port))
 
-    # Look up multicast group address in name server
-    # (doesn't hurt if it is already in ddd.ddd.ddd.ddd format)
-    if group:
-        group = gethostbyname(group)
+        # Look up multicast group address in name server
+        # (doesn't hurt if it is already in ddd.ddd.ddd.ddd format)
+        if group:
+            group = gethostbyname(group)
 
-        # Construct binary group address
-        bytes_ = [int(b) for b in group.split(".")]
-        grpaddr = 0
-        for byte in bytes_:
-            grpaddr = (grpaddr << 8) | byte
+            # Construct binary group address
+            bytes_ = [int(b) for b in group.split(".")]
+            grpaddr = 0
+            for byte in bytes_:
+                grpaddr = (grpaddr << 8) | byte
 
-        # Construct struct mreq from grpaddr and ifaddr
-        ifaddr = INADDR_ANY
-        mreq = struct.pack('!LL', grpaddr, ifaddr)
+            # Construct struct mreq from grpaddr and ifaddr
+            ifaddr = INADDR_ANY
+            mreq = struct.pack('!LL', grpaddr, ifaddr)
 
-        # Add group membership
-        sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, mreq)
+            # Add group membership
+            sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, mreq)
+    except Exception:
+        sock.close()
+        raise
 
     return sock, group or '<broadcast>'
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Small helpers.
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 def _is_broadcast_group(group):

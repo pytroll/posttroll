@@ -35,7 +35,7 @@ import time
 from datetime import datetime, timedelta
 
 import netifaces
-from zmq import REQ, REP, LINGER, POLLIN, NOBLOCK
+from zmq import REP, LINGER
 
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
 from posttroll.message import Message
@@ -52,6 +52,9 @@ broadcast_port = 21200
 
 default_publish_port = 16543
 
+ten_minutes = timedelta(minutes=10)
+zero_seconds = timedelta(seconds=0)
+
 
 def get_local_ips():
     inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
@@ -63,19 +66,17 @@ def get_local_ips():
                 ips.append(add['addr'])
     return ips
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # General thread to receive broadcast addresses.
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 class AddressReceiver(object):
+    """General thread to receive broadcast addresses."""
 
-    """General thread to receive broadcast addresses.
-    """
-
-    def __init__(self, max_age=timedelta(minutes=10), port=None,
+    def __init__(self, max_age=ten_minutes, port=None,
                  do_heartbeat=True, multicast_enabled=True, restrict_to_localhost=False):
         self._max_age = max_age
         self._port = port or default_publish_port
@@ -92,27 +93,23 @@ class AddressReceiver(object):
         self._local_ips = get_local_ips()
 
     def start(self):
-        """Start the receiver.
-        """
+        """Start the receiver."""
         if not self._is_running:
             self._do_run = True
             self._thread.start()
         return self
 
     def stop(self):
-        """Stop the receiver.
-        """
+        """Stop the receiver."""
         self._do_run = False
         return self
 
     def is_running(self):
-        """Check if the receiver is alive.
-        """
+        """Check if the receiver is alive."""
         return self._is_running
 
     def get(self, name=""):
-        """Get the address(es).
-        """
+        """Get the address(es)."""
         addrs = []
 
         with self._address_lock:
@@ -125,9 +122,8 @@ class AddressReceiver(object):
         LOGGER.debug('return address %s', str(addrs))
         return addrs
 
-    def _check_age(self, pub, min_interval=timedelta(seconds=0)):
-        """Check the age of the receiver.
-        """
+    def _check_age(self, pub, min_interval=zero_seconds):
+        """Check the age of the receiver."""
         now = datetime.utcnow()
         if (now - self._last_age_check) <= min_interval:
             return
@@ -150,17 +146,13 @@ class AddressReceiver(object):
                 del self._addresses[addr]
 
     def _run(self):
-        """Run the receiver.
-        """
+        """Run the receiver."""
         port = broadcast_port
         nameservers = []
         if self._multicast_enabled:
-            recv = MulticastReceiver(port).settimeout(2.)
             while True:
                 try:
-                    recv = MulticastReceiver(port).settimeout(2.)
-                    LOGGER.info("Receiver initialized.")
-                    break
+                    recv = MulticastReceiver(port)
                 except IOError as err:
                     if err.errno == errno.ENODEV:
                         LOGGER.error("Receiver initialization failed "
@@ -170,6 +162,11 @@ class AddressReceiver(object):
                         time.sleep(10)
                     else:
                         raise
+                else:
+                    recv.settimeout(tout=2.0)
+                    LOGGER.info("Receiver initialized.")
+                    break
+
         else:
             recv = _SimpleReceiver(port)
             nameservers = ["localhost"]
@@ -216,8 +213,7 @@ class AddressReceiver(object):
                 recv.close()
 
     def _add(self, adr, metadata):
-        """Add an address.
-        """
+        """Add an address."""
         with self._address_lock:
             metadata["receive_time"] = datetime.utcnow()
             self._addresses[adr] = metadata
@@ -225,8 +221,7 @@ class AddressReceiver(object):
 
 class _SimpleReceiver(object):
 
-    """ Simple listing on port for address messages.
-    """
+    """ Simple listing on port for address messages."""
 
     def __init__(self, port=None):
         self._port = port or default_publish_port
@@ -239,11 +234,11 @@ class _SimpleReceiver(object):
         return message, None
 
     def close(self):
-        """Close the receiver.
-        """
+        """Close the receiver."""
         self._socket.setsockopt(LINGER, 1)
         self._socket.close()
 
-#-----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # default
 getaddress = AddressReceiver
