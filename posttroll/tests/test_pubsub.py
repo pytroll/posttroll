@@ -23,6 +23,7 @@
 """Test the publishing and subscribing facilities.
 """
 import unittest
+from unittest import mock
 from datetime import timedelta
 from threading import Thread, Lock
 import time
@@ -361,6 +362,24 @@ class TestListenerContainer(unittest.TestCase):
         sub.stop()
 
 
+class TestAddressReceiver(unittest.TestCase):
+    """Test the AddressReceiver."""
+
+    @mock.patch("posttroll.address_receiver.Message")
+    @mock.patch("posttroll.address_receiver.Publish")
+    @mock.patch("posttroll.address_receiver.MulticastReceiver")
+    def test_localhost_restriction(self, mcrec, pub, msg):
+        mcr_instance = mock.Mock()
+        mcrec.return_value = mcr_instance
+        mcr_instance.return_value = 'blabla', ('255.255.255.255', 12)
+        from posttroll.address_receiver import AddressReceiver
+        adr = AddressReceiver(restrict_to_localhost=True)
+        adr.start()
+        time.sleep(3)
+        msg.decode.assert_not_called()
+        adr.stop()
+
+
 def suite():
     """The suite for test_bbmcast.
     """
@@ -371,5 +390,5 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestNSWithoutMulticasting))
     mysuite.addTest(loader.loadTestsFromTestCase(TestListenerContainer))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPub))
-
+    mysuite.addTest(loader.loadTestsFromTestCase(TestAddressReceiver))
     return mysuite
