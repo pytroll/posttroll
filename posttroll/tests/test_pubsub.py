@@ -23,6 +23,7 @@
 """Test the publishing and subscribing facilities.
 """
 import unittest
+from unittest import mock
 from datetime import timedelta
 from threading import Thread, Lock
 import time
@@ -51,14 +52,13 @@ class TestNS(unittest.TestCase):
         test_lock.release()
 
     def test_pub_addresses(self):
-        """Test retrieving addresses.
-        """
+        """Test retrieving addresses."""
         from posttroll.ns import get_pub_addresses
         from posttroll.publisher import Publish
 
-        with Publish(six.text_type("data_provider"), 0, ["this_data"]):
-            time.sleep(3)
-            res = get_pub_addresses(["this_data"])
+        with Publish(six.text_type("data_provider"), 0, ["this_data"], broadcast_interval=0.1):
+            time.sleep(.3)
+            res = get_pub_addresses(["this_data"], timeout=.5)
             self.assertEqual(len(res), 1)
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
@@ -98,8 +98,7 @@ class TestNS(unittest.TestCase):
         self.assertTrue(tested)
 
     def test_pub_sub_add_rm(self):
-        """Test adding and removing publishers.
-        """
+        """Test adding and removing publishers."""
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
 
@@ -221,9 +220,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
 
 
 class TestPubSub(unittest.TestCase):
-
-    """Testing the publishing and subscribing capabilities.
-    """
+    """Testing the publishing and subscribing capabilities."""
 
     def setUp(self):
         test_lock.acquire()
@@ -238,7 +235,7 @@ class TestPubSub(unittest.TestCase):
         from posttroll.ns import TimeoutError
 
         self.assertRaises(TimeoutError,
-                          get_pub_address, ["this_data"])
+                          get_pub_address, ["this_data", 0.5])
 
     def test_pub_suber(self):
         """Test publisher and subscriber.
@@ -374,6 +371,24 @@ class TestListenerContainer(unittest.TestCase):
         sub.stop()
 
 
+class TestAddressReceiver(unittest.TestCase):
+    """Test the AddressReceiver."""
+
+    @mock.patch("posttroll.address_receiver.Message")
+    @mock.patch("posttroll.address_receiver.Publish")
+    @mock.patch("posttroll.address_receiver.MulticastReceiver")
+    def test_localhost_restriction(self, mcrec, pub, msg):
+        mcr_instance = mock.Mock()
+        mcrec.return_value = mcr_instance
+        mcr_instance.return_value = 'blabla', ('255.255.255.255', 12)
+        from posttroll.address_receiver import AddressReceiver
+        adr = AddressReceiver(restrict_to_localhost=True)
+        adr.start()
+        time.sleep(3)
+        msg.decode.assert_not_called()
+        adr.stop()
+
+
 def suite():
     """The suite for test_bbmcast.
     """
@@ -384,5 +399,5 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestNSWithoutMulticasting))
     mysuite.addTest(loader.loadTestsFromTestCase(TestListenerContainer))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPub))
-
+    mysuite.addTest(loader.loadTestsFromTestCase(TestAddressReceiver))
     return mysuite

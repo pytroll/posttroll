@@ -23,14 +23,10 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup
-import sys
-import imp
 import versioneer
 
 
-requirements = ['pyzmq', 'six']
-if sys.version_info < (2, 6):
-    requirements.append('simplejson')
+requirements = ['pyzmq', 'six', 'netifaces']
 
 
 setup(name="posttroll",

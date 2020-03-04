@@ -49,8 +49,7 @@ nslock = Lock()
 
 class TimeoutError(BaseException):
 
-    """A timeout.
-    """
+    """A timeout."""
     pass
 
 # Client functions.
@@ -66,22 +65,20 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     for name in names:
         then = datetime.now() + timedelta(seconds=timeout)
         while datetime.now() < then:
-            addrs += get_pub_address(name, nameserver=nameserver)
+            addrs += get_pub_address(name, nameserver=nameserver, timeout=timeout)
             if addrs:
                 break
-            time.sleep(.5)
+            time.sleep(timeout / 20.0)
     return addrs
 
 
 def get_pub_address(name, timeout=10, nameserver="localhost"):
     """Get the address of the publisher for a given publisher *name* from the
-    nameserver on *nameserver* (localhost by default).
-    """
-
+    nameserver on *nameserver* (localhost by default)."""
     # Socket to talk to server
     socket = get_context().socket(REQ)
     try:
-        socket.setsockopt(LINGER, timeout * 1000)
+        socket.setsockopt(LINGER, int(timeout * 1000))
         socket.connect("tcp://" + nameserver + ":" + str(PORT))
         logger.debug('Connecting to %s',
                      "tcp://" + nameserver + ":" + str(PORT))
@@ -117,15 +114,14 @@ def get_active_address(name, arec):
 
 
 class NameServer(object):
+    """The name server."""
 
-    """The name server.
-    """
-
-    def __init__(self, max_age=timedelta(minutes=10), multicast_enabled=True):
+    def __init__(self, max_age=timedelta(minutes=10), multicast_enabled=True, restrict_to_localhost=False):
         self.loop = True
         self.listener = None
         self._max_age = max_age
         self._multicast_enabled = multicast_enabled
+        self._restrict_to_localhost = restrict_to_localhost
 
     def run(self, *args):
         """Run the listener and answer to requests.
@@ -133,7 +129,8 @@ class NameServer(object):
         del args
 
         arec = AddressReceiver(max_age=self._max_age,
-                               multicast_enabled=self._multicast_enabled)
+                               multicast_enabled=self._multicast_enabled,
+                               restrict_to_localhost=self._restrict_to_localhost)
         arec.start()
         port = PORT
 
@@ -154,8 +151,8 @@ class NameServer(object):
                         continue
                     logger.debug("Replying to request: " + str(msg))
                     msg = Message.decode(msg)
-                    self.listener.send_unicode(six.text_type(get_active_address(
-                        msg.data["service"], arec)))
+                    active_address = get_active_address(msg.data["service"], arec)
+                    self.listener.send_unicode(six.text_type(active_address))
         except KeyboardInterrupt:
             # Needed to stop the nameserver.
             pass

@@ -217,7 +217,8 @@ class Subscriber(object):
                         # timeout
                         yield None
                 except ZMQError as err:
-                    LOGGER.exception("Receive failed: %s", str(err))
+                    if self._loop:
+                        LOGGER.exception("Receive failed: %s", str(err))
         finally:
             for sub in list(self.subscribers) + self._hooks:
                 self.poller.unregister(sub)

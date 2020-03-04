@@ -29,7 +29,7 @@ import errno
 from posttroll import message
 from posttroll.bbmcast import MulticastSender, MC_GROUP
 from posttroll import get_context
-from zmq import REQ, REP, LINGER
+from zmq import REQ, LINGER
 
 __all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
 
@@ -39,9 +39,7 @@ broadcast_port = 21200
 
 
 class DesignatedReceiversSender(object):
-
-    """Sends message to multiple *receivers* on *port*.
-    """
+    """Sends message to multiple *receivers* on *port*."""
 
     def __init__(self, default_port, receivers):
         self.default_port = default_port
@@ -53,8 +51,7 @@ class DesignatedReceiversSender(object):
             self._send_to_address(receiver, data)
 
     def _send_to_address(self, address, data, timeout=10):
-        """send data to *address* and *port* without verification of response.
-        """
+        """Send data to *address* and *port* without verification of response."""
         # Socket to talk to server
         socket = get_context().socket(REQ)
         try:
@@ -72,8 +69,8 @@ class DesignatedReceiversSender(object):
             socket.close()
 
     def close(self):
-        """Close the sender.
-        """
+        """Close the sender."""
+        pass
 #-----------------------------------------------------------------------------
 #
 # General thread to broadcast messages.
@@ -82,14 +79,12 @@ class DesignatedReceiversSender(object):
 
 
 class MessageBroadcaster(object):
-
     """Class to broadcast stuff.
 
     If *interval* is 0 or negative, no broadcasting is done.
     """
 
     def __init__(self, msg, port, interval, designated_receivers=None):
-
         if designated_receivers:
             self._sender = DesignatedReceiversSender(port,
                                                      designated_receivers)
@@ -105,8 +100,7 @@ class MessageBroadcaster(object):
         self._thread = threading.Thread(target=self._run)
 
     def start(self):
-        """Start the broadcasting.
-        """
+        """Start the broadcasting."""
         if self._interval > 0:
             if not self._is_running:
                 self._do_run = True
@@ -114,19 +108,16 @@ class MessageBroadcaster(object):
         return self
 
     def is_running(self):
-        """Are we running.
-        """
+        """Are we running."""
         return self._is_running
 
     def stop(self):
-        """Stop the broadcasting.
-        """
+        """Stop the broadcasting."""
         self._do_run = False
         return self
 
     def _run(self):
-        """Broadcasts forever.
-        """
+        """Broadcasts forever."""
         self._is_running = True
         network_fail = False
         try:
@@ -157,30 +148,28 @@ class MessageBroadcaster(object):
 
 
 class AddressBroadcaster(MessageBroadcaster):
-
-    """Class to broadcast stuff.
-    """
+    """Class to broadcast stuff."""
 
     def __init__(self, name, address, interval, nameservers):
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": "%s:%d" % address}).encode()
         MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
                                     nameservers)
-#-----------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------
 # default
 sendaddress = AddressBroadcaster
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # General thread to broadcast addresses and type.
 #
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 class AddressServiceBroadcaster(MessageBroadcaster):
-
-    """Class to broadcast stuff.
-    """
+    """Class to broadcast stuff."""
 
     def __init__(self, name, address, data_type, interval=2, nameservers=None):
         msg = message.Message("/address/%s" % name, "info",
@@ -188,6 +177,8 @@ class AddressServiceBroadcaster(MessageBroadcaster):
                                "service": data_type}).encode()
         MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
                                     nameservers)
-#-----------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------
 # default
 sendaddressservice = AddressServiceBroadcaster
