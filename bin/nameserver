@@ -45,7 +45,7 @@ if __name__ == '__main__':
                         action="store_true")
     parser.add_argument("--no-multicast", help="disable multicasting",
                         action="store_true")
-    parser.add_argument("-r", "--restrict-to-localhost", help="restrict incomming processes to localhost",
+    parser.add_argument("-L", "--local-only", help="accept connections only from localhost",
                         action="store_true")
     opts = parser.parse_args()
 

@@ -21,8 +21,9 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-Receive broadcasted addresses in a standard pytroll Message:
+"""Receive broadcasted addresses in a standard pytroll Message.
+
+It will look like:
 /<server-name>/address info ... host:port
 """
 import copy
