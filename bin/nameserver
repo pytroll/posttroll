@@ -69,7 +69,7 @@ if __name__ == '__main__':
     logger = logging.getLogger("nameserver")
 
     multicast_enabled = (opts.no_multicast == False)
-    local_only = (opts.restrict_to_localhost)
+    local_only = (opts.local_only)
 
     ns = NameServer(multicast_enabled=multicast_enabled, restrict_to_localhost=local_only)
 
