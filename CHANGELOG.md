@@ -1,3 +1,25 @@
+## Version v1.6.0 (2020/03/04)
+
+### Issues Closed
+
+* [Issue 24](https://github.com/pytroll/posttroll/issues/24) - Subscriber does not correctly filter messages by the name of the service ([PR 25](https://github.com/pytroll/posttroll/pull/25))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 25](https://github.com/pytroll/posttroll/pull/25) - Fix filtering of messages by the name of service ([24](https://github.com/pytroll/posttroll/issues/24))
+
+#### Features added
+
+* [PR 22](https://github.com/pytroll/posttroll/pull/22) - Add `restrict_to_localhost` flag for the nameserver
+* [PR 21](https://github.com/pytroll/posttroll/pull/21) - Make the range of automatic port selection user definable
+
+In this release 3 pull requests were closed.
+
+
 ## Version v1.5.1 (2019/04/04)
 
 
