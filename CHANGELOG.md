@@ -1,3 +1,15 @@
+## Version 1.6.1 (2020/03/04)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 27](https://github.com/pytroll/posttroll/pull/27) - Fix argparse option name
+
+In this release 1 pull request was closed.
+
+
 ## Version v1.6.0 (2020/03/04)
 
 ### Issues Closed
