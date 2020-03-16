@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2014, 2015.
+# Copyright (c) 2011, 2012, 2014, 2015, 2020.
 
 # Author(s):
 
@@ -34,7 +34,7 @@ setup(name="posttroll",
       cmdclass=versioneer.get_cmdclass(),
       description='Messaging system for pytroll',
       author='The pytroll team',
-      author_email='martin.raspaud@smhi.se',
+      author_email='pytroll@googlegroups.com',
       url="http://github.com/pytroll/posttroll",
       packages=['posttroll'],
       entry_points={
@@ -52,5 +52,6 @@ setup(name="posttroll",
           'Topic :: Scientific/Engineering',
           'Topic :: Communications'
       ],
+      python_requires='>=3.6',
       test_suite='posttroll.tests.suite',
       )
