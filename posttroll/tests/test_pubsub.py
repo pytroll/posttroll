@@ -279,7 +279,7 @@ class TestPub(unittest.TestCase):
         from posttroll.publisher import Publish
 
         message = Message("/pџтяöll", "info", 'hej')
-        with Publish("a_service", 9000):
+        with Publish("a_service", 9000) as pub:
             try:
                 pub.send(message.encode())
             except UnicodeDecodeError:
