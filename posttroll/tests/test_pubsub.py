@@ -1,27 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+#
 # Copyright (c) 2014 Martin Raspaud
-
+#
 # Author(s):
-
+#
 #   Martin Raspaud <martin.raspaud@smhi.se>
-
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Test the publishing and subscribing facilities.
-"""
+"""Test the publishing and subscribing facilities."""
 import unittest
 from unittest import mock
 from datetime import timedelta
@@ -313,6 +313,23 @@ class TestPub(unittest.TestCase):
             # Port was selected, make sure it's within the "range" of one
             self.assertEqual(res, port)
             break
+
+    @mock.patch("posttroll.publisher.get_context")
+    def test_bind_retries(self, get_context):
+        """Test that the destination bind is retried on failure."""
+        from zmq.error import ZMQError
+        from posttroll.publisher import Publish, BIND_RETRIES
+        context = mock.MagicMock()
+        context.bind.side_effect = ZMQError("mocked failure")
+        get_context.return_value.socket.return_value = context
+
+        try:
+            with Publish("test_bind_retries", port=50000) as pub:
+                pass
+            raise AssertionError("OSError not raised")
+        except OSError:
+            pass
+        assert context.bind.call_count == BIND_RETRIES
 
 
 def _get_port(min_port=None, max_port=None):

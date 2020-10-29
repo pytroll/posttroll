@@ -28,6 +28,8 @@ import logging
 import socket
 from datetime import datetime, timedelta
 from threading import Lock
+import time
+
 from six.moves.urllib.parse import urlsplit, urlunsplit
 import six
 import zmq
@@ -37,6 +39,7 @@ from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
 
 LOGGER = logging.getLogger(__name__)
+BIND_RETRIES = 5
 
 
 def get_own_ip():
@@ -121,7 +124,7 @@ class Publisher(object):
             self.destination = urlunsplit((u__.scheme, netloc, u__.path,
                                            u__.query, u__.fragment))
         else:
-            self.publish.bind(self.destination)
+            self._bind_destination()
             self.port_number = port
 
         LOGGER.info("publisher started on port %s", str(self.port_number))
@@ -129,6 +132,18 @@ class Publisher(object):
         # Initialize no heartbeat
         self._heartbeat = None
         self._pub_lock = Lock()
+
+    def _bind_destination(self):
+        """Bind publish destination."""
+        last_error = ""
+        for _ in range(BIND_RETRIES):
+            try:
+                self.publish.bind(self.destination)
+                return
+            except zmq.error.ZMQError as err:
+                last_error = err.strerror
+                time.sleep(0.01)
+        raise OSError("Could not bind %s - %s" % (self.destination, last_error))
 
     def send(self, msg):
         """Send the given message.
