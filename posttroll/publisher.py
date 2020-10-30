@@ -39,7 +39,8 @@ from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
 
 LOGGER = logging.getLogger(__name__)
-BIND_RETRIES = 5
+BIND_RETRIES = int(os.environ.get("PYTROLL_BIND_RETRIES", 5))
+BIND_RETRY_TIMEOUT = float(os.environ.get("PYTROLL_BIND_RETRY_TIMEOUT", 0.1))
 
 
 def get_own_ip():
@@ -142,7 +143,7 @@ class Publisher(object):
                 return
             except zmq.error.ZMQError as err:
                 last_error = err.strerror
-                time.sleep(0.01)
+                time.sleep(BIND_RETRY_TIMEOUT)
         raise OSError("Could not bind %s - %s" % (self.destination, last_error))
 
     def send(self, msg):
