@@ -324,7 +324,7 @@ class TestPub(unittest.TestCase):
         get_context.return_value.socket.return_value = context
 
         try:
-            with Publish("test_bind_retries", port=50000) as pub:
+            with Publish("test_bind_retries", port=50000):
                 pass
             raise AssertionError("OSError not raised")
         except OSError:
