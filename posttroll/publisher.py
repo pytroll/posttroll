@@ -39,7 +39,7 @@ from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
 
 LOGGER = logging.getLogger(__name__)
-BIND_RETRIES = int(os.environ.get("PYTROLL_BIND_RETRIES", 5))
+BIND_RETRIES = max(0, int(os.environ.get("PYTROLL_BIND_RETRIES", 5)))
 BIND_RETRY_TIMEOUT = float(os.environ.get("PYTROLL_BIND_RETRY_TIMEOUT", 0.1))
 
 

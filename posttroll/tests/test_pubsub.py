@@ -324,10 +324,12 @@ class TestPub(unittest.TestCase):
         context.bind.side_effect = ZMQError("mocked failure")
         get_context.return_value.socket.return_value = context
 
-        with pytest.raises(OSError):
+        with pytest.raises(OSError) as err:
             with Publish("test_bind_retries", port=50000):
                 pass
         assert context.bind.call_count == BIND_RETRIES
+        assert "Could not bind" in err.value.args[0]
+        assert "50000" in err.value.args[0]
 
 
 def _get_port(min_port=None, max_port=None):
