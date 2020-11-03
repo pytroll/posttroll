@@ -29,6 +29,7 @@ from threading import Thread, Lock
 import time
 
 import six
+import pytest
 
 test_lock = Lock()
 
@@ -323,12 +324,9 @@ class TestPub(unittest.TestCase):
         context.bind.side_effect = ZMQError("mocked failure")
         get_context.return_value.socket.return_value = context
 
-        try:
+        with pytest.raises(OSError):
             with Publish("test_bind_retries", port=50000):
                 pass
-            raise AssertionError("OSError not raised")
-        except OSError:
-            pass
         assert context.bind.call_count == BIND_RETRIES
 
 
