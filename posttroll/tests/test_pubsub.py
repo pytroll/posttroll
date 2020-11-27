@@ -327,9 +327,43 @@ class TestPub(unittest.TestCase):
         with pytest.raises(OSError) as err:
             with Publish("test_bind_retries", port=50000):
                 pass
-        assert context.bind.call_count == BIND_RETRIES
+        assert context.bind.call_count == BIND_RETRIES + 1
         assert "Could not bind" in err.value.args[0]
         assert "50000" in err.value.args[0]
+
+    @mock.patch("posttroll.publisher.BIND_RETRIES", 0)
+    @mock.patch("posttroll.publisher.get_context")
+    def test_bind_no_retries(self, get_context):
+        """Test that the destination bind retries can be turned off."""
+        from zmq.error import ZMQError
+        from posttroll.publisher import Publish, BIND_RETRIES
+        # Just ensure the mock sets the variable correctly
+        assert BIND_RETRIES == 0
+        context = mock.MagicMock()
+        context.bind.side_effect = ZMQError("mocked failure")
+        get_context.return_value.socket.return_value = context
+
+        with pytest.raises(OSError) as err:
+            with Publish("test_bind_retries", port=50000):
+                pass
+        assert context.bind.call_count == 1
+
+    def test_bind_retries_env_variable(self):
+        """Test that the retry count env variable is handled correctly."""
+        import os
+        os.environ["PYTROLL_BIND_RETRIES"] = "-1"
+        from posttroll.publisher import BIND_RETRIES
+
+        assert BIND_RETRIES == 0
+
+    def test_bind_retry_timeout_env_variable(self):
+        """Test that the retry timeout env variable is handled correctly."""
+        import os
+        val = 0.3
+        os.environ["PYTROLL_BIND_RETRY_TIMEOUT"] = str(val)
+        from posttroll.publisher import BIND_RETRY_TIMEOUT
+
+        assert BIND_RETRY_TIMEOUT == val
 
 
 def _get_port(min_port=None, max_port=None):
@@ -417,4 +451,6 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestListenerContainer))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPub))
     mysuite.addTest(loader.loadTestsFromTestCase(TestAddressReceiver))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBindRetryEnvVariable))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBindRetryTimeoutEnvVariable))
     return mysuite

@@ -137,7 +137,7 @@ class Publisher(object):
     def _bind_destination(self):
         """Bind publish destination."""
         last_error = ""
-        for _ in range(BIND_RETRIES):
+        for _ in range(BIND_RETRIES + 1):
             try:
                 self.publish.bind(self.destination)
                 return
