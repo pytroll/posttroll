@@ -14,7 +14,7 @@ notifications.
 To get the software, take a look on github_.
 
 .. _pytroll: http://www.pytroll.org
-.. _github: http://github.com/mraspaud/posttroll
+.. _github: http://github.com/pytroll/posttroll
 
 .. contents::
    :local:
