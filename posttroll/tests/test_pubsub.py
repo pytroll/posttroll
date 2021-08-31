@@ -389,6 +389,40 @@ class TestAddressReceiver(unittest.TestCase):
         adr.stop()
 
 
+class TestPublisherDictConfig(unittest.TestCase):
+    """Test configuring publishers with a dictionary."""
+
+    @mock.patch('posttroll.publisher.Publisher')
+    def test_publisher_is_selected(self, Publisher):
+        """Test that Publisher is selected as publisher class."""
+        from posttroll.publisher import dict_config
+
+        settings = {'port': 12345, 'nameservers': False}
+
+        pub = dict_config(settings)
+        assert Publisher.call_args.args[0].startswith("tcp://*:")
+        assert Publisher.call_args.args[0].endswith(str(settings['port']))
+        assert pub is not None
+
+    def test_no_name_raises_keyerror(self):
+        """Trying to create a NoisyPublisher without a given name will raise KeyError."""
+        from posttroll.publisher import dict_config
+
+        with self.assertRaises(KeyError):
+            pub = dict_config(dict())
+
+    @mock.patch('posttroll.publisher.NoisyPublisher')
+    def test_noisypublisher_is_selected(self, NoisyPublisher):
+        """Test that NoisyPublisher is selected as publisher class."""
+        from posttroll.publisher import dict_config
+
+        settings = {'name': 'publisher_name'}
+
+        pub = dict_config(settings)
+        assert NoisyPublisher.call_args.args[0] == settings["name"]
+        assert pub is not None
+
+
 def suite():
     """The suite for test_bbmcast.
     """
@@ -400,4 +434,6 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestListenerContainer))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPub))
     mysuite.addTest(loader.loadTestsFromTestCase(TestAddressReceiver))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPublisherDictConfig))
+
     return mysuite

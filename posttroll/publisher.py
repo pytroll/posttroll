@@ -208,13 +208,12 @@ class NoisyPublisher(object):
 
     def start(self):
         """Start the publisher."""
-        pub_addr = "tcp://*:" + str(self._port)
+        pub_addr = _get_publish_address(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name,
                                                 min_port=self.min_port,
                                                 max_port=self.max_port)
         LOGGER.debug("entering publish %s", str(self._publisher.destination))
-        addr = ("tcp://" + str(get_own_ip()) + ":" +
-                str(self._publisher.port_number))
+        addr = _get_publish_address(self._publisher.port_number, str(get_own_ip()))
         self._broadcaster = sendaddressservice(self._name, addr,
                                                self._aliases,
                                                self._broadcast_interval,
@@ -234,6 +233,10 @@ class NoisyPublisher(object):
         if self._broadcaster is not None:
             self._broadcaster.stop()
             self._broadcaster = None
+
+
+def _get_publish_address(port, ip_address="*"):
+    return "tcp://" + ip_address + ":" + str(port)
 
 
 class Publish(NoisyPublisher):
@@ -272,3 +275,53 @@ class Publish(NoisyPublisher):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self.stop()
+
+
+def dict_config(settings):
+    """Create a publisher based on dictionary of configuration items.
+
+    The publisher is created based on the given options in the following way:
+
+    - setting *settings['port']* to non-zero integer AND *settings['nameservers']* to *False*
+      will disable nameserver connections and address broadcasting, and publish the
+      messages only on the localhost on the given port
+
+    - setting *settings['nameservers']* to a list of hostnames will connect to nameservers
+      running on those servers, and in addition publish the messages on a random port on the
+      localhost
+
+    - setting *settings['port']* to zero and *settings['namservers']* to *None* will broadcast
+      the publisher address and port with multicast, and publish the messages on a random port.
+
+    The last two cases will require *settings['name']* to be set. Additional options are
+    described in the docstrings of the respective classes, namely :class:`~posttroll.publisher.Publisher` and
+    :class:`~posttroll.publisher.NoisyPublisher`.
+    """
+    if settings.get('port') and settings.get('nameservers') is False:
+        return _get_publisher_instance(settings)
+    return _get_noisypublisher_instance(settings)
+
+
+def _get_publisher_instance(settings):
+    publisher_address = _get_publish_address(settings['port'])
+    publisher_name = settings.get("name", "")
+    min_port = settings.get("min_port")
+    max_port = settings.get("max_port")
+
+    return Publisher(publisher_address, name=publisher_name, min_port=min_port, max_port=max_port)
+
+
+def _get_noisypublisher_instance(settings):
+    try:
+        publisher_name = settings["name"]
+    except KeyError:
+        raise KeyError("NoisyPublisher requires a name")
+    port = settings.get("port", 0)
+    aliases = settings.get("aliases")
+    broadcast_interval = settings.get("broadcast_interval", 2)
+    nameservers = settings.get("nameservers")
+    min_port = settings.get("min_port")
+    max_port = settings.get("max_port")
+
+    return NoisyPublisher(publisher_name, port=0, aliases=None, broadcast_interval=2,
+                          nameservers=None, min_port=None, max_port=None)
