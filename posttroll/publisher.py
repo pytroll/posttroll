@@ -126,6 +126,13 @@ class Publisher(object):
         self._heartbeat = None
         self._pub_lock = Lock()
 
+    def start(self):
+        """Start the publisher.
+
+        Actually just returns *self*, but needed for consistent use from context manager.
+        """
+        return self
+
     def send(self, msg):
         """Send the given message."""
         with self._pub_lock:
