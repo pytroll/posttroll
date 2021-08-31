@@ -28,8 +28,7 @@ import logging
 import socket
 from datetime import datetime, timedelta
 from threading import Lock
-from six.moves.urllib.parse import urlsplit, urlunsplit
-import six
+from urllib.parse import urlsplit, urlunsplit
 import zmq
 
 from posttroll import get_context
@@ -194,7 +193,7 @@ class NoisyPublisher(object):
         self._name = name
         self._aliases = [name]
         if aliases:
-            if isinstance(aliases, six.string_types):
+            if isinstance(aliases, str):
                 self._aliases += [aliases]
             else:
                 self._aliases += aliases
