@@ -137,13 +137,11 @@ class Publisher(object):
         """Send the given message."""
         with self._pub_lock:
             self.publish.send_string(msg)
-        return self
 
     def stop(self):
         """Stop the publisher."""
         self.publish.setsockopt(zmq.LINGER, 1)
         self.publish.close()
-        return self
 
     def heartbeat(self, min_interval=0):
         """Send a heartbeat ... but only if *min_interval* seconds has passed since last beat."""
