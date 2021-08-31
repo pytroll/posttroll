@@ -39,8 +39,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_own_ip():
-    """Get the host's ip number.
-    """
+    """Get the host's ip number."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.connect(("8.8.8.8", 80))
@@ -92,9 +91,7 @@ class Publisher(object):
     """
 
     def __init__(self, address, name="", min_port=None, max_port=None):
-        """Bind the publisher class to a port.
-        """
-        # pylint: disable=E1103
+        """Bind the publisher class to a port."""
         self.name = name
         self.destination = address
         self.publish = get_context().socket(zmq.PUB)
@@ -130,23 +127,19 @@ class Publisher(object):
         self._pub_lock = Lock()
 
     def send(self, msg):
-        """Send the given message.
-        """
+        """Send the given message."""
         with self._pub_lock:
             self.publish.send_string(msg)
         return self
 
     def stop(self):
-        """Stop the publisher.
-        """
+        """Stop the publisher."""
         self.publish.setsockopt(zmq.LINGER, 1)
         self.publish.close()
         return self
 
     def heartbeat(self, min_interval=0):
-        """Send a heartbeat ... but only if *min_interval* seconds has passed
-        since last beat.
-        """
+        """Send a heartbeat ... but only if *min_interval* seconds has passed since last beat."""
         if not self._heartbeat:
             self._heartbeat = _PublisherHeartbeat(self)
         self._heartbeat(min_interval)
@@ -154,8 +147,7 @@ class Publisher(object):
 
 class _PublisherHeartbeat(object):
 
-    """Publisher for heartbeat.
-    """
+    """Publisher for heartbeat."""
 
     def __init__(self, publisher):
         self.publisher = publisher
@@ -210,8 +202,7 @@ class NoisyPublisher(object):
         self.max_port = max_port
 
     def start(self):
-        """Start the publisher.
-        """
+        """Start the publisher."""
         pub_addr = "tcp://*:" + str(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name,
                                                 min_port=self.min_port,
@@ -226,13 +217,11 @@ class NoisyPublisher(object):
         return self._publisher
 
     def send(self, msg):
-        """Send a *msg*.
-        """
+        """Send a *msg*."""
         return self._publisher.send(msg)
 
     def stop(self):
-        """Stop the publisher.
-        """
+        """Stop the publisher."""
         LOGGER.debug("exiting publish")
         if self._publisher is not None:
             self._publisher.stop()
