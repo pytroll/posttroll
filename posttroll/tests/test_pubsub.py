@@ -403,6 +403,15 @@ class TestPublisherDictConfig(unittest.TestCase):
         assert Publisher.call_args.args[0].endswith(str(settings['port']))
         assert pub is not None
 
+    @mock.patch('posttroll.publisher.Publisher')
+    def test_publisher_all_arguments(self, Publisher):
+        """Test that only valid arguments are passed to Publisher."""
+        from posttroll.publisher import dict_config
+
+        settings = {'port': 12345, 'nameservers': False, 'name': 'foo', 'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
+        pub = dict_config(settings)
+        _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])
+
     def test_no_name_raises_keyerror(self):
         """Trying to create a NoisyPublisher without a given name will raise KeyError."""
         from posttroll.publisher import dict_config
@@ -420,6 +429,28 @@ class TestPublisherDictConfig(unittest.TestCase):
         pub = dict_config(settings)
         assert NoisyPublisher.call_args.args[0] == settings["name"]
         assert pub is not None
+
+    @mock.patch('posttroll.publisher.NoisyPublisher')
+    def test_noisypublisher_all_arguments(self, NoisyPublisher):
+        """Test that only valid arguments are passed to NoisyPublisher."""
+        from posttroll.publisher import dict_config
+
+        settings = {'port': 12345, 'nameservers': ['foo'], 'name': 'foo',
+                    'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar',
+                    'aliases': ['alias1', 'alias2'], 'broadcast_interval': 42}
+        pub = dict_config(settings)
+        _check_valid_settings_in_call(settings, NoisyPublisher, ignore=['name'])
+
+
+def _check_valid_settings_in_call(settings, pub_class, ignore=None):
+    ignore = ignore or []
+    for key in settings:
+        if key == 'invalid_arg':
+            assert 'invalid_arg' not in pub_class.call_args[1]
+            continue
+        if key in ignore:
+            continue
+        assert pub_class.call_args[1][key] == settings[key]
 
 
 def suite():
