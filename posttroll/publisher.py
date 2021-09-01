@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2009-2015.
+# Copyright (c) 2009-2015, 2021 Pytroll community
 #
 # Author(s):
 #   Lars Ørum Rasmussen <ras@dmi.dk>
 #   Martin Raspaud      <martin.raspaud@smhi.se>
-
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -19,17 +20,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
 
-"""The publisher module gives high-level tools to publish messages on a port.
-"""
+"""The publisher module gives high-level tools to publish messages on a port."""
+
 import os
 import logging
 import socket
 from datetime import datetime, timedelta
 from threading import Lock
-from six.moves.urllib.parse import urlsplit, urlunsplit
-import six
+from urllib.parse import urlsplit, urlunsplit
 import zmq
 
 from posttroll import get_context
@@ -194,7 +193,7 @@ class NoisyPublisher(object):
         self._name = name
         self._aliases = [name]
         if aliases:
-            if isinstance(aliases, six.string_types):
+            if isinstance(aliases, str):
                 self._aliases += [aliases]
             else:
                 self._aliases += aliases

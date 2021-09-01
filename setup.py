@@ -26,7 +26,7 @@ from setuptools import setup
 import versioneer
 
 
-requirements = ['pyzmq', 'six', 'netifaces']
+requirements = ['pyzmq', 'netifaces']
 
 
 setup(name="posttroll",
@@ -52,6 +52,6 @@ setup(name="posttroll",
           'Topic :: Scientific/Engineering',
           'Topic :: Communications'
       ],
-      python_requires='>=3.6',
+      python_requires='>=3.7',
       test_suite='posttroll.tests.suite',
       )

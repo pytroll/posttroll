@@ -1,23 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2011, 2012, 2013, 2014, 2015.
-
+#
+# Copyright (c) 2011, 2012, 2013, 2014, 2015, 2021 Pytroll community
+#
 # Author(s):
-
+#
 #   Martin Raspaud    <martin.raspaud@smhi.se>
 #   Lars Ø. Rasmussen <ras@dmi.dk>
-
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -28,8 +29,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from threading import Lock
-from six.moves.urllib.parse import urlsplit
-import six
+from urllib.parse import urlsplit
 
 # pylint: disable=E0611
 from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
@@ -101,7 +101,7 @@ class Subscriber(object):
                         str(address), str(topics))
             subscriber = get_context().socket(SUB)
             for t__ in topics:
-                subscriber.setsockopt_string(SUBSCRIBE, six.text_type(t__))
+                subscriber.setsockopt_string(SUBSCRIBE, str(t__))
             subscriber.connect(address)
             self.sub_addr[subscriber] = address
             self.addr_sub[address] = subscriber
@@ -128,7 +128,7 @@ class Subscriber(object):
     def update(self, addresses):
         """Updating with a set of addresses.
         """
-        if isinstance(addresses, six.string_types):
+        if isinstance(addresses, str):
             addresses = [addresses, ]
         s0_, s1_ = set(self.addresses), set(addresses)
         sr_, sa_ = s0_.difference(s1_), s1_.difference(s0_)
@@ -150,7 +150,7 @@ class Subscriber(object):
                     str(address), str(topics))
         socket = get_context().socket(SUB)
         for t__ in self._magickfy_topics(topics):
-            socket.setsockopt_string(SUBSCRIBE, six.text_type(t__))
+            socket.setsockopt_string(SUBSCRIBE, str(t__))
         socket.connect(address)
         self._add_hook(socket, callback)
 
@@ -250,7 +250,7 @@ class Subscriber(object):
         # prepended.
         if topics is None:
             return None
-        if isinstance(topics, six.string_types):
+        if isinstance(topics, str):
             topics = [topics, ]
         ts_ = []
         for t__ in topics:
@@ -376,7 +376,7 @@ class Subscribe(NSSubscriber):
 def _to_array(obj):
     """Convert *obj* to list if not already one.
     """
-    if isinstance(obj, six.string_types):
+    if isinstance(obj, str):
         return [obj, ]
     if obj is None:
         return []
@@ -389,7 +389,7 @@ class _AddressListener(object):
     """
 
     def __init__(self, subscriber, services="", nameserver="localhost"):
-        if isinstance(services, six.string_types):
+        if isinstance(services, str):
             services = [services, ]
         self.services = services
         self.subscriber = subscriber

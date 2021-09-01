@@ -1,34 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2014 Martin Raspaud
-
+#
+# Copyright (c) 2014, 2021 Pytroll community
+#
 # Author(s):
-
+#
 #   Martin Raspaud <martin.raspaud@smhi.se>
-
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Test the publishing and subscribing facilities.
-"""
+"""Test the publishing and subscribing facilities."""
+
 import unittest
 from unittest import mock
 from datetime import timedelta
 from threading import Thread, Lock
 import time
-
-import six
 
 test_lock = Lock()
 
@@ -56,7 +55,7 @@ class TestNS(unittest.TestCase):
         from posttroll.ns import get_pub_addresses
         from posttroll.publisher import Publish
 
-        with Publish(six.text_type("data_provider"), 0, ["this_data"], broadcast_interval=0.1):
+        with Publish(str("data_provider"), 0, ["this_data"], broadcast_interval=0.1):
             time.sleep(.3)
             res = get_pub_addresses(["this_data"], timeout=.5)
             self.assertEqual(len(res), 1)
@@ -67,7 +66,7 @@ class TestNS(unittest.TestCase):
                 self.assertEqual(res[0][key], val)
             self.assertTrue("receive_time" in res[0])
             self.assertTrue("URI" in res[0])
-            res = get_pub_addresses([six.text_type("data_provider")])
+            res = get_pub_addresses([str("data_provider")])
             self.assertEqual(len(res), 1)
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
@@ -90,7 +89,7 @@ class TestNS(unittest.TestCase):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
                     time.sleep(1)
-                    msg = six.next(sub.recv(2))
+                    msg = next(sub.recv(2))
                     if msg is not None:
                         self.assertEqual(str(msg), str(message))
                     tested = True
@@ -107,7 +106,7 @@ class TestNS(unittest.TestCase):
             self.assertEqual(len(sub.sub_addr), 0)
             with Publish("data_provider", 0, ["this_data"]):
                 time.sleep(4)
-                six.next(sub.recv(2))
+                next(sub.recv(2))
                 self.assertEqual(len(sub.sub_addr), 1)
             time.sleep(3)
             for msg in sub.recv(2):
@@ -117,7 +116,7 @@ class TestNS(unittest.TestCase):
             self.assertEqual(len(sub.sub_addr), 0)
             with Publish("data_provider_2", 0, ["another_data"]):
                 time.sleep(4)
-                six.next(sub.recv(2))
+                next(sub.recv(2))
                 self.assertEqual(len(sub.sub_addr), 0)
             sub.close()
 
@@ -184,7 +183,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
                     time.sleep(1)
-                    msg = six.next(sub.recv(2))
+                    msg = next(sub.recv(2))
                     if msg is not None:
                         self.assertEqual(str(msg), str(message))
                     tested = True
@@ -203,7 +202,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
             with Publish("data_provider", 0, ["this_data"],
                          nameservers=self.nameservers):
                 time.sleep(4)
-                six.next(sub.recv(2))
+                next(sub.recv(2))
                 self.assertEqual(len(sub.sub_addr), 1)
             time.sleep(3)
             for msg in sub.recv(2):
@@ -215,7 +214,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
             with Publish("data_provider_2", 0, ["another_data"],
                          nameservers=self.nameservers):
                 time.sleep(4)
-                six.next(sub.recv(2))
+                next(sub.recv(2))
                 self.assertEqual(len(sub.sub_addr), 0)
 
 
@@ -255,7 +254,7 @@ class TestPubSub(unittest.TestCase):
             pub.send(str(message))
             time.sleep(1)
 
-            msg = six.next(sub.recv(2))
+            msg = next(sub.recv(2))
             if msg is not None:
                 self.assertEqual(str(msg), str(message))
                 tested = True
