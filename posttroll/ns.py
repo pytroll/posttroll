@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2011, 2012, 2014, 2015 SMHI
-
+#
+# Copyright (c) 2011, 2012, 2014, 2015, 2021 Pytroll Community
+#
 # Author(s):
-
+#
 #   Martin Raspaud <martin.raspaud@smhi.se>
-
+#   Panu Lahtinen <panu.lahtinen@fmi.fi"
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -29,7 +30,6 @@ import os
 import time
 from datetime import datetime, timedelta
 
-import six
 from threading import Lock
 # pylint: disable=E0611
 from zmq import LINGER, NOBLOCK, POLLIN, REP, REQ, Poller
@@ -86,7 +86,7 @@ def get_pub_address(name, timeout=10, nameserver="localhost"):
         poller.register(socket, POLLIN)
 
         message = Message("/oper/ns", "request", {"service": name})
-        socket.send_string(six.text_type(message))
+        socket.send_string(str(message))
 
         # Get the reply.
         sock = poller.poll(timeout=timeout * 1000)
@@ -152,7 +152,7 @@ class NameServer(object):
                     logger.debug("Replying to request: " + str(msg))
                     msg = Message.decode(msg)
                     active_address = get_active_address(msg.data["service"], arec)
-                    self.listener.send_unicode(six.text_type(active_address))
+                    self.listener.send_unicode(str(active_address))
         except KeyboardInterrupt:
             # Needed to stop the nameserver.
             pass

@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2010 - 2018 PyTroll Community
-
+# Copyright (c) 2010 - 2018, 2021 PyTroll Community
+#
 # Author(s):
-
+#
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud    <martin.raspaud@smhi.se>
-
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
+#
 # This file is part of PyTroll.
-
+#
 # Pytroll is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # Pytroll is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -43,7 +44,6 @@ try:
     import json
 except ImportError:
     import simplejson as json
-import six
 
 from posttroll import strp_isoformat
 
@@ -67,19 +67,19 @@ class MessageError(Exception):
 def is_valid_subject(obj):
     """Currently we only check for empty strings.
     """
-    return isinstance(obj, six.string_types) and bool(obj)
+    return isinstance(obj, str) and bool(obj)
 
 
 def is_valid_type(obj):
     """Currently we only check for empty strings.
     """
-    return isinstance(obj, six.string_types) and bool(obj)
+    return isinstance(obj, str) and bool(obj)
 
 
 def is_valid_sender(obj):
     """Currently we only check for empty strings.
     """
-    return isinstance(obj, six.string_types) and bool(obj)
+    return isinstance(obj, str) and bool(obj)
 
 
 def is_valid_data(obj):
@@ -230,7 +230,7 @@ def datetime_decoder(dct):
         pairs = dct.items()
     result = []
     for key, val in pairs:
-        if isinstance(val, six.string_types):
+        if isinstance(val, str):
             try:
                 val = strp_isoformat(val)
             except ValueError:
@@ -322,7 +322,7 @@ def _encode(msg, head=False, binary=False):
         msg.subject, msg.type, msg.sender, msg.time.isoformat(), msg.version)
 
     if not head and msg.data:
-        if not binary and isinstance(msg.data, six.string_types):
+        if not binary and isinstance(msg.data, str):
             return (rawstr + ' ' +
                     'text/ascii' + ' ' + msg.data)
         elif not binary:
