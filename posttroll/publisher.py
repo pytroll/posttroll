@@ -323,5 +323,5 @@ def _get_noisypublisher_instance(settings):
     min_port = settings.get("min_port")
     max_port = settings.get("max_port")
 
-    return NoisyPublisher(publisher_name, port=0, aliases=None, broadcast_interval=2,
-                          nameservers=None, min_port=None, max_port=None)
+    return NoisyPublisher(publisher_name, port=port, aliases=aliases, broadcast_interval=broadcast_interval,
+                          nameservers=nameservers, min_port=min_port, max_port=max_port)
