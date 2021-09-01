@@ -407,8 +407,9 @@ class TestPublisherDictConfig(unittest.TestCase):
         """Test that only valid arguments are passed to Publisher."""
         from posttroll.publisher import dict_config
 
-        settings = {'port': 12345, 'nameservers': False, 'name': 'foo', 'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
-        pub = dict_config(settings)
+        settings = {'port': 12345, 'nameservers': False, 'name': 'foo',
+                    'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
+        _ = dict_config(settings)
         _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])
         assert Publisher.call_args.args[0].startswith("tcp://*:")
         assert Publisher.call_args.args[0].endswith(str(settings['port']))
@@ -418,7 +419,7 @@ class TestPublisherDictConfig(unittest.TestCase):
         from posttroll.publisher import dict_config
 
         with self.assertRaises(KeyError):
-            pub = dict_config(dict())
+            _ = dict_config(dict())
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
     def test_noisypublisher_is_selected(self, NoisyPublisher):
@@ -439,7 +440,7 @@ class TestPublisherDictConfig(unittest.TestCase):
         settings = {'port': 12345, 'nameservers': ['foo'], 'name': 'foo',
                     'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar',
                     'aliases': ['alias1', 'alias2'], 'broadcast_interval': 42}
-        pub = dict_config(settings)
+        _ = dict_config(settings)
         _check_valid_settings_in_call(settings, NoisyPublisher, ignore=['name'])
         assert NoisyPublisher.call_args.args[0] == settings["name"]
 
