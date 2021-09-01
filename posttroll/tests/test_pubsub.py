@@ -407,7 +407,8 @@ class TestPublisherDictConfig(unittest.TestCase):
         """Test that only valid arguments are passed to Publisher."""
         from posttroll.publisher import dict_config
 
-        settings = {'port': 12345, 'nameservers': False, 'name': 'foo', 'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
+        settings = {'port': 12345, 'nameservers': False, 'name': 'foo',
+                    'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
         pub = dict_config(settings)
         _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])
         assert Publisher.call_args.args[0].startswith("tcp://*:")
