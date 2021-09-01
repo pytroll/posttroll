@@ -399,8 +399,7 @@ class TestPublisherDictConfig(unittest.TestCase):
         settings = {'port': 12345, 'nameservers': False}
 
         pub = dict_config(settings)
-        assert Publisher.call_args.args[0].startswith("tcp://*:")
-        assert Publisher.call_args.args[0].endswith(str(settings['port']))
+        Publisher.assert_called_once()
         assert pub is not None
 
     @mock.patch('posttroll.publisher.Publisher')
@@ -411,6 +410,8 @@ class TestPublisherDictConfig(unittest.TestCase):
         settings = {'port': 12345, 'nameservers': False, 'name': 'foo', 'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
         pub = dict_config(settings)
         _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])
+        assert Publisher.call_args.args[0].startswith("tcp://*:")
+        assert Publisher.call_args.args[0].endswith(str(settings['port']))
 
     def test_no_name_raises_keyerror(self):
         """Trying to create a NoisyPublisher without a given name will raise KeyError."""
@@ -427,7 +428,7 @@ class TestPublisherDictConfig(unittest.TestCase):
         settings = {'name': 'publisher_name'}
 
         pub = dict_config(settings)
-        assert NoisyPublisher.call_args.args[0] == settings["name"]
+        NoisyPublisher.assert_called_once()
         assert pub is not None
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
@@ -440,6 +441,7 @@ class TestPublisherDictConfig(unittest.TestCase):
                     'aliases': ['alias1', 'alias2'], 'broadcast_interval': 42}
         pub = dict_config(settings)
         _check_valid_settings_in_call(settings, NoisyPublisher, ignore=['name'])
+        assert NoisyPublisher.call_args.args[0] == settings["name"]
 
 
 def _check_valid_settings_in_call(settings, pub_class, ignore=None):
