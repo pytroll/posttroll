@@ -239,14 +239,14 @@ def _get_publish_address(port, ip_address="*"):
     return "tcp://" + ip_address + ":" + str(port)
 
 
-class Publish(NoisyPublisher):
+class Publish(object):
 
     """The publishing context.
 
-    Broadcasts also the *name*, *port*, and optional *aliases* (using
-    :class:`posttroll.message_broadcaster.MessageBroadcaster`).
+    See :class:`Publisher` and :class:`NoisyPublisher` for more information on the arguments.
 
-    See :class:`NoisyPublisher` for more information on the arguments.
+    The publisher is selected based on the arguments, see :function:`dict_config` for
+    information how the selection is done.
 
     Example on how to use the :class:`Publish` context::
 
@@ -255,7 +255,7 @@ class Publish(NoisyPublisher):
             import time
 
             try:
-                with Publish("my_service", 9000) as pub:
+                with Publish("my_service", port=9000) as pub:
                     counter = 0
                     while True:
                         counter += 1
@@ -267,14 +267,20 @@ class Publish(NoisyPublisher):
                 print("terminating publisher...")
 
     """
-    # Make this one subclassable with another publisher.
-    _publisher_class = Publisher
+
+    def __init__(self, name, port=0, min_port=None, max_port=None,
+                 aliases=None, broadcast_interval=2, nameservers=None):
+        """Initialize the class."""
+        settings = {'name': name, 'port': port, 'min_port': min_port, 'max_port': max_port,
+                    'aliases': aliases, 'broadcast_interval': broadcast_interval,
+                    'nameservers': nameservers}
+        self.publisher = dict_config(settings)
 
     def __enter__(self):
-        return self.start()
+        return self.publisher.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.stop()
+        return self.publisher.stop()
 
 
 def dict_config(settings):
