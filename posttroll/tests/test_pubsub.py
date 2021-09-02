@@ -411,8 +411,8 @@ class TestPublisherDictConfig(unittest.TestCase):
                     'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
         _ = dict_config(settings)
         _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])
-        assert Publisher.call_args.args[0].startswith("tcp://*:")
-        assert Publisher.call_args.args[0].endswith(str(settings['port']))
+        assert Publisher.call_args[0][0].startswith("tcp://*:")
+        assert Publisher.call_args[0][0].endswith(str(settings['port']))
 
     def test_no_name_raises_keyerror(self):
         """Trying to create a NoisyPublisher without a given name will raise KeyError."""
@@ -442,7 +442,7 @@ class TestPublisherDictConfig(unittest.TestCase):
                     'aliases': ['alias1', 'alias2'], 'broadcast_interval': 42}
         _ = dict_config(settings)
         _check_valid_settings_in_call(settings, NoisyPublisher, ignore=['name'])
-        assert NoisyPublisher.call_args.args[0] == settings["name"]
+        assert NoisyPublisher.call_args[0][0] == settings["name"]
 
 
 def _check_valid_settings_in_call(settings, pub_class, ignore=None):
