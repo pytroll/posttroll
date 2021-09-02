@@ -280,7 +280,7 @@ class Publish(object):
         return self.publisher.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.publisher.stop()
+        self.publisher.stop()
 
 
 def dict_config(settings):
