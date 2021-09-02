@@ -268,8 +268,8 @@ class Publish(object):
 
     """
 
-    def __init__(self, name, port=0, min_port=None, max_port=None,
-                 aliases=None, broadcast_interval=2, nameservers=None):
+    def __init__(self, name, port=0, aliases=None, broadcast_interval=2, nameservers=None,
+                 min_port=None, max_port=None):
         """Initialize the class."""
         settings = {'name': name, 'port': port, 'min_port': min_port, 'max_port': max_port,
                     'aliases': aliases, 'broadcast_interval': broadcast_interval,
