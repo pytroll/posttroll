@@ -439,7 +439,7 @@ class TestPublisherDictConfig(unittest.TestCase):
 
         settings = {'name': 'publisher_name', 'port': 40000}
 
-        pub = dict_config(settings)
+        _ = dict_config(settings)
         NoisyPublisher.assert_called_once()
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
