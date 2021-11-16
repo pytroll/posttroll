@@ -388,6 +388,116 @@ class TestAddressReceiver(unittest.TestCase):
         adr.stop()
 
 
+class TestPublisherDictConfig(unittest.TestCase):
+    """Test configuring publishers with a dictionary."""
+
+    @mock.patch('posttroll.publisher.Publisher')
+    def test_publisher_is_selected(self, Publisher):
+        """Test that Publisher is selected as publisher class."""
+        from posttroll.publisher import dict_config
+
+        settings = {'port': 12345, 'nameservers': False}
+
+        pub = dict_config(settings)
+        Publisher.assert_called_once()
+        assert pub is not None
+
+    @mock.patch('posttroll.publisher.Publisher')
+    def test_publisher_all_arguments(self, Publisher):
+        """Test that only valid arguments are passed to Publisher."""
+        from posttroll.publisher import dict_config
+
+        settings = {'port': 12345, 'nameservers': False, 'name': 'foo',
+                    'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
+        _ = dict_config(settings)
+        _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])
+        assert Publisher.call_args[0][0].startswith("tcp://*:")
+        assert Publisher.call_args[0][0].endswith(str(settings['port']))
+
+    def test_no_name_raises_keyerror(self):
+        """Trying to create a NoisyPublisher without a given name will raise KeyError."""
+        from posttroll.publisher import dict_config
+
+        with self.assertRaises(KeyError):
+            _ = dict_config(dict())
+
+    @mock.patch('posttroll.publisher.NoisyPublisher')
+    def test_noisypublisher_is_selected_only_name(self, NoisyPublisher):
+        """Test that NoisyPublisher is selected as publisher class."""
+        from posttroll.publisher import dict_config
+
+        settings = {'name': 'publisher_name'}
+
+        pub = dict_config(settings)
+        NoisyPublisher.assert_called_once()
+        assert pub is not None
+
+    @mock.patch('posttroll.publisher.NoisyPublisher')
+    def test_noisypublisher_is_selected_name_and_port(self, NoisyPublisher):
+        """Test that NoisyPublisher is selected as publisher class."""
+        from posttroll.publisher import dict_config
+
+        settings = {'name': 'publisher_name', 'port': 40000}
+
+        _ = dict_config(settings)
+        NoisyPublisher.assert_called_once()
+
+    @mock.patch('posttroll.publisher.NoisyPublisher')
+    def test_noisypublisher_all_arguments(self, NoisyPublisher):
+        """Test that only valid arguments are passed to NoisyPublisher."""
+        from posttroll.publisher import dict_config
+
+        settings = {'port': 12345, 'nameservers': ['foo'], 'name': 'foo',
+                    'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar',
+                    'aliases': ['alias1', 'alias2'], 'broadcast_interval': 42}
+        _ = dict_config(settings)
+        _check_valid_settings_in_call(settings, NoisyPublisher, ignore=['name'])
+        assert NoisyPublisher.call_args[0][0] == settings["name"]
+
+    @mock.patch('posttroll.publisher.Publisher')
+    def test_publish_is_not_noisy(self, Publisher):
+        """Test that Publisher is selected with the context manager when it should be."""
+        from posttroll.publisher import Publish
+
+        with Publish("service_name", port=40000, nameservers=False):
+            Publisher.assert_called_once()
+
+    @mock.patch('posttroll.publisher.NoisyPublisher')
+    def test_publish_is_noisy_only_name(self, NoisyPublisher):
+        """Test that NoisyPublisher is selected with the context manager when only name is given."""
+        from posttroll.publisher import Publish
+
+        with Publish("service_name"):
+            NoisyPublisher.assert_called_once()
+
+    @mock.patch('posttroll.publisher.NoisyPublisher')
+    def test_publish_is_noisy_with_port(self, NoisyPublisher):
+        """Test that NoisyPublisher is selected with the context manager when port is given."""
+        from posttroll.publisher import Publish
+
+        with Publish("service_name", port=40000):
+            NoisyPublisher.assert_called_once()
+
+    @mock.patch('posttroll.publisher.NoisyPublisher')
+    def test_publish_is_noisy_with_nameservers(self, NoisyPublisher):
+        """Test that NoisyPublisher is selected with the context manager when nameservers are given."""
+        from posttroll.publisher import Publish
+
+        with Publish("service_name", nameservers=['a', 'b']):
+            NoisyPublisher.assert_called_once()
+
+
+def _check_valid_settings_in_call(settings, pub_class, ignore=None):
+    ignore = ignore or []
+    for key in settings:
+        if key == 'invalid_arg':
+            assert 'invalid_arg' not in pub_class.call_args[1]
+            continue
+        if key in ignore:
+            continue
+        assert pub_class.call_args[1][key] == settings[key]
+
+
 def suite():
     """The suite for test_bbmcast.
     """
@@ -399,4 +509,6 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestListenerContainer))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPub))
     mysuite.addTest(loader.loadTestsFromTestCase(TestAddressReceiver))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPublisherDictConfig))
+
     return mysuite
