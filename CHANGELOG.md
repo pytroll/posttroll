@@ -1,3 +1,26 @@
+## Version 1.7.0 (2021/12/23)
+
+### Issues Closed
+
+* [Issue 38](https://github.com/pytroll/posttroll/issues/38) - Allow to use NoisyPublisher as a context manager
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 33](https://github.com/pytroll/posttroll/pull/33) - Fix link te Github project
+
+#### Features added
+
+* [PR 36](https://github.com/pytroll/posttroll/pull/36) - Use GitHub Actions to run tests
+* [PR 35](https://github.com/pytroll/posttroll/pull/35) - Make it possible to configure publisher with a dictionary of settings
+* [PR 28](https://github.com/pytroll/posttroll/pull/28) - Leave Python 2 support and require Python 3.6 or higher
+
+In this release 4 pull requests were closed.
+
+
 ## Version 1.6.1 (2020/03/04)
 
 
