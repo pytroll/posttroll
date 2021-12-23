@@ -1,3 +1,15 @@
+## Version 1.7.1 (2021/12/23)
+
+
+### Pull Requests Merged
+
+#### Features added
+
+* [PR 37](https://github.com/pytroll/posttroll/pull/37) -  Change tested Python versions to 3.8, 3.9 and 3.10
+
+In this release 1 pull request was closed.
+
+
 ## Version 1.7.0 (2021/12/23)
 
 ### Issues Closed
