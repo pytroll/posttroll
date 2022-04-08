@@ -21,7 +21,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''Listener module.'''
+"""Listener module."""
 
 from posttroll.subscriber import NSSubscriber
 from queue import Queue
@@ -31,13 +31,12 @@ import logging
 
 
 class ListenerContainer(object):
-
-    '''Container for listener instance
-    '''
+    """Container for a listener instance."""
 
     logger = logging.getLogger("ListenerContainer")
 
     def __init__(self, topics=None, addresses=None, nameserver="localhost", services=""):
+        """Initialize the class."""
         self.listener = None
         self.output_queue = None
         self.thread = None
@@ -60,18 +59,18 @@ class ListenerContainer(object):
             self.thread.start()
 
     def __setstate__(self, state):
+        """Re-initialize the class."""
         self.__init__(**state)
 
     def restart_listener(self, topics):
-        '''Restart listener after configuration update.
-        '''
+        """Restart listener after configuration update."""
         if self.listener is not None:
             if self.listener.running:
                 self.stop()
         self.__init__(topics=topics)
 
     def stop(self):
-        '''Stop listener.'''
+        """Stop listener."""
         self.logger.debug("Stopping listener.")
         self.listener.stop()
         if self.thread is not None:
@@ -81,17 +80,13 @@ class ListenerContainer(object):
 
 
 class Listener(object):
-
-    '''PyTroll listener class for reading messages for eg. operational
-    product generation.
-    '''
+    """PyTroll listener class for reading messages for eg. operational product generation."""
 
     logger = logging.getLogger("Listener")
 
     def __init__(self, topics=None, queue=None, addresses=None,
                  nameserver="localhost", services=""):
-        '''Init Listener object
-        '''
+        """Initialize Listener object."""
         self.topics = topics
         self.queue = queue
         self.services = services
@@ -103,9 +98,7 @@ class Listener(object):
         self.running = False
 
     def create_subscriber(self):
-        '''Create a subscriber instance using specified addresses and
-        message types.
-        '''
+        """Create a subscriber instance using specified addresses and message types."""
         if self.subscriber is None:
             if self.topics:
                 self.subscriber = NSSubscriber(self.services, self.topics,
@@ -115,14 +108,11 @@ class Listener(object):
                 self.recv = self.subscriber.start().recv
 
     def add_to_queue(self, msg):
-        '''Add message to queue
-        '''
+        """Add the message to queue."""
         self.queue.put(msg)
 
     def run(self):
-        '''Run listener
-        '''
-
+        """Run the listener."""
         self.running = True
 
         for msg in self.recv(1):
@@ -136,8 +126,7 @@ class Listener(object):
             self.add_to_queue(msg)
 
     def stop(self):
-        '''Stop subscriber and delete the instance
-        '''
+        """Stop subscriber and delete the instance."""
         self.running = False
         time.sleep(1)
         if self.subscriber is not None:
@@ -145,8 +134,7 @@ class Listener(object):
             self.subscriber = None
 
     def restart(self):
-        '''Restart subscriber
-        '''
+        """Restart the listener."""
         self.stop()
         self.create_subscriber()
         self.run()

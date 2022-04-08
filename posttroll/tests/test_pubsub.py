@@ -33,11 +33,10 @@ test_lock = Lock()
 
 
 class TestNS(unittest.TestCase):
-
-    """Test the nameserver.
-    """
+    """Test the nameserver."""
 
     def setUp(self):
+        """Set up the testing class."""
         from posttroll.ns import NameServer
         test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
@@ -45,6 +44,7 @@ class TestNS(unittest.TestCase):
         self.thr.start()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
@@ -77,8 +77,7 @@ class TestNS(unittest.TestCase):
             self.assertTrue("URI" in res[0])
 
     def test_pub_sub_ctx(self):
-        """Test publish and subscribe.
-        """
+        """Test publish and subscribe."""
         from posttroll.message import Message
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
@@ -122,11 +121,10 @@ class TestNS(unittest.TestCase):
 
 
 class TestNSWithoutMulticasting(unittest.TestCase):
-
-    """Test the nameserver.
-    """
+    """Test the nameserver."""
 
     def setUp(self):
+        """Set up the testing class."""
         from posttroll.ns import NameServer
         test_lock.acquire()
         self.nameservers = ['localhost']
@@ -136,14 +134,14 @@ class TestNSWithoutMulticasting(unittest.TestCase):
         self.thr.start()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
         test_lock.release()
 
     def test_pub_addresses(self):
-        """Test retrieving addresses.
-        """
+        """Test retrieving addresses."""
         from posttroll.ns import get_pub_addresses
         from posttroll.publisher import Publish
 
@@ -170,8 +168,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
             self.assertTrue("URI" in res[0])
 
     def test_pub_sub_ctx(self):
-        """Test publish and subscribe.
-        """
+        """Test publish and subscribe."""
         from posttroll.message import Message
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
@@ -191,8 +188,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
         self.assertTrue(tested)
 
     def test_pub_sub_add_rm(self):
-        """Test adding and removing publishers.
-        """
+        """Test adding and removing publishers."""
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
 
@@ -222,14 +218,15 @@ class TestPubSub(unittest.TestCase):
     """Testing the publishing and subscribing capabilities."""
 
     def setUp(self):
+        """Set up the testing class."""
         test_lock.acquire()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         test_lock.release()
 
     def test_pub_address_timeout(self):
-        """Test timeout in offline nameserver.
-        """
+        """Test timeout in offline nameserver."""
         from posttroll.ns import get_pub_address
         from posttroll.ns import TimeoutError
 
@@ -237,8 +234,7 @@ class TestPubSub(unittest.TestCase):
                           get_pub_address, ["this_data", 0.5])
 
     def test_pub_suber(self):
-        """Test publisher and subscriber.
-        """
+        """Test publisher and subscriber."""
         from posttroll.message import Message
         from posttroll.publisher import Publisher
         from posttroll.publisher import get_own_ip
@@ -263,17 +259,18 @@ class TestPubSub(unittest.TestCase):
 
 
 class TestPub(unittest.TestCase):
-
-    """Testing the publishing capabilities.
-    """
+    """Testing the publishing capabilities."""
 
     def setUp(self):
+        """Set up the testing class."""
         test_lock.acquire()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         test_lock.release()
 
     def test_pub_unicode(self):
+        """Test publishing messages in Unicode."""
         from posttroll.message import Message
         from posttroll.publisher import Publish
 
@@ -285,7 +282,7 @@ class TestPub(unittest.TestCase):
                 self.fail("Sending raised UnicodeDecodeError unexpectedly!")
 
     def test_pub_minmax_port(self):
-        """Test user defined port range"""
+        """Test user defined port range."""
         import os
 
         # Using environment variables to set port range
@@ -330,10 +327,10 @@ def _get_port(min_port=None, max_port=None):
 
 
 class TestListenerContainer(unittest.TestCase):
-
-    """Testing listener container"""
+    """Testing listener container."""
 
     def setUp(self):
+        """Set up the testing class."""
         from posttroll.ns import NameServer
         test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
@@ -341,13 +338,14 @@ class TestListenerContainer(unittest.TestCase):
         self.thr.start()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
         test_lock.release()
 
     def test_listener_container(self):
-        """Test listener container"""
+        """Test listener container."""
         from posttroll.message import Message
         from posttroll.publisher import NoisyPublisher
         from posttroll.listener import ListenerContainer
@@ -377,6 +375,7 @@ class TestAddressReceiver(unittest.TestCase):
     @mock.patch("posttroll.address_receiver.Publish")
     @mock.patch("posttroll.address_receiver.MulticastReceiver")
     def test_localhost_restriction(self, mcrec, pub, msg):
+        """Test address receiver restricted only to localhost."""
         mcr_instance = mock.Mock()
         mcrec.return_value = mcr_instance
         mcr_instance.return_value = 'blabla', ('255.255.255.255', 12)
@@ -499,8 +498,7 @@ def _check_valid_settings_in_call(settings, pub_class, ignore=None):
 
 
 def suite():
-    """The suite for test_bbmcast.
-    """
+    """Collect the test suite for publisher and subsciber tests."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestPubSub))
