@@ -368,6 +368,43 @@ class TestListenerContainer(unittest.TestCase):
         sub.stop()
 
 
+class TestListenerContainerNoNameserver(unittest.TestCase):
+    """Testing listener container without nameserver."""
+
+    def setUp(self):
+        """Set up the testing class."""
+        test_lock.acquire()
+
+    def tearDown(self):
+        """Clean up after the tests have run."""
+        test_lock.release()
+
+    def test_listener_container(self):
+        """Test listener container."""
+        from posttroll.message import Message
+        from posttroll.publisher import Publisher
+        from posttroll.listener import ListenerContainer
+
+        pub_addr = "tcp://127.0.0.1:60000"
+        pub = Publisher(pub_addr, name="test")
+        pub.start()
+        time.sleep(2)
+        sub = ListenerContainer(topics=["/counter"], nameserver=False, addresses=[pub_addr])
+        time.sleep(2)
+        for counter in range(5):
+            tested = False
+            msg_out = Message("/counter", "info", str(counter))
+            pub.send(str(msg_out))
+
+            msg_in = sub.output_queue.get(True, 1)
+            if msg_in is not None:
+                self.assertEqual(str(msg_in), str(msg_out))
+                tested = True
+            self.assertTrue(tested)
+        pub.stop()
+        sub.stop()
+
+
 class TestAddressReceiver(unittest.TestCase):
     """Test the AddressReceiver."""
 

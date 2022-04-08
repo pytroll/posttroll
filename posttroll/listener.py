@@ -103,7 +103,10 @@ class Listener(object):
             if self.topics:
                 config = self._get_subscriber_config()
                 self.subscriber = subscriber.dict_config(config)
-                self.recv = self.subscriber.start().recv
+                try:
+                    self.recv = self.subscriber.start().recv
+                except AttributeError:
+                    self.recv = self.subscriber.recv
 
     def _get_subscriber_config(self):
         config = {
