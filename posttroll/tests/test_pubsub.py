@@ -497,6 +497,95 @@ def _check_valid_settings_in_call(settings, pub_class, ignore=None):
         assert pub_class.call_args[1][key] == settings[key]
 
 
+@mock.patch('posttroll.subscriber.Subscriber')
+@mock.patch('posttroll.subscriber.NSSubscriber')
+def test_dict_config_minimal(NSSubscriber, Subscriber):
+    """Test that without any settings NSSubscriber is created."""
+    from posttroll.subscriber import dict_config
+
+    subscriber = dict_config({})
+    assert subscriber == NSSubscriber.return_value
+    NSSubscriber.assert_called_once()
+    Subscriber.assert_not_called()
+
+
+@mock.patch('posttroll.subscriber.Subscriber')
+@mock.patch('posttroll.subscriber.NSSubscriber')
+def test_dict_config_nameserver_false(NSSubscriber, Subscriber):
+    """Test that NSSubscriber is created with 'localhost' nameserver when no addresses are given."""
+    from posttroll.subscriber import dict_config
+
+    subscriber = dict_config({'nameserver': False})
+    assert subscriber == NSSubscriber.return_value
+    NSSubscriber.assert_called_once()
+    Subscriber.assert_not_called()
+
+
+@mock.patch('posttroll.subscriber.Subscriber')
+@mock.patch('posttroll.subscriber.NSSubscriber')
+def test_dict_config_subscriber(NSSubscriber, Subscriber):
+    """Test that Subscriber is created when nameserver is False and addresses are given."""
+    from posttroll.subscriber import dict_config
+
+    subscriber = dict_config({'nameserver': False, 'addresses': ['addr1']})
+    assert subscriber == Subscriber.return_value
+    Subscriber.assert_called_once()
+    NSSubscriber.assert_not_called()
+
+
+@mock.patch('posttroll.subscriber.Subscriber')
+@mock.patch('posttroll.subscriber.NSSubscriber')
+def test_dict_config_full_nssubscriber(NSSubscriber, Subscriber):
+    """Test that all NSSubscriber options are passed."""
+    from posttroll.subscriber import dict_config
+
+    settings = {
+        "services": "val1",
+        "topics": "val2",
+        "addr_listener": "val3",
+        "addresses": "val4",
+        "timeout": "val5",
+        "translate": "val6",
+        "nameserver": "val7",
+        "message_filter": "val8,"
+    }
+    _ = dict_config(settings)
+    NSSubscriber.assert_called_once_with(
+        services='val1',
+        topics='val2',
+        addr_listener='val3',
+        addresses='val4',
+        timeout='val5',
+        translate='val6',
+        nameserver='val7',
+    )
+
+
+@mock.patch('posttroll.subscriber.Subscriber')
+@mock.patch('posttroll.subscriber.NSSubscriber')
+def test_dict_config_full_subscriber(NSSubscriber, Subscriber):
+    """Test that all Subscriber options are passed."""
+    from posttroll.subscriber import dict_config
+
+    settings = {
+        "services": "val1",
+        "topics": "val2",
+        "addr_listener": "val3",
+        "addresses": "val4",
+        "timeout": "val5",
+        "translate": "val6",
+        "nameserver": False,
+        "message_filter": "val8",
+    }
+    _ = dict_config(settings)
+    Subscriber.assert_called_once_with(
+        'val4',
+        topics='val2',
+        message_filter='val8',
+        translate='val6',
+    )
+
+
 def suite():
     """Collect the test suite for publisher and subsciber tests."""
     loader = unittest.TestLoader()

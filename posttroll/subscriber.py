@@ -345,8 +345,13 @@ class NSSubscriber(object):
             self._subscriber = None
 
 
-class Subscribe(NSSubscriber):
-    """Subscriber context. See :class:`NSSubscriber` for initialization parameters.
+class Subscribe(object):
+    """Subscriber context.
+
+    See :class:`NSSubscriber` and :class:`Subscriber` for initialization parameters.
+
+    The subscriber is selected based on the arguments, see :function:`dict_config` for
+    information how the selection is done.
 
     Example::
 
@@ -358,13 +363,29 @@ class Subscribe(NSSubscriber):
 
     """
 
+    def __init__(self, services="", topics=_MAGICK, addr_listener=False,
+                 addresses=None, timeout=10, translate=False, nameserver="localhost",
+                 message_filter=None):
+        """Initialize the class."""
+        settings = {
+            'services': services,
+            'topics': topics,
+            'message_filter': message_filter,
+            'translate': translate,
+            'addr_listener': addr_listener,
+            'addresses': addresses,
+            'timeout': timeout,
+            'nameserver': nameserver,
+        }
+        self.subscriber = dict_config(settings)
+
     def __enter__(self):
         """Start the subscriber when used as a context manager."""
-        return self.start()
+        return self.subscriber.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Stop the subscriber when used as a context manager."""
-        return self.stop()
+        return self.subscriber.stop()
 
 
 def _to_array(obj):
@@ -404,3 +425,54 @@ class _AddressListener(object):
         else:
             LOGGER.debug("Removing address %s", str(addr_))
             self.subscriber.remove(addr_)
+
+
+def dict_config(settings):
+    """Get a subscriber class instance defined by a dictionary of configuration options.
+
+    The subscriber is created based on the given options in the following way:
+
+    - setting *settings['addresses']* to a non-empty list AND *settings['nameserver']* to *False*
+      will disable nameserver connections and connect only the listed addresses
+
+    - setting *settings['nameserver']* to a string will connect to nameserver
+      running on the indicated server
+
+    - if *settings['nameserver']* is missing or *None*, the nameserver on localhost is assumed.
+
+    Additional options are described in the docstrings of the respective classes, namely
+    :class:`~posttroll.subscriber.Subscriber` and :class:`~posttroll.subscriber.NSSubscriber`.
+
+    """
+    if settings.get('addresses') and settings.get('nameserver') is False:
+        return _get_subscriber_instance(settings)
+    return _get_nssubscriber_instance(settings)
+
+
+def _get_subscriber_instance(settings):
+    addresses = settings['addresses']
+    topics = settings.get('topics', '')
+    message_filter = settings.get('message_filter', None)
+    translate = settings.get('translate', False)
+
+    return Subscriber(addresses, topics=topics, message_filter=message_filter, translate=translate)
+
+
+def _get_nssubscriber_instance(settings):
+    services = settings.get('services', '')
+    topics = settings.get('topics', _MAGICK)
+    addr_listener = settings.get('addr_listener', False)
+    addresses = settings.get('addresses', None)
+    timeout = settings.get('timeout', 10)
+    translate = settings.get('translate', False)
+    nameserver = settings.get('nameserver', 'localhost') or 'localhost'
+
+    return NSSubscriber(
+        services=services,
+        topics=topics,
+        addr_listener=addr_listener,
+        addresses=addresses,
+        timeout=timeout,
+        translate=translate,
+        nameserver=nameserver
+    )

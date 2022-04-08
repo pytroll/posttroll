@@ -23,7 +23,7 @@
 
 """Listener module."""
 
-from posttroll.subscriber import NSSubscriber
+from posttroll import subscriber
 from queue import Queue
 from threading import Thread
 import time
@@ -101,11 +101,19 @@ class Listener(object):
         """Create a subscriber instance using specified addresses and message types."""
         if self.subscriber is None:
             if self.topics:
-                self.subscriber = NSSubscriber(self.services, self.topics,
-                                               addr_listener=True,
-                                               addresses=self.addresses,
-                                               nameserver=self.nameserver)
+                config = self._get_subscriber_config()
+                self.subscriber = subscriber.dict_config(config)
                 self.recv = self.subscriber.start().recv
+
+    def _get_subscriber_config(self):
+        config = {
+            'services': self.services,
+            'topics': self.topics,
+            'addr_listener': True,
+            'addresses': self.addresses,
+            'nameserver': self.nameserver,
+        }
+        return config
 
     def add_to_queue(self, msg):
         """Add the message to queue."""
