@@ -381,7 +381,7 @@ class Subscribe(object):
 
     def __enter__(self):
         """Start the subscriber when used as a context manager."""
-        return self.subscriber.start()
+        return self.subscriber
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Stop the subscriber when used as a context manager."""
@@ -446,7 +446,7 @@ def dict_config(settings):
     """
     if settings.get('addresses') and settings.get('nameserver') is False:
         return _get_subscriber_instance(settings)
-    return _get_nssubscriber_instance(settings)
+    return _get_nssubscriber_instance(settings).start()
 
 
 def _get_subscriber_instance(settings):

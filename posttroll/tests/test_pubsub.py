@@ -257,6 +257,25 @@ class TestPubSub(unittest.TestCase):
         self.assertTrue(tested)
         pub.stop()
 
+    def test_pub_sub_ctx_no_nameserver(self):
+        """Test publish and subscribe."""
+        from posttroll.message import Message
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
+
+        with Publish("data_provider", 60000, nameservers=False) as pub:
+            with Subscribe(topics="counter", nameserver=False, addresses=["tcp://127.0.0.1:60000"]) as sub:
+                for counter in range(5):
+                    message = Message("/counter", "info", str(counter))
+                    pub.send(str(message))
+                    time.sleep(1)
+                    msg = next(sub.recv(2))
+                    if msg is not None:
+                        self.assertEqual(str(msg), str(message))
+                    tested = True
+                sub.close()
+        self.assertTrue(tested)
+
 
 class TestPub(unittest.TestCase):
     """Testing the publishing capabilities."""
@@ -541,8 +560,8 @@ def test_dict_config_minimal(NSSubscriber, Subscriber):
     from posttroll.subscriber import dict_config
 
     subscriber = dict_config({})
-    assert subscriber == NSSubscriber.return_value
     NSSubscriber.assert_called_once()
+    assert subscriber == NSSubscriber().start()
     Subscriber.assert_not_called()
 
 
@@ -553,8 +572,8 @@ def test_dict_config_nameserver_false(NSSubscriber, Subscriber):
     from posttroll.subscriber import dict_config
 
     subscriber = dict_config({'nameserver': False})
-    assert subscriber == NSSubscriber.return_value
     NSSubscriber.assert_called_once()
+    assert subscriber == NSSubscriber().start()
     Subscriber.assert_not_called()
 
 
