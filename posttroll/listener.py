@@ -23,7 +23,7 @@
 
 """Listener module."""
 
-from posttroll import subscriber
+from posttroll.subscriber import create_subscriber_from_dict_config
 from queue import Queue
 from threading import Thread
 import time
@@ -102,7 +102,7 @@ class Listener(object):
         if self.subscriber is None:
             if self.topics:
                 config = self._get_subscriber_config()
-                self.subscriber = subscriber.dict_config(config)
+                self.subscriber = create_subscriber_from_dict_config(config)
                 self.recv = self.subscriber.recv
 
     def _get_subscriber_config(self):

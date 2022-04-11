@@ -449,63 +449,63 @@ class TestPublisherDictConfig(unittest.TestCase):
     @mock.patch('posttroll.publisher.Publisher')
     def test_publisher_is_selected(self, Publisher):
         """Test that Publisher is selected as publisher class."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'port': 12345, 'nameservers': False}
 
-        pub = dict_config(settings)
+        pub = create_publisher_from_dict_config(settings)
         Publisher.assert_called_once()
         assert pub is not None
 
     @mock.patch('posttroll.publisher.Publisher')
     def test_publisher_all_arguments(self, Publisher):
         """Test that only valid arguments are passed to Publisher."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'port': 12345, 'nameservers': False, 'name': 'foo',
                     'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
-        _ = dict_config(settings)
+        _ = create_publisher_from_dict_config(settings)
         _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])
         assert Publisher.call_args[0][0].startswith("tcp://*:")
         assert Publisher.call_args[0][0].endswith(str(settings['port']))
 
     def test_no_name_raises_keyerror(self):
         """Trying to create a NoisyPublisher without a given name will raise KeyError."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         with self.assertRaises(KeyError):
-            _ = dict_config(dict())
+            _ = create_publisher_from_dict_config(dict())
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
     def test_noisypublisher_is_selected_only_name(self, NoisyPublisher):
         """Test that NoisyPublisher is selected as publisher class."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'name': 'publisher_name'}
 
-        pub = dict_config(settings)
+        pub = create_publisher_from_dict_config(settings)
         NoisyPublisher.assert_called_once()
         assert pub is not None
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
     def test_noisypublisher_is_selected_name_and_port(self, NoisyPublisher):
         """Test that NoisyPublisher is selected as publisher class."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'name': 'publisher_name', 'port': 40000}
 
-        _ = dict_config(settings)
+        _ = create_publisher_from_dict_config(settings)
         NoisyPublisher.assert_called_once()
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
     def test_noisypublisher_all_arguments(self, NoisyPublisher):
         """Test that only valid arguments are passed to NoisyPublisher."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'port': 12345, 'nameservers': ['foo'], 'name': 'foo',
                     'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar',
                     'aliases': ['alias1', 'alias2'], 'broadcast_interval': 42}
-        _ = dict_config(settings)
+        _ = create_publisher_from_dict_config(settings)
         _check_valid_settings_in_call(settings, NoisyPublisher, ignore=['name'])
         assert NoisyPublisher.call_args[0][0] == settings["name"]
 
@@ -557,9 +557,9 @@ def _check_valid_settings_in_call(settings, pub_class, ignore=None):
 @mock.patch('posttroll.subscriber.NSSubscriber')
 def test_dict_config_minimal(NSSubscriber, Subscriber):
     """Test that without any settings NSSubscriber is created."""
-    from posttroll.subscriber import dict_config
+    from posttroll.subscriber import create_subscriber_from_dict_config
 
-    subscriber = dict_config({})
+    subscriber = create_subscriber_from_dict_config({})
     NSSubscriber.assert_called_once()
     assert subscriber == NSSubscriber().start()
     Subscriber.assert_not_called()
@@ -569,9 +569,9 @@ def test_dict_config_minimal(NSSubscriber, Subscriber):
 @mock.patch('posttroll.subscriber.NSSubscriber')
 def test_dict_config_nameserver_false(NSSubscriber, Subscriber):
     """Test that NSSubscriber is created with 'localhost' nameserver when no addresses are given."""
-    from posttroll.subscriber import dict_config
+    from posttroll.subscriber import create_subscriber_from_dict_config
 
-    subscriber = dict_config({'nameserver': False})
+    subscriber = create_subscriber_from_dict_config({'nameserver': False})
     NSSubscriber.assert_called_once()
     assert subscriber == NSSubscriber().start()
     Subscriber.assert_not_called()
@@ -581,9 +581,9 @@ def test_dict_config_nameserver_false(NSSubscriber, Subscriber):
 @mock.patch('posttroll.subscriber.NSSubscriber')
 def test_dict_config_subscriber(NSSubscriber, Subscriber):
     """Test that Subscriber is created when nameserver is False and addresses are given."""
-    from posttroll.subscriber import dict_config
+    from posttroll.subscriber import create_subscriber_from_dict_config
 
-    subscriber = dict_config({'nameserver': False, 'addresses': ['addr1']})
+    subscriber = create_subscriber_from_dict_config({'nameserver': False, 'addresses': ['addr1']})
     assert subscriber == Subscriber.return_value
     Subscriber.assert_called_once()
     NSSubscriber.assert_not_called()
@@ -593,7 +593,7 @@ def test_dict_config_subscriber(NSSubscriber, Subscriber):
 @mock.patch('posttroll.subscriber.NSSubscriber')
 def test_dict_config_full_nssubscriber(NSSubscriber, Subscriber):
     """Test that all NSSubscriber options are passed."""
-    from posttroll.subscriber import dict_config
+    from posttroll.subscriber import create_subscriber_from_dict_config
 
     settings = {
         "services": "val1",
@@ -605,7 +605,7 @@ def test_dict_config_full_nssubscriber(NSSubscriber, Subscriber):
         "nameserver": "val7",
         "message_filter": "val8,"
     }
-    _ = dict_config(settings)
+    _ = create_subscriber_from_dict_config(settings)
     NSSubscriber.assert_called_once_with(
         services='val1',
         topics='val2',
@@ -621,7 +621,7 @@ def test_dict_config_full_nssubscriber(NSSubscriber, Subscriber):
 @mock.patch('posttroll.subscriber.NSSubscriber')
 def test_dict_config_full_subscriber(NSSubscriber, Subscriber):
     """Test that all Subscriber options are passed."""
-    from posttroll.subscriber import dict_config
+    from posttroll.subscriber import create_subscriber_from_dict_config
 
     settings = {
         "services": "val1",
@@ -633,7 +633,7 @@ def test_dict_config_full_subscriber(NSSubscriber, Subscriber):
         "nameserver": False,
         "message_filter": "val8",
     }
-    _ = dict_config(settings)
+    _ = create_subscriber_from_dict_config(settings)
     Subscriber.assert_called_once_with(
         'val4',
         topics='val2',

@@ -350,7 +350,7 @@ class Subscribe(object):
 
     See :class:`NSSubscriber` and :class:`Subscriber` for initialization parameters.
 
-    The subscriber is selected based on the arguments, see :function:`dict_config` for
+    The subscriber is selected based on the arguments, see :function:`create_subscriber_from_dict_config` for
     information how the selection is done.
 
     Example::
@@ -377,7 +377,7 @@ class Subscribe(object):
             'timeout': timeout,
             'nameserver': nameserver,
         }
-        self.subscriber = dict_config(settings)
+        self.subscriber = create_subscriber_from_dict_config(settings)
 
     def __enter__(self):
         """Start the subscriber when used as a context manager."""
@@ -427,7 +427,7 @@ class _AddressListener(object):
             self.subscriber.remove(addr_)
 
 
-def dict_config(settings):
+def create_subscriber_from_dict_config(settings):
     """Get a subscriber class instance defined by a dictionary of configuration options.
 
     The subscriber is created based on the given options in the following way:
