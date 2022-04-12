@@ -589,9 +589,8 @@ def test_dict_config_subscriber(NSSubscriber, Subscriber):
     NSSubscriber.assert_not_called()
 
 
-@mock.patch('posttroll.subscriber.Subscriber')
-@mock.patch('posttroll.subscriber.NSSubscriber')
-def test_dict_config_full_nssubscriber(NSSubscriber, Subscriber):
+@mock.patch('posttroll.subscriber.NSSubscriber.start')
+def test_dict_config_full_nssubscriber(NSSubscriber_start):
     """Test that all NSSubscriber options are passed."""
     from posttroll.subscriber import create_subscriber_from_dict_config
 
@@ -606,20 +605,12 @@ def test_dict_config_full_nssubscriber(NSSubscriber, Subscriber):
         "message_filter": "val8,"
     }
     _ = create_subscriber_from_dict_config(settings)
-    NSSubscriber.assert_called_once_with(
-        services='val1',
-        topics='val2',
-        addr_listener='val3',
-        addresses='val4',
-        timeout='val5',
-        translate='val6',
-        nameserver='val7',
-    )
+    # The subscriber should have been started
+    NSSubscriber_start.assert_called_once()
 
 
-@mock.patch('posttroll.subscriber.Subscriber')
-@mock.patch('posttroll.subscriber.NSSubscriber')
-def test_dict_config_full_subscriber(NSSubscriber, Subscriber):
+@mock.patch('posttroll.subscriber.Subscriber.update')
+def test_dict_config_full_subscriber(Subscriber_update):
     """Test that all Subscriber options are passed."""
     from posttroll.subscriber import create_subscriber_from_dict_config
 
@@ -634,12 +625,6 @@ def test_dict_config_full_subscriber(NSSubscriber, Subscriber):
         "message_filter": "val8",
     }
     _ = create_subscriber_from_dict_config(settings)
-    Subscriber.assert_called_once_with(
-        'val4',
-        topics='val2',
-        message_filter='val8',
-        translate='val6',
-    )
 
 
 def suite():
