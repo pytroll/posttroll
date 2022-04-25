@@ -30,7 +30,7 @@ import time
 import logging
 
 
-class ListenerContainer(object):
+class ListenerContainer:
     """Container for a listener instance."""
 
     logger = logging.getLogger("ListenerContainer")
@@ -79,7 +79,7 @@ class ListenerContainer(object):
         self.logger.debug("Listener stopped.")
 
 
-class Listener(object):
+class Listener:
     """PyTroll listener class for reading messages for eg. operational product generation."""
 
     logger = logging.getLogger("Listener")

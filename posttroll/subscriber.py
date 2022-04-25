@@ -42,7 +42,7 @@ from posttroll.ns import get_pub_address
 LOGGER = logging.getLogger(__name__)
 
 
-class Subscriber(object):
+class Subscriber:
     """Class for subscribing to message streams.
 
     Subscribes to *addresses* for *topics*, and perform address translation of
@@ -265,7 +265,7 @@ class Subscriber(object):
                 pass
 
 
-class NSSubscriber(object):
+class NSSubscriber:
     """Automatically subscribe to *services*.
 
     Automatic subscriptions are done by requesting addresses from the
@@ -345,7 +345,7 @@ class NSSubscriber(object):
             self._subscriber = None
 
 
-class Subscribe(object):
+class Subscribe:
     """Subscriber context.
 
     See :class:`NSSubscriber` and :class:`Subscriber` for initialization parameters.
@@ -397,7 +397,7 @@ def _to_array(obj):
     return obj
 
 
-class _AddressListener(object):
+class _AddressListener:
     """Listener for new addresses of interest."""
 
     def __init__(self, subscriber, services="", nameserver="localhost"):
