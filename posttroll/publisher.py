@@ -52,8 +52,7 @@ def get_own_ip():
     return ip_
 
 
-class Publisher(object):
-
+class Publisher:
     """The publisher class.
 
     *address* is the current address of the Publisher, e.g.::
@@ -150,8 +149,7 @@ class Publisher(object):
         self._heartbeat(min_interval)
 
 
-class _PublisherHeartbeat(object):
-
+class _PublisherHeartbeat:
     """Publisher for heartbeat."""
 
     def __init__(self, publisher):
@@ -169,8 +167,7 @@ class _PublisherHeartbeat(object):
                                         {"min_interval": min_interval}).encode())
 
 
-class NoisyPublisher(object):
-
+class NoisyPublisher:
     """Same as a Publisher, but with broadcasting of its own name and address.
 
     Setting the *name* to a meaningful value is import since it will be
@@ -187,6 +184,7 @@ class NoisyPublisher(object):
 
     def __init__(self, name, port=0, aliases=None, broadcast_interval=2,
                  nameservers=None, min_port=None, max_port=None):
+        """Initialize a noisy publisher."""
         self._name = name
         self._aliases = [name]
         if aliases:
@@ -239,13 +237,12 @@ def _get_publish_address(port, ip_address="*"):
     return "tcp://" + ip_address + ":" + str(port)
 
 
-class Publish(object):
-
+class Publish:
     """The publishing context.
 
     See :class:`Publisher` and :class:`NoisyPublisher` for more information on the arguments.
 
-    The publisher is selected based on the arguments, see :function:`dict_config` for
+    The publisher is selected based on the arguments, see :function:`create_publisher_from_dict_config` for
     information how the selection is done.
 
     Example on how to use the :class:`Publish` context::
@@ -274,16 +271,18 @@ class Publish(object):
         settings = {'name': name, 'port': port, 'min_port': min_port, 'max_port': max_port,
                     'aliases': aliases, 'broadcast_interval': broadcast_interval,
                     'nameservers': nameservers}
-        self.publisher = dict_config(settings)
+        self.publisher = create_publisher_from_dict_config(settings)
 
     def __enter__(self):
+        """Enter the context."""
         return self.publisher.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the context."""
         self.publisher.stop()
 
 
-def dict_config(settings):
+def create_publisher_from_dict_config(settings):
     """Create a publisher based on dictionary of configuration items.
 
     The publisher is created based on the given options in the following way:

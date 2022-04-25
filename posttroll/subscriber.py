@@ -22,8 +22,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Simple library to subscribe to messages.
-"""
+"""Simple library to subscribe to messages."""
+
 from time import sleep
 import logging
 import time
@@ -42,9 +42,8 @@ from posttroll.ns import get_pub_address
 LOGGER = logging.getLogger(__name__)
 
 
-class Subscriber(object):
-
-    """Subscriber
+class Subscriber:
+    """Class for subscribing to message streams.
 
     Subscribes to *addresses* for *topics*, and perform address translation of
     *translate* is true. The function *message_filter* can be used to
@@ -67,8 +66,8 @@ class Subscriber(object):
 
     """
 
-    def __init__(self, addresses, topics='', message_filter=None,
-                 translate=False):
+    def __init__(self, addresses, topics='', message_filter=None, translate=False):
+        """Initialize the subscriber."""
         self._topics = self._magickfy_topics(topics)
         self._filter = message_filter
         self._translate = translate
@@ -110,8 +109,7 @@ class Subscriber(object):
             return True
 
     def remove(self, address):
-        """Remove *address* from the subscribing list for *topics*.
-        """
+        """Remove *address* from the subscribing list for *topics*."""
         with self._lock:
             try:
                 subscriber = self.addr_sub[address]
@@ -126,8 +124,7 @@ class Subscriber(object):
             return True
 
     def update(self, addresses):
-        """Updating with a set of addresses.
-        """
+        """Update with a set of addresses."""
         if isinstance(addresses, str):
             addresses = [addresses, ]
         s0_, s1_ = set(self.addresses), set(addresses)
@@ -139,8 +136,9 @@ class Subscriber(object):
         return bool(sr_ or sa_)
 
     def add_hook_sub(self, address, topics, callback):
-        """Specify a *callback* in the same stream (thread) as the main receive
-        loop. The callback will be called with the received messages from the
+        """Specify a SUB *callback* in the same stream (thread) as the main receive loop.
+
+        The callback will be called with the received messages from the
         specified subscription.
 
         Good for operations, which is required to be done in the same thread as
@@ -155,8 +153,10 @@ class Subscriber(object):
         self._add_hook(socket, callback)
 
     def add_hook_pull(self, address, callback):
-        """Same as above, but with a PULL socket.
-        (e.g good for pushed 'inproc' messages from another thread).
+        """Specify a PULL *callback* in the same stream (thread) as the main receive loop.
+
+        The callback will be called with the received messages from the
+        specified subscription. Good for pushed 'inproc' messages from another thread.
         """
         LOGGER.info("Subscriber adding PULL hook %s", str(address))
         socket = get_context().socket(PULL)
@@ -164,8 +164,7 @@ class Subscriber(object):
         self._add_hook(socket, callback)
 
     def _add_hook(self, socket, callback):
-        """Generic hook. The passed socket has to be "receive only".
-        """
+        """Add a generic hook. The passed socket has to be "receive only"."""
         self._hooks.append(socket)
         self._hooks_cb[socket] = callback
         if self.poller:
@@ -173,19 +172,16 @@ class Subscriber(object):
 
     @property
     def addresses(self):
-        """Get the addresses
-        """
+        """Get the addresses."""
         return self.sub_addr.values()
 
     @property
     def subscribers(self):
-        """Get the subscribers
-        """
+        """Get the subscribers."""
         return self.sub_addr.keys()
 
     def recv(self, timeout=None):
-        """Receive, optionally with *timeout* in seconds.
-        """
+        """Receive, optionally with *timeout* in seconds."""
         if timeout:
             timeout *= 1000.
 
@@ -224,16 +220,15 @@ class Subscriber(object):
                 self.poller.unregister(sub)
 
     def __call__(self, **kwargs):
+        """Handle calls with class instance."""
         return self.recv(**kwargs)
 
     def stop(self):
-        """Stop the subscriber.
-        """
+        """Stop the subscriber."""
         self._loop = False
 
     def close(self):
-        """Close the subscriber: stop it and close the local subscribers.
-        """
+        """Close the subscriber: stop it and close the local subscribers."""
         self.stop()
         for sub in list(self.subscribers) + self._hooks:
             try:
@@ -244,8 +239,7 @@ class Subscriber(object):
 
     @staticmethod
     def _magickfy_topics(topics):
-        """Add the magick to the topics if missing.
-        """
+        """Add the magick to the topics if missing."""
         # If topic does not start with messages._MAGICK (pytroll:/), it will be
         # prepended.
         if topics is None:
@@ -263,16 +257,18 @@ class Subscriber(object):
         return ts_
 
     def __del__(self):
+        """Clean up after the instance is deleted."""
         for sub in list(self.subscribers) + self._hooks:
             try:
                 sub.close()
-            except:
+            except Exception:  # noqa: E722
                 pass
 
 
-class NSSubscriber(object):
+class NSSubscriber:
+    """Automatically subscribe to *services*.
 
-    """Automatically subscribe to *services* (requesting addresses from the
+    Automatic subscriptions are done by requesting addresses from the
     nameserver. If *topics* are specified, filter the messages through the
     beginning of the subject. *addr_listener* allows to add new services on the
     fly as they appear on the network. Additional *addresses* to subscribe to
@@ -287,12 +283,13 @@ class NSSubscriber(object):
 
     def __init__(self, services="", topics=_MAGICK, addr_listener=False,
                  addresses=None, timeout=10, translate=False, nameserver="localhost"):
-        """ Note: services = None, means no services
-                  services = "", means all services
+        """Initialize the subscriber.
 
-                  Default is to listen to everything.
+        Note: services = None, means no services
+              services = "", means all services
+
+        Default is to listen to all available services.
         """
-
         self._services = _to_array(services)
         self._topics = _to_array(topics)
         self._addresses = _to_array(addresses)
@@ -305,11 +302,9 @@ class NSSubscriber(object):
         self._nameserver = nameserver
 
     def start(self):
-        """Start the subscriber.
-        """
+        """Start the subscriber."""
         def _get_addr_loop(service, timeout):
-            """Try to get the address of *service* until for *timeout* seconds.
-            """
+            """Try to get the address of *service* until for *timeout* seconds."""
             then = datetime.now() + timedelta(seconds=timeout)
             while datetime.now() < then:
                 addrs = get_pub_address(service, nameserver=self._nameserver)
@@ -344,17 +339,19 @@ class NSSubscriber(object):
         return self._subscriber
 
     def stop(self):
-        """Stop the subscriber.
-        """
+        """Stop the subscriber."""
         if self._subscriber is not None:
             self._subscriber.close()
             self._subscriber = None
 
 
-class Subscribe(NSSubscriber):
+class Subscribe:
+    """Subscriber context.
 
-    """Subscriber context. See :class:`NSSubscriber` for initialization
-    parameters.
+    See :class:`NSSubscriber` and :class:`Subscriber` for initialization parameters.
+
+    The subscriber is selected based on the arguments, see :function:`create_subscriber_from_dict_config` for
+    information how the selection is done.
 
     Example::
 
@@ -366,16 +363,33 @@ class Subscribe(NSSubscriber):
 
     """
 
+    def __init__(self, services="", topics=_MAGICK, addr_listener=False,
+                 addresses=None, timeout=10, translate=False, nameserver="localhost",
+                 message_filter=None):
+        """Initialize the class."""
+        settings = {
+            'services': services,
+            'topics': topics,
+            'message_filter': message_filter,
+            'translate': translate,
+            'addr_listener': addr_listener,
+            'addresses': addresses,
+            'timeout': timeout,
+            'nameserver': nameserver,
+        }
+        self.subscriber = create_subscriber_from_dict_config(settings)
+
     def __enter__(self):
-        return self.start()
+        """Start the subscriber when used as a context manager."""
+        return self.subscriber
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.stop()
+        """Stop the subscriber when used as a context manager."""
+        return self.subscriber.stop()
 
 
 def _to_array(obj):
-    """Convert *obj* to list if not already one.
-    """
+    """Convert *obj* to list if not already one."""
     if isinstance(obj, str):
         return [obj, ]
     if obj is None:
@@ -383,12 +397,11 @@ def _to_array(obj):
     return obj
 
 
-class _AddressListener(object):
-
-    """Listener for new addresses of interest.
-    """
+class _AddressListener:
+    """Listener for new addresses of interest."""
 
     def __init__(self, subscriber, services="", nameserver="localhost"):
+        """Initialize address listener."""
         if isinstance(services, str):
             services = [services, ]
         self.services = services
@@ -398,8 +411,7 @@ class _AddressListener(object):
                                      self.handle_msg)
 
     def handle_msg(self, msg):
-        """handle the message *msg*.
-        """
+        """Handle the message *msg*."""
         addr_ = msg.data["URI"]
         status = msg.data.get('status', True)
         if status:
@@ -413,3 +425,54 @@ class _AddressListener(object):
         else:
             LOGGER.debug("Removing address %s", str(addr_))
             self.subscriber.remove(addr_)
+
+
+def create_subscriber_from_dict_config(settings):
+    """Get a subscriber class instance defined by a dictionary of configuration options.
+
+    The subscriber is created based on the given options in the following way:
+
+    - setting *settings['addresses']* to a non-empty list AND *settings['nameserver']* to *False*
+      will disable nameserver connections and connect only the listed addresses
+
+    - setting *settings['nameserver']* to a string will connect to nameserver
+      running on the indicated server
+
+    - if *settings['nameserver']* is missing or *None*, the nameserver on localhost is assumed.
+
+    Additional options are described in the docstrings of the respective classes, namely
+    :class:`~posttroll.subscriber.Subscriber` and :class:`~posttroll.subscriber.NSSubscriber`.
+
+    """
+    if settings.get('addresses') and settings.get('nameserver') is False:
+        return _get_subscriber_instance(settings)
+    return _get_nssubscriber_instance(settings).start()
+
+
+def _get_subscriber_instance(settings):
+    addresses = settings['addresses']
+    topics = settings.get('topics', '')
+    message_filter = settings.get('message_filter', None)
+    translate = settings.get('translate', False)
+
+    return Subscriber(addresses, topics=topics, message_filter=message_filter, translate=translate)
+
+
+def _get_nssubscriber_instance(settings):
+    services = settings.get('services', '')
+    topics = settings.get('topics', _MAGICK)
+    addr_listener = settings.get('addr_listener', False)
+    addresses = settings.get('addresses', None)
+    timeout = settings.get('timeout', 10)
+    translate = settings.get('translate', False)
+    nameserver = settings.get('nameserver', 'localhost') or 'localhost'
+
+    return NSSubscriber(
+        services=services,
+        topics=topics,
+        addr_listener=addr_listener,
+        addresses=addresses,
+        timeout=timeout,
+        translate=translate,
+        nameserver=nameserver
+    )

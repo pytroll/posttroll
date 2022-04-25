@@ -33,11 +33,10 @@ test_lock = Lock()
 
 
 class TestNS(unittest.TestCase):
-
-    """Test the nameserver.
-    """
+    """Test the nameserver."""
 
     def setUp(self):
+        """Set up the testing class."""
         from posttroll.ns import NameServer
         test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
@@ -45,6 +44,7 @@ class TestNS(unittest.TestCase):
         self.thr.start()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
@@ -77,8 +77,7 @@ class TestNS(unittest.TestCase):
             self.assertTrue("URI" in res[0])
 
     def test_pub_sub_ctx(self):
-        """Test publish and subscribe.
-        """
+        """Test publish and subscribe."""
         from posttroll.message import Message
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
@@ -122,11 +121,10 @@ class TestNS(unittest.TestCase):
 
 
 class TestNSWithoutMulticasting(unittest.TestCase):
-
-    """Test the nameserver.
-    """
+    """Test the nameserver."""
 
     def setUp(self):
+        """Set up the testing class."""
         from posttroll.ns import NameServer
         test_lock.acquire()
         self.nameservers = ['localhost']
@@ -136,14 +134,14 @@ class TestNSWithoutMulticasting(unittest.TestCase):
         self.thr.start()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
         test_lock.release()
 
     def test_pub_addresses(self):
-        """Test retrieving addresses.
-        """
+        """Test retrieving addresses."""
         from posttroll.ns import get_pub_addresses
         from posttroll.publisher import Publish
 
@@ -170,8 +168,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
             self.assertTrue("URI" in res[0])
 
     def test_pub_sub_ctx(self):
-        """Test publish and subscribe.
-        """
+        """Test publish and subscribe."""
         from posttroll.message import Message
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
@@ -191,8 +188,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
         self.assertTrue(tested)
 
     def test_pub_sub_add_rm(self):
-        """Test adding and removing publishers.
-        """
+        """Test adding and removing publishers."""
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
 
@@ -222,14 +218,15 @@ class TestPubSub(unittest.TestCase):
     """Testing the publishing and subscribing capabilities."""
 
     def setUp(self):
+        """Set up the testing class."""
         test_lock.acquire()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         test_lock.release()
 
     def test_pub_address_timeout(self):
-        """Test timeout in offline nameserver.
-        """
+        """Test timeout in offline nameserver."""
         from posttroll.ns import get_pub_address
         from posttroll.ns import TimeoutError
 
@@ -237,8 +234,7 @@ class TestPubSub(unittest.TestCase):
                           get_pub_address, ["this_data", 0.5])
 
     def test_pub_suber(self):
-        """Test publisher and subscriber.
-        """
+        """Test publisher and subscriber."""
         from posttroll.message import Message
         from posttroll.publisher import Publisher
         from posttroll.publisher import get_own_ip
@@ -261,19 +257,39 @@ class TestPubSub(unittest.TestCase):
         self.assertTrue(tested)
         pub.stop()
 
+    def test_pub_sub_ctx_no_nameserver(self):
+        """Test publish and subscribe."""
+        from posttroll.message import Message
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
+
+        with Publish("data_provider", 60000, nameservers=False) as pub:
+            with Subscribe(topics="counter", nameserver=False, addresses=["tcp://127.0.0.1:60000"]) as sub:
+                for counter in range(5):
+                    message = Message("/counter", "info", str(counter))
+                    pub.send(str(message))
+                    time.sleep(1)
+                    msg = next(sub.recv(2))
+                    if msg is not None:
+                        self.assertEqual(str(msg), str(message))
+                    tested = True
+                sub.close()
+        self.assertTrue(tested)
+
 
 class TestPub(unittest.TestCase):
-
-    """Testing the publishing capabilities.
-    """
+    """Testing the publishing capabilities."""
 
     def setUp(self):
+        """Set up the testing class."""
         test_lock.acquire()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         test_lock.release()
 
     def test_pub_unicode(self):
+        """Test publishing messages in Unicode."""
         from posttroll.message import Message
         from posttroll.publisher import Publish
 
@@ -285,7 +301,7 @@ class TestPub(unittest.TestCase):
                 self.fail("Sending raised UnicodeDecodeError unexpectedly!")
 
     def test_pub_minmax_port(self):
-        """Test user defined port range"""
+        """Test user defined port range."""
         import os
 
         # Using environment variables to set port range
@@ -330,10 +346,10 @@ def _get_port(min_port=None, max_port=None):
 
 
 class TestListenerContainer(unittest.TestCase):
-
-    """Testing listener container"""
+    """Testing listener container."""
 
     def setUp(self):
+        """Set up the testing class."""
         from posttroll.ns import NameServer
         test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
@@ -341,13 +357,14 @@ class TestListenerContainer(unittest.TestCase):
         self.thr.start()
 
     def tearDown(self):
+        """Clean up after the tests have run."""
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
         test_lock.release()
 
     def test_listener_container(self):
-        """Test listener container"""
+        """Test listener container."""
         from posttroll.message import Message
         from posttroll.publisher import NoisyPublisher
         from posttroll.listener import ListenerContainer
@@ -370,6 +387,43 @@ class TestListenerContainer(unittest.TestCase):
         sub.stop()
 
 
+class TestListenerContainerNoNameserver(unittest.TestCase):
+    """Testing listener container without nameserver."""
+
+    def setUp(self):
+        """Set up the testing class."""
+        test_lock.acquire()
+
+    def tearDown(self):
+        """Clean up after the tests have run."""
+        test_lock.release()
+
+    def test_listener_container(self):
+        """Test listener container."""
+        from posttroll.message import Message
+        from posttroll.publisher import Publisher
+        from posttroll.listener import ListenerContainer
+
+        pub_addr = "tcp://127.0.0.1:60000"
+        pub = Publisher(pub_addr, name="test")
+        pub.start()
+        time.sleep(2)
+        sub = ListenerContainer(topics=["/counter"], nameserver=False, addresses=[pub_addr])
+        time.sleep(2)
+        for counter in range(5):
+            tested = False
+            msg_out = Message("/counter", "info", str(counter))
+            pub.send(str(msg_out))
+
+            msg_in = sub.output_queue.get(True, 1)
+            if msg_in is not None:
+                self.assertEqual(str(msg_in), str(msg_out))
+                tested = True
+            self.assertTrue(tested)
+        pub.stop()
+        sub.stop()
+
+
 class TestAddressReceiver(unittest.TestCase):
     """Test the AddressReceiver."""
 
@@ -377,6 +431,7 @@ class TestAddressReceiver(unittest.TestCase):
     @mock.patch("posttroll.address_receiver.Publish")
     @mock.patch("posttroll.address_receiver.MulticastReceiver")
     def test_localhost_restriction(self, mcrec, pub, msg):
+        """Test address receiver restricted only to localhost."""
         mcr_instance = mock.Mock()
         mcrec.return_value = mcr_instance
         mcr_instance.return_value = 'blabla', ('255.255.255.255', 12)
@@ -394,63 +449,63 @@ class TestPublisherDictConfig(unittest.TestCase):
     @mock.patch('posttroll.publisher.Publisher')
     def test_publisher_is_selected(self, Publisher):
         """Test that Publisher is selected as publisher class."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'port': 12345, 'nameservers': False}
 
-        pub = dict_config(settings)
+        pub = create_publisher_from_dict_config(settings)
         Publisher.assert_called_once()
         assert pub is not None
 
     @mock.patch('posttroll.publisher.Publisher')
     def test_publisher_all_arguments(self, Publisher):
         """Test that only valid arguments are passed to Publisher."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'port': 12345, 'nameservers': False, 'name': 'foo',
                     'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
-        _ = dict_config(settings)
+        _ = create_publisher_from_dict_config(settings)
         _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])
         assert Publisher.call_args[0][0].startswith("tcp://*:")
         assert Publisher.call_args[0][0].endswith(str(settings['port']))
 
     def test_no_name_raises_keyerror(self):
         """Trying to create a NoisyPublisher without a given name will raise KeyError."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         with self.assertRaises(KeyError):
-            _ = dict_config(dict())
+            _ = create_publisher_from_dict_config(dict())
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
     def test_noisypublisher_is_selected_only_name(self, NoisyPublisher):
         """Test that NoisyPublisher is selected as publisher class."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'name': 'publisher_name'}
 
-        pub = dict_config(settings)
+        pub = create_publisher_from_dict_config(settings)
         NoisyPublisher.assert_called_once()
         assert pub is not None
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
     def test_noisypublisher_is_selected_name_and_port(self, NoisyPublisher):
         """Test that NoisyPublisher is selected as publisher class."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'name': 'publisher_name', 'port': 40000}
 
-        _ = dict_config(settings)
+        _ = create_publisher_from_dict_config(settings)
         NoisyPublisher.assert_called_once()
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
     def test_noisypublisher_all_arguments(self, NoisyPublisher):
         """Test that only valid arguments are passed to NoisyPublisher."""
-        from posttroll.publisher import dict_config
+        from posttroll.publisher import create_publisher_from_dict_config
 
         settings = {'port': 12345, 'nameservers': ['foo'], 'name': 'foo',
                     'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar',
                     'aliases': ['alias1', 'alias2'], 'broadcast_interval': 42}
-        _ = dict_config(settings)
+        _ = create_publisher_from_dict_config(settings)
         _check_valid_settings_in_call(settings, NoisyPublisher, ignore=['name'])
         assert NoisyPublisher.call_args[0][0] == settings["name"]
 
@@ -498,9 +553,82 @@ def _check_valid_settings_in_call(settings, pub_class, ignore=None):
         assert pub_class.call_args[1][key] == settings[key]
 
 
+@mock.patch('posttroll.subscriber.Subscriber')
+@mock.patch('posttroll.subscriber.NSSubscriber')
+def test_dict_config_minimal(NSSubscriber, Subscriber):
+    """Test that without any settings NSSubscriber is created."""
+    from posttroll.subscriber import create_subscriber_from_dict_config
+
+    subscriber = create_subscriber_from_dict_config({})
+    NSSubscriber.assert_called_once()
+    assert subscriber == NSSubscriber().start()
+    Subscriber.assert_not_called()
+
+
+@mock.patch('posttroll.subscriber.Subscriber')
+@mock.patch('posttroll.subscriber.NSSubscriber')
+def test_dict_config_nameserver_false(NSSubscriber, Subscriber):
+    """Test that NSSubscriber is created with 'localhost' nameserver when no addresses are given."""
+    from posttroll.subscriber import create_subscriber_from_dict_config
+
+    subscriber = create_subscriber_from_dict_config({'nameserver': False})
+    NSSubscriber.assert_called_once()
+    assert subscriber == NSSubscriber().start()
+    Subscriber.assert_not_called()
+
+
+@mock.patch('posttroll.subscriber.Subscriber')
+@mock.patch('posttroll.subscriber.NSSubscriber')
+def test_dict_config_subscriber(NSSubscriber, Subscriber):
+    """Test that Subscriber is created when nameserver is False and addresses are given."""
+    from posttroll.subscriber import create_subscriber_from_dict_config
+
+    subscriber = create_subscriber_from_dict_config({'nameserver': False, 'addresses': ['addr1']})
+    assert subscriber == Subscriber.return_value
+    Subscriber.assert_called_once()
+    NSSubscriber.assert_not_called()
+
+
+@mock.patch('posttroll.subscriber.NSSubscriber.start')
+def test_dict_config_full_nssubscriber(NSSubscriber_start):
+    """Test that all NSSubscriber options are passed."""
+    from posttroll.subscriber import create_subscriber_from_dict_config
+
+    settings = {
+        "services": "val1",
+        "topics": "val2",
+        "addr_listener": "val3",
+        "addresses": "val4",
+        "timeout": "val5",
+        "translate": "val6",
+        "nameserver": "val7",
+        "message_filter": "val8,"
+    }
+    _ = create_subscriber_from_dict_config(settings)
+    # The subscriber should have been started
+    NSSubscriber_start.assert_called_once()
+
+
+@mock.patch('posttroll.subscriber.Subscriber.update')
+def test_dict_config_full_subscriber(Subscriber_update):
+    """Test that all Subscriber options are passed."""
+    from posttroll.subscriber import create_subscriber_from_dict_config
+
+    settings = {
+        "services": "val1",
+        "topics": "val2",
+        "addr_listener": "val3",
+        "addresses": "val4",
+        "timeout": "val5",
+        "translate": "val6",
+        "nameserver": False,
+        "message_filter": "val8",
+    }
+    _ = create_subscriber_from_dict_config(settings)
+
+
 def suite():
-    """The suite for test_bbmcast.
-    """
+    """Collect the test suite for publisher and subsciber tests."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestPubSub))
