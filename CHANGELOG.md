@@ -1,3 +1,15 @@
+## Version 1.8.0 (2022/04/25)
+
+
+### Pull Requests Merged
+
+#### Features added
+
+* [PR 39](https://github.com/pytroll/posttroll/pull/39) - Add a possibility to create subscribers using a dictionary of configuration options
+
+In this release 1 pull request was closed.
+
+
 ## Version 1.7.1 (2021/12/23)
 
 
