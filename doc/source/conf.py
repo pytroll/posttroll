@@ -76,10 +76,10 @@ copyright = u'2012-2014, Pytroll crew'
 # built documents.
 #
 
-import posttroll.version as current_version
+from posttroll import __version__
 
 # The full version, including alpha/beta/rc tags.
-release = current_version.__version__
+release = __version__
 # The short X.Y version.
 version = ".".join(release.split(".")[:2])
 
