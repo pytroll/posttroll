@@ -76,7 +76,6 @@ copyright = u'2012-2014, Pytroll crew'
 # built documents.
 #
 
-from posttroll import __version__
 
 # The full version, including alpha/beta/rc tags.
 release = __version__
