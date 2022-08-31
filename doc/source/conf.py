@@ -11,8 +11,9 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
-
+import sys
+import os
+from posttroll import __version__
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -76,10 +77,9 @@ copyright = u'2012-2014, Pytroll crew'
 # built documents.
 #
 
-import posttroll.version as current_version
 
 # The full version, including alpha/beta/rc tags.
-release = current_version.__version__
+release = __version__
 # The short X.Y version.
 version = ".".join(release.split(".")[:2])
 

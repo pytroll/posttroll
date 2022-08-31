@@ -54,8 +54,7 @@ class ListenerContainer:
                                      services=services)
 
             # Start Listener instance into a new daemonized thread.
-            self.thread = Thread(target=self.listener.run)
-            self.thread.setDaemon(True)
+            self.thread = Thread(target=self.listener.run, daemon=True)
             self.thread.start()
 
     def __setstate__(self, state):
