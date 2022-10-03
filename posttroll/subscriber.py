@@ -32,6 +32,7 @@ from threading import Lock
 from urllib.parse import urlsplit
 
 # pylint: disable=E0611
+import zmq
 from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
 
 # pylint: enable=E0611
@@ -99,6 +100,10 @@ class Subscriber:
             LOGGER.info("Subscriber adding address %s with topics %s",
                         str(address), str(topics))
             subscriber = get_context().socket(SUB)
+            subscriber.setsockopt(zmq.TCP_KEEPALIVE, 1)
+            subscriber.setsockopt(zmq.TCP_KEEPALIVE_CNT, 10)
+            subscriber.setsockopt(zmq.TCP_KEEPALIVE_IDLE, 1)
+            subscriber.setsockopt(zmq.TCP_KEEPALIVE_INTVL, 1)
             for t__ in topics:
                 subscriber.setsockopt_string(SUBSCRIBE, str(t__))
             subscriber.connect(address)
