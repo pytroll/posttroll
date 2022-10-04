@@ -29,6 +29,8 @@ from datetime import timedelta
 from threading import Thread, Lock
 import time
 
+import pytest
+
 test_lock = Lock()
 
 
@@ -263,8 +265,8 @@ class TestPubSub(unittest.TestCase):
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
 
-        with Publish("data_provider", 60000, nameservers=False) as pub:
-            with Subscribe(topics="counter", nameserver=False, addresses=["tcp://127.0.0.1:60000"]) as sub:
+        with Publish("data_provider", 40000, nameservers=False) as pub:
+            with Subscribe(topics="counter", nameserver=False, addresses=["tcp://127.0.0.1:40000"]) as sub:
                 for counter in range(5):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
@@ -404,7 +406,7 @@ class TestListenerContainerNoNameserver(unittest.TestCase):
         from posttroll.publisher import Publisher
         from posttroll.listener import ListenerContainer
 
-        pub_addr = "tcp://127.0.0.1:60000"
+        pub_addr = "tcp://127.0.0.1:55000"
         pub = Publisher(pub_addr, name="test")
         pub.start()
         time.sleep(2)
@@ -627,44 +629,37 @@ def test_dict_config_full_subscriber(Subscriber_update):
     _ = create_subscriber_from_dict_config(settings)
 
 
-class TestTCPKeepalive(unittest.TestCase):
-    """Test TCP Keepalive for Publisher and Subscriber."""
+@pytest.fixture
+def tcp_keepalive_settings(monkeypatch):
+    """Set TCP Keepalive settings."""
+    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE", "1")
+    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_CNT", "10")
+    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_IDLE", "1")
+    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_INTVL", "1")
 
-    def setUp(self):
-        """Set environment variables."""
-        import os
-        test_lock.acquire()
 
-        os.environ["POSTTROLL_TCP_KEEPALIVE"] = "1"
-        os.environ["POSTTROLL_TCP_KEEPALIVE_CNT"] = "10"
-        os.environ["POSTTROLL_TCP_KEEPALIVE_IDLE"] = "1"
-        os.environ["POSTTROLL_TCP_KEEPALIVE_INTVL"] = "1"
+def test_publisher_tcp_keepalive(tcp_keepalive_settings):
+    """Test that TCP Keepalive is set for Publisher if the environment variables are present."""
+    socket = mock.MagicMock()
+    with mock.patch('posttroll.get_context') as get_context:
+        get_context.return_value.socket.return_value = socket
+        from posttroll.publisher import Publisher
 
-    def tearDown(self):
-        """Release the lock."""
-        test_lock.release()
+        _ = Publisher("tcp://127.0.0.1:9000")
 
-    def test_publisher_tcp_keepalive(self):
-        """Test that TCP Keepalive is set for Publisher if the environment variables are present."""
-        socket = mock.MagicMock()
-        with mock.patch('posttroll.get_context') as get_context:
-            get_context.return_value.socket.return_value = socket
-            from posttroll.publisher import Publisher
+    _assert_tcp_keepalive(socket)
 
-            _ = Publisher("tcp://127.0.0.1:9000")
 
-        _assert_tcp_keepalive(socket)
+def test_subscriber_tcp_keepalive(tcp_keepalive_settings):
+    """Test that TCP Keepalive is set for Subscriber if the environment variables are present."""
+    socket = mock.MagicMock()
+    with mock.patch('posttroll.get_context') as get_context:
+        get_context.return_value.socket.return_value = socket
+        from posttroll.subscriber import Subscriber
 
-    def test_subscriber_tcp_keepalive(self):
-        """Test that TCP Keepalive is set for Subscriber if the environment variables are present."""
-        socket = mock.MagicMock()
-        with mock.patch('posttroll.get_context') as get_context:
-            get_context.return_value.socket.return_value = socket
-            from posttroll.subscriber import Subscriber
+        _ = Subscriber("tcp://127.0.0.1:9000")
 
-            _ = Subscriber("tcp://127.0.0.1:9000")
-
-        _assert_tcp_keepalive(socket)
+    _assert_tcp_keepalive(socket)
 
 
 def _assert_tcp_keepalive(socket):
@@ -687,6 +682,5 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestPub))
     mysuite.addTest(loader.loadTestsFromTestCase(TestAddressReceiver))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPublisherDictConfig))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestTCPKeepalive))
 
     return mysuite
