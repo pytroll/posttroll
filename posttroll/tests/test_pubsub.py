@@ -627,6 +627,52 @@ def test_dict_config_full_subscriber(Subscriber_update):
     _ = create_subscriber_from_dict_config(settings)
 
 
+def test_publisher_tcp_keepalive():
+    """Test that TCP Keepalive is set for Publisher if the environment variables are present."""
+    _set_tcp_keepalive_env_variables()
+
+    socket = mock.MagicMock()
+    with mock.patch('posttroll.get_context') as get_context:
+        get_context.return_value.socket.return_value = socket
+        from posttroll.publisher import Publisher
+
+        _ = Publisher("tcp://127.0.0.1:9000")
+
+        _test_tcp_keepalive(socket)
+
+
+def _set_tcp_keepalive_env_variables():
+    import os
+
+    os.environ["POSTTROLL_TCP_KEEPALIVE"] = "1"
+    os.environ["POSTTROLL_TCP_KEEPALIVE_CNT"] = "10"
+    os.environ["POSTTROLL_TCP_KEEPALIVE_IDLE"] = "1"
+    os.environ["POSTTROLL_TCP_KEEPALIVE_INTVL"] = "1"
+
+
+def _test_tcp_keepalive(socket):
+    import zmq
+
+    assert mock.call(zmq.TCP_KEEPALIVE, 1) in socket.setsockopt.mock_calls
+    assert mock.call(zmq.TCP_KEEPALIVE_CNT, 10) in socket.setsockopt.mock_calls
+    assert mock.call(zmq.TCP_KEEPALIVE_IDLE, 1) in socket.setsockopt.mock_calls
+    assert mock.call(zmq.TCP_KEEPALIVE_INTVL, 1) in socket.setsockopt.mock_calls
+
+
+def test_subscriber_tcp_keepalive():
+    """Test that TCP Keepalive is set for Subscriber if the environment variables are present."""
+    _set_tcp_keepalive_env_variables()
+
+    socket = mock.MagicMock()
+    with mock.patch('posttroll.get_context') as get_context:
+        get_context.return_value.socket.return_value = socket
+        from posttroll.subscriber import Subscriber
+
+        _ = Subscriber("tcp://127.0.0.1:9000")
+
+        _test_tcp_keepalive(socket)
+
+
 def suite():
     """Collect the test suite for publisher and subsciber tests."""
     loader = unittest.TestLoader()
