@@ -32,6 +32,7 @@ from urllib.parse import urlsplit, urlunsplit
 import zmq
 
 from posttroll import get_context
+from posttroll import _set_tcp_keepalive
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
 
@@ -94,10 +95,7 @@ class Publisher:
         self.name = name
         self.destination = address
         self.publish = get_context().socket(zmq.PUB)
-        self.publish.setsockopt(zmq.TCP_KEEPALIVE, 1)
-        self.publish.setsockopt(zmq.TCP_KEEPALIVE_CNT, 10)
-        self.publish.setsockopt(zmq.TCP_KEEPALIVE_IDLE, 1)
-        self.publish.setsockopt(zmq.TCP_KEEPALIVE_INTVL, 1)
+        _set_tcp_keepalive(self.publish)
 
         # Limit port range or use the defaults when no port is defined
         # by the user
