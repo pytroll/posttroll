@@ -29,6 +29,8 @@ from datetime import timedelta
 from threading import Thread, Lock
 import time
 
+import pytest
+
 test_lock = Lock()
 
 
@@ -263,8 +265,8 @@ class TestPubSub(unittest.TestCase):
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
 
-        with Publish("data_provider", 60000, nameservers=False) as pub:
-            with Subscribe(topics="counter", nameserver=False, addresses=["tcp://127.0.0.1:60000"]) as sub:
+        with Publish("data_provider", 40000, nameservers=False) as pub:
+            with Subscribe(topics="counter", nameserver=False, addresses=["tcp://127.0.0.1:40000"]) as sub:
                 for counter in range(5):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
@@ -404,7 +406,7 @@ class TestListenerContainerNoNameserver(unittest.TestCase):
         from posttroll.publisher import Publisher
         from posttroll.listener import ListenerContainer
 
-        pub_addr = "tcp://127.0.0.1:60000"
+        pub_addr = "tcp://127.0.0.1:55000"
         pub = Publisher(pub_addr, name="test")
         pub.start()
         time.sleep(2)
@@ -625,6 +627,84 @@ def test_dict_config_full_subscriber(Subscriber_update):
         "message_filter": "val8",
     }
     _ = create_subscriber_from_dict_config(settings)
+
+
+@pytest.fixture
+def tcp_keepalive_settings(monkeypatch):
+    """Set TCP Keepalive settings."""
+    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE", "1")
+    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_CNT", "10")
+    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_IDLE", "1")
+    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_INTVL", "1")
+
+
+@pytest.fixture
+def tcp_keepalive_no_settings(monkeypatch):
+    """Set TCP Keepalive settings."""
+    monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE", raising=False)
+    monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_CNT", raising=False)
+    monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_IDLE", raising=False)
+    monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_INTVL", raising=False)
+
+
+def test_publisher_tcp_keepalive(tcp_keepalive_settings):
+    """Test that TCP Keepalive is set for Publisher if the environment variables are present."""
+    socket = mock.MagicMock()
+    with mock.patch('posttroll.publisher.get_context') as get_context:
+        get_context.return_value.socket.return_value = socket
+        from posttroll.publisher import Publisher
+
+        _ = Publisher("tcp://127.0.0.1:9000")
+
+    _assert_tcp_keepalive(socket)
+
+
+def test_publisher_tcp_keepalive_not_set(tcp_keepalive_no_settings):
+    """Test that TCP Keepalive is not set on by default."""
+    socket = mock.MagicMock()
+    with mock.patch('posttroll.publisher.get_context') as get_context:
+        get_context.return_value.socket.return_value = socket
+        from posttroll.publisher import Publisher
+
+        _ = Publisher("tcp://127.0.0.1:9000")
+    _assert_no_tcp_keepalive(socket)
+
+
+def test_subscriber_tcp_keepalive(tcp_keepalive_settings):
+    """Test that TCP Keepalive is set for Subscriber if the environment variables are present."""
+    socket = mock.MagicMock()
+    with mock.patch('posttroll.subscriber.get_context') as get_context:
+        get_context.return_value.socket.return_value = socket
+        from posttroll.subscriber import Subscriber
+
+        _ = Subscriber("tcp://127.0.0.1:9000")
+
+    _assert_tcp_keepalive(socket)
+
+
+def test_subscriber_tcp_keepalive_not_set(tcp_keepalive_no_settings):
+    """Test that TCP Keepalive is not set on by default."""
+    socket = mock.MagicMock()
+    with mock.patch('posttroll.subscriber.get_context') as get_context:
+        get_context.return_value.socket.return_value = socket
+        from posttroll.subscriber import Subscriber
+
+        _ = Subscriber("tcp://127.0.0.1:9000")
+
+    _assert_no_tcp_keepalive(socket)
+
+
+def _assert_tcp_keepalive(socket):
+    import zmq
+
+    assert mock.call(zmq.TCP_KEEPALIVE, 1) in socket.setsockopt.mock_calls
+    assert mock.call(zmq.TCP_KEEPALIVE_CNT, 10) in socket.setsockopt.mock_calls
+    assert mock.call(zmq.TCP_KEEPALIVE_IDLE, 1) in socket.setsockopt.mock_calls
+    assert mock.call(zmq.TCP_KEEPALIVE_INTVL, 1) in socket.setsockopt.mock_calls
+
+
+def _assert_no_tcp_keepalive(socket):
+    assert "TCP_KEEPALIVE" not in str(socket.setsockopt.mock_calls)
 
 
 def suite():

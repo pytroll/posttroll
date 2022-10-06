@@ -32,6 +32,7 @@ from urllib.parse import urlsplit, urlunsplit
 import zmq
 
 from posttroll import get_context
+from posttroll import _set_tcp_keepalive
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
 
@@ -94,6 +95,7 @@ class Publisher:
         self.name = name
         self.destination = address
         self.publish = get_context().socket(zmq.PUB)
+        _set_tcp_keepalive(self.publish)
 
         # Limit port range or use the defaults when no port is defined
         # by the user
@@ -295,7 +297,7 @@ def create_publisher_from_dict_config(settings):
       running on those servers, and in addition publish the messages on a random port on the
       localhost
 
-    - setting *settings['port']* to zero and *settings['namservers']* to *None* will broadcast
+    - setting *settings['port']* to zero and *settings['nameservers']* to *None* will broadcast
       the publisher address and port with multicast, and publish the messages on a random port.
 
     The last two cases will require *settings['name']* to be set. Additional options are

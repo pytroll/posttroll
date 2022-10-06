@@ -36,6 +36,7 @@ from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
 
 # pylint: enable=E0611
 from posttroll import get_context
+from posttroll import _set_tcp_keepalive
 from posttroll.message import _MAGICK, Message
 from posttroll.ns import get_pub_address
 
@@ -99,6 +100,7 @@ class Subscriber:
             LOGGER.info("Subscriber adding address %s with topics %s",
                         str(address), str(topics))
             subscriber = get_context().socket(SUB)
+            _set_tcp_keepalive(subscriber)
             for t__ in topics:
                 subscriber.setsockopt_string(SUBSCRIBE, str(t__))
             subscriber.connect(address)

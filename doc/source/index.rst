@@ -115,6 +115,30 @@ to specify the nameserver(s) explicitly in the publishing code::
 .. seealso:: :class:`posttroll.publisher.Publish`
              and :class:`posttroll.subscriber.Subscribe`
 
+Setting TCP keep-alive
+----------------------
+
+If the network connection between a publisher and a subscriber seem to
+be dropping, it is possible to set TCP keep-alive settings via environment
+variables. Below are some rudimentary example values::
+
+    import os
+
+    os.environ["POSTTROLL_TCP_KEEPALIVE"] = "1"
+    os.environ["POSTTROLL_TCP_KEEPALIVE_CNT"] = "10"
+    os.environ["POSTTROLL_TCP_KEEPALIVE_IDLE"] = "1"
+    os.environ["POSTTROLL_TCP_KEEPALIVE_INTVL"] = "1"
+
+These values need to be set before any subscriber/publisher are
+created to have them take any effect. Another option is to set these
+in the shell initialization, like ``$HOME/.bashrc``.
+
+For further information on the 0MQ TCP keep-alive, see zmq_setsockopts_ for
+relevant socket options.
+
+.. _zmq_setsockopts: http://api.zeromq.org/master:zmq-setsockopt
+
+
 Converting from older posttroll versions
 ----------------------------------------
 
