@@ -74,18 +74,15 @@ def strp_isoformat(strg):
 
 
 def _set_tcp_keepalive(socket):
-    keepalive = os.environ.get("POSTTROLL_TCP_KEEPALIVE")
-    if keepalive is not None:
-        socket.setsockopt(zmq.TCP_KEEPALIVE, int(keepalive))
-    keepalive_cnt = os.environ.get("POSTTROLL_TCP_KEEPALIVE_CNT")
-    if keepalive_cnt is not None:
-        socket.setsockopt(zmq.TCP_KEEPALIVE_CNT, int(keepalive_cnt))
-    keepalive_idle = os.environ.get("POSTTROLL_TCP_KEEPALIVE_IDLE")
-    if keepalive_idle is not None:
-        socket.setsockopt(zmq.TCP_KEEPALIVE_IDLE, int(keepalive_idle))
-    keepalive_intvl = os.environ.get("POSTTROLL_TCP_KEEPALIVE_INTVL")
-    if keepalive_intvl is not None:
-        socket.setsockopt(zmq.TCP_KEEPALIVE_INTVL, int(keepalive_intvl))
+    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE, os.environ.get("POSTTROLL_TCP_KEEPALIVE"))
+    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_CNT, os.environ.get("POSTTROLL_TCP_KEEPALIVE_CNT"))
+    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_IDLE, os.environ.get("POSTTROLL_TCP_KEEPALIVE_IDLE"))
+    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_INTVL, os.environ.get("POSTTROLL_TCP_KEEPALIVE_INTVL"))
+
+
+def _set_int_sockopt(socket, param, value):
+    if value is not None:
+        socket.setsockopt(param, int(value))
 
 
 __version__ = get_versions()['version']
