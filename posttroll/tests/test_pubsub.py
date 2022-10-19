@@ -315,10 +315,10 @@ class TestPub(unittest.TestCase):
             # Set the port range to environment variables
             os.environ['POSTTROLL_PUB_MIN_PORT'] = str(port)
             os.environ['POSTTROLL_PUB_MAX_PORT'] = str(port + 1)
-            with reset_config_for_tests():
+            with posttroll.config.set(pub_min_port=str(port), pub_max_port=str(port + 1)):
                 res = _get_port(min_port=None, max_port=None)
                 if res is False:
-                    # The port wasn't free, try again
+                    # The port wasn't free, try another one
                     continue
                 # Port was selected, make sure it's within the "range" of one
                 self.assertEqual(res, port)
