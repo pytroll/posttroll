@@ -28,8 +28,11 @@ from unittest import mock
 from datetime import timedelta
 from threading import Thread, Lock
 import time
+from contextlib import contextmanager
 
+import posttroll
 import pytest
+from donfig import Config
 
 test_lock = Lock()
 
@@ -312,13 +315,14 @@ class TestPub(unittest.TestCase):
             # Set the port range to environment variables
             os.environ['POSTTROLL_PUB_MIN_PORT'] = str(port)
             os.environ['POSTTROLL_PUB_MAX_PORT'] = str(port + 1)
-            res = _get_port(min_port=None, max_port=None)
-            if res is False:
-                # The port wasn't free, try again
-                continue
-            # Port was selected, make sure it's within the "range" of one
-            self.assertEqual(res, port)
-            break
+            with posttroll.config.set(pub_min_port=str(port), pub_max_port=str(port + 1)):
+                res = _get_port(min_port=None, max_port=None)
+                if res is False:
+                    # The port wasn't free, try another one
+                    continue
+                # Port was selected, make sure it's within the "range" of one
+                self.assertEqual(res, port)
+                break
 
         # Using range of ports defined at instantation time, this
         # should override environment variables
@@ -636,6 +640,17 @@ def tcp_keepalive_settings(monkeypatch):
     monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_CNT", "10")
     monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_IDLE", "1")
     monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_INTVL", "1")
+    with reset_config_for_tests():
+        yield
+
+
+@contextmanager
+def reset_config_for_tests():
+    """Reset the config for testing."""
+    old_config = posttroll.config
+    posttroll.config = Config("posttroll")
+    yield
+    posttroll.config = old_config
 
 
 @pytest.fixture
@@ -645,6 +660,8 @@ def tcp_keepalive_no_settings(monkeypatch):
     monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_CNT", raising=False)
     monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_IDLE", raising=False)
     monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_INTVL", raising=False)
+    with reset_config_for_tests():
+        yield
 
 
 def test_publisher_tcp_keepalive(tcp_keepalive_settings):

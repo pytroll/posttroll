@@ -24,15 +24,17 @@
 
 """Posttroll packages."""
 
-import sys
-
-from datetime import datetime
-import os
 import logging
-from .version import get_versions
+import os
+import sys
+from datetime import datetime
 
 import zmq
+from donfig import Config
 
+from .version import get_versions
+
+config = Config('posttroll')
 context = {}
 logger = logging.getLogger(__name__)
 
@@ -74,10 +76,10 @@ def strp_isoformat(strg):
 
 
 def _set_tcp_keepalive(socket):
-    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE, os.environ.get("POSTTROLL_TCP_KEEPALIVE"))
-    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_CNT, os.environ.get("POSTTROLL_TCP_KEEPALIVE_CNT"))
-    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_IDLE, os.environ.get("POSTTROLL_TCP_KEEPALIVE_IDLE"))
-    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_INTVL, os.environ.get("POSTTROLL_TCP_KEEPALIVE_INTVL"))
+    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE, config.get("tcp_keepalive", None))
+    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_CNT, config.get("tcp_keepalive_cnt", None))
+    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_IDLE, config.get("tcp_keepalive_idle", None))
+    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_INTVL, config.get("tcp_keepalive_intvl", None))
 
 
 def _set_int_sockopt(socket, param, value):
