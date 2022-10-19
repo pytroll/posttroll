@@ -26,7 +26,7 @@ from setuptools import setup
 import versioneer
 
 
-requirements = ['pyzmq', 'netifaces']
+requirements = ['pyzmq', 'netifaces', "donfig"]
 
 
 setup(name="posttroll",

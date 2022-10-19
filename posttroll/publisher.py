@@ -35,6 +35,7 @@ from posttroll import get_context
 from posttroll import _set_tcp_keepalive
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
+from posttroll import config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -99,10 +100,8 @@ class Publisher:
 
         # Limit port range or use the defaults when no port is defined
         # by the user
-        min_port = min_port or int(os.environ.get('POSTTROLL_PUB_MIN_PORT',
-                                                  49152))
-        max_port = max_port or int(os.environ.get('POSTTROLL_PUB_MAX_PORT',
-                                                  65536))
+        min_port = min_port or int(config.get('pub_min_port', 49152))
+        max_port = max_port or int(config.get('pub_max_port', 65536))
 
         # Check for port 0 (random port)
         u__ = urlsplit(self.destination)
