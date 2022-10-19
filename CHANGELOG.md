@@ -1,3 +1,24 @@
+###############################################################################
+## Version 1.9.0 (2022/10/19)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 42](https://github.com/pytroll/posttroll/pull/42) - Fix Read the docs
+
+#### Features added
+
+* [PR 45](https://github.com/pytroll/posttroll/pull/45) - Use donfig for handling posttroll environment variables
+* [PR 43](https://github.com/pytroll/posttroll/pull/43) - Set TCP keepalive to publisher and subscriber
+* [PR 40](https://github.com/pytroll/posttroll/pull/40) - Instruct to create annotated tags
+
+In this release 4 pull requests were closed.
+
+###############################################################################
+
+
 ## Version 1.8.0 (2022/04/25)
 
 
