@@ -312,9 +312,7 @@ class TestPub(unittest.TestCase):
         # Using environment variables to set port range
         # Try over a range of ports just in case the single port is reserved
         for port in range(40000, 50000):
-            # Set the port range to environment variables
-            os.environ['POSTTROLL_PUB_MIN_PORT'] = str(port)
-            os.environ['POSTTROLL_PUB_MAX_PORT'] = str(port + 1)
+            # Set the port range to config
             with posttroll.config.set(pub_min_port=str(port), pub_max_port=str(port + 1)):
                 res = _get_port(min_port=None, max_port=None)
                 if res is False:
