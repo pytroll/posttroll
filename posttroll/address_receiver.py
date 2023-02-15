@@ -175,7 +175,7 @@ class AddressReceiver(object):
         self._is_running = True
         try:
             with Publish("address_receiver", self._port, ["addresses"],
-                        nameservers=nameservers) as pub:
+                         nameservers=nameservers) as pub:
                 try:
                     while self._do_run:
                         try:
@@ -197,15 +197,15 @@ class AddressReceiver(object):
                                 pub.heartbeat(min_interval=29)
                         msg = Message.decode(data)
                         name = msg.subject.split("/")[1]
-                        if(msg.type == 'info' and
-                        msg.subject.lower().startswith(self._subject)):
+                        if (msg.type == 'info' and
+                           msg.subject.lower().startswith(self._subject)):
                             addr = msg.data["URI"]
                             msg.data['status'] = True
                             metadata = copy.copy(msg.data)
                             metadata["name"] = name
 
                             LOGGER.debug('receiving address %s %s %s', str(addr),
-                                        str(name), str(metadata))
+                                         str(name), str(metadata))
                             if addr not in self._addresses:
                                 LOGGER.info("nameserver: publish add '%s'",
                                             str(msg))
