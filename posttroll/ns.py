@@ -132,6 +132,8 @@ class NameServer(object):
                                multicast_enabled=self._multicast_enabled,
                                restrict_to_localhost=self._restrict_to_localhost)
         arec.start()
+        if not arec.is_running():
+            return
         port = PORT
 
         try:
