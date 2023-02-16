@@ -446,6 +446,16 @@ class TestAddressReceiver(unittest.TestCase):
         msg.decode.assert_not_called()
         adr.stop()
 
+    @mock.patch("posttroll.address_receiver.Publish")
+    def test_publish_oserror(self, pub):
+        """Test address receiver handle oserror in publish."""
+        pub.side_effect = OSError
+        from posttroll.address_receiver import AddressReceiver
+        adr = AddressReceiver()
+        adr.start()
+        time.sleep(3)
+        self.assertFalse(adr.is_running())
+        adr.stop()
 
 class TestPublisherDictConfig(unittest.TestCase):
     """Test configuring publishers with a dictionary."""

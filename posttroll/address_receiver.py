@@ -146,6 +146,42 @@ class AddressReceiver(object):
             for addr in to_del:
                 del self._addresses[addr]
 
+    def _recv_loop_and_parse_data(self, recv, pub):
+        while self._do_run:
+            try:
+                data, fromaddr = recv()
+                if self._multicast_enabled:
+                    ip_, port = fromaddr
+                    if self._restrict_to_localhost and ip_ not in self._local_ips:
+                        # discard external message
+                        LOGGER.debug('Discard external message')
+                        continue
+                LOGGER.debug("data %s", data)
+            except SocketTimeout:
+                if self._multicast_enabled:
+                    LOGGER.debug("Multicast socket timed out on recv!")
+                    continue
+            finally:
+                self._check_age(pub, min_interval=self._max_age / 20)
+                if self._do_heartbeat:
+                    pub.heartbeat(min_interval=29)
+            msg = Message.decode(data)
+            name = msg.subject.split("/")[1]
+            if (msg.type == 'info' and
+                msg.subject.lower().startswith(self._subject)):
+                addr = msg.data["URI"]
+                msg.data['status'] = True
+                metadata = copy.copy(msg.data)
+                metadata["name"] = name
+
+                LOGGER.debug('receiving address %s %s %s', str(addr),
+                                str(name), str(metadata))
+                if addr not in self._addresses:
+                    LOGGER.info("nameserver: publish add '%s'",
+                                str(msg))
+                    pub.send(msg.encode())
+                self._add(addr, metadata)
+
     def _run(self):
         """Run the receiver."""
         port = broadcast_port
@@ -177,40 +213,7 @@ class AddressReceiver(object):
             with Publish("address_receiver", self._port, ["addresses"],
                          nameservers=nameservers) as pub:
                 try:
-                    while self._do_run:
-                        try:
-                            data, fromaddr = recv()
-                            if self._multicast_enabled:
-                                ip_, port = fromaddr
-                                if self._restrict_to_localhost and ip_ not in self._local_ips:
-                                    # discard external message
-                                    LOGGER.debug('Discard external message')
-                                    continue
-                            LOGGER.debug("data %s", data)
-                        except SocketTimeout:
-                            if self._multicast_enabled:
-                                LOGGER.debug("Multicast socket timed out on recv!")
-                                continue
-                        finally:
-                            self._check_age(pub, min_interval=self._max_age / 20)
-                            if self._do_heartbeat:
-                                pub.heartbeat(min_interval=29)
-                        msg = Message.decode(data)
-                        name = msg.subject.split("/")[1]
-                        if (msg.type == 'info' and
-                           msg.subject.lower().startswith(self._subject)):
-                            addr = msg.data["URI"]
-                            msg.data['status'] = True
-                            metadata = copy.copy(msg.data)
-                            metadata["name"] = name
-
-                            LOGGER.debug('receiving address %s %s %s', str(addr),
-                                         str(name), str(metadata))
-                            if addr not in self._addresses:
-                                LOGGER.info("nameserver: publish add '%s'",
-                                            str(msg))
-                                pub.send(msg.encode())
-                            self._add(addr, metadata)
+                    self._recv_loop_and_parse_data(recv, pub)
                 finally:
                     self._is_running = False
                     recv.close()
