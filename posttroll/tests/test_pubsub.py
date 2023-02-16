@@ -603,6 +603,18 @@ def test_dict_config_subscriber(NSSubscriber, Subscriber):
     NSSubscriber.assert_not_called()
 
 
+@mock.patch('posttroll.ns.AddressReceiver')
+def test_nameserver_addressreceiver_fails_to_start(arec):
+    from posttroll.ns import NameServer
+    arec_instance = mock.Mock()
+    arec.return_value = arec_instance
+    arec_instance.is_running.return_value = False
+    ns = NameServer(max_age=timedelta(seconds=3),
+                    multicast_enabled=False)
+    ns_run_ret = ns.run()
+    assert ns_run_ret is None
+
+
 @mock.patch('posttroll.subscriber.NSSubscriber.start')
 def test_dict_config_full_nssubscriber(NSSubscriber_start):
     """Test that all NSSubscriber options are passed."""
