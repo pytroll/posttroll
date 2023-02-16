@@ -168,14 +168,14 @@ class AddressReceiver(object):
             msg = Message.decode(data)
             name = msg.subject.split("/")[1]
             if (msg.type == 'info' and
-                msg.subject.lower().startswith(self._subject)):
+                    msg.subject.lower().startswith(self._subject)):
                 addr = msg.data["URI"]
                 msg.data['status'] = True
                 metadata = copy.copy(msg.data)
                 metadata["name"] = name
 
                 LOGGER.debug('receiving address %s %s %s', str(addr),
-                                str(name), str(metadata))
+                             str(name), str(metadata))
                 if addr not in self._addresses:
                     LOGGER.info("nameserver: publish add '%s'",
                                 str(msg))
