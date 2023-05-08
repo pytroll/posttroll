@@ -63,23 +63,23 @@ class TestNS(unittest.TestCase):
         with Publish(str("data_provider"), 0, ["this_data"], broadcast_interval=0.1):
             time.sleep(.3)
             res = get_pub_addresses(["this_data"], timeout=.5)
-            self.assertEqual(len(res), 1)
+            assert len(res) == 1
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
                         u'name': u'address'}
             for key, val in expected.items():
-                self.assertEqual(res[0][key], val)
-            self.assertTrue("receive_time" in res[0])
-            self.assertTrue("URI" in res[0])
+                assert res[0][key] == val
+            assert "receive_time" in res[0]
+            assert "URI" in res[0]
             res = get_pub_addresses([str("data_provider")])
-            self.assertEqual(len(res), 1)
+            assert len(res) == 1
             expected = {u'status': True,
                         u'service': [u'data_provider', u'this_data'],
                         u'name': u'address'}
             for key, val in expected.items():
-                self.assertEqual(res[0][key], val)
-            self.assertTrue("receive_time" in res[0])
-            self.assertTrue("URI" in res[0])
+                assert res[0][key] == val
+            assert "receive_time" in res[0]
+            assert "URI" in res[0]
 
     def test_pub_sub_ctx(self):
         """Test publish and subscribe."""
@@ -95,10 +95,10 @@ class TestNS(unittest.TestCase):
                     time.sleep(1)
                     msg = next(sub.recv(2))
                     if msg is not None:
-                        self.assertEqual(str(msg), str(message))
+                        assert str(msg) == str(message)
                     tested = True
                 sub.close()
-        self.assertTrue(tested)
+        assert tested
 
     def test_pub_sub_add_rm(self):
         """Test adding and removing publishers."""
@@ -107,21 +107,21 @@ class TestNS(unittest.TestCase):
 
         time.sleep(4)
         with Subscribe("this_data", "counter", True) as sub:
-            self.assertEqual(len(sub.sub_addr), 0)
+            assert len(sub.sub_addr) == 0
             with Publish("data_provider", 0, ["this_data"]):
                 time.sleep(4)
                 next(sub.recv(2))
-                self.assertEqual(len(sub.sub_addr), 1)
+                assert len(sub.sub_addr) == 1
             time.sleep(3)
             for msg in sub.recv(2):
                 if msg is None:
                     break
             time.sleep(3)
-            self.assertEqual(len(sub.sub_addr), 0)
+            assert len(sub.sub_addr) == 0
             with Publish("data_provider_2", 0, ["another_data"]):
                 time.sleep(4)
                 next(sub.recv(2))
-                self.assertEqual(len(sub.sub_addr), 0)
+                assert len(sub.sub_addr) == 0
             sub.close()
 
 
@@ -246,7 +246,7 @@ class TestPubSub(unittest.TestCase):
         from posttroll.subscriber import Subscriber
 
         pub_address = "tcp://" + str(get_own_ip()) + ":0"
-        pub = Publisher(pub_address)
+        pub = Publisher(pub_address).start()
         addr = pub_address[:-1] + str(pub.port_number)
         sub = Subscriber([addr], '/counter')
         tested = False
@@ -257,9 +257,9 @@ class TestPubSub(unittest.TestCase):
 
             msg = next(sub.recv(2))
             if msg is not None:
-                self.assertEqual(str(msg), str(message))
+                assert str(msg) == str(message)
                 tested = True
-        self.assertTrue(tested)
+        assert tested
         pub.stop()
 
     def test_pub_sub_ctx_no_nameserver(self):
@@ -669,7 +669,7 @@ def test_publisher_tcp_keepalive(tcp_keepalive_settings):
         get_context.return_value.socket.return_value = socket
         from posttroll.publisher import Publisher
 
-        _ = Publisher("tcp://127.0.0.1:9000")
+        _ = Publisher("tcp://127.0.0.1:9000").start()
 
     _assert_tcp_keepalive(socket)
 
@@ -681,7 +681,7 @@ def test_publisher_tcp_keepalive_not_set(tcp_keepalive_no_settings):
         get_context.return_value.socket.return_value = socket
         from posttroll.publisher import Publisher
 
-        _ = Publisher("tcp://127.0.0.1:9000")
+        _ = Publisher("tcp://127.0.0.1:9000").start()
     _assert_no_tcp_keepalive(socket)
 
 
@@ -720,18 +720,3 @@ def _assert_tcp_keepalive(socket):
 
 def _assert_no_tcp_keepalive(socket):
     assert "TCP_KEEPALIVE" not in str(socket.setsockopt.mock_calls)
-
-
-def suite():
-    """Collect the test suite for publisher and subsciber tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPubSub))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNS))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNSWithoutMulticasting))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestListenerContainer))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPub))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAddressReceiver))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPublisherDictConfig))
-
-    return mysuite

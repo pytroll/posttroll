@@ -95,53 +95,60 @@ class Publisher:
         """Bind the publisher class to a port."""
         self.name = name
         self.destination = address
-        self.publish = get_context().socket(zmq.PUB)
-        _set_tcp_keepalive(self.publish)
-
+        self.publish_socket = None
         # Limit port range or use the defaults when no port is defined
         # by the user
-        min_port = min_port or int(config.get('pub_min_port', 49152))
-        max_port = max_port or int(config.get('pub_max_port', 65536))
+        self.min_port = min_port or int(config.get('pub_min_port', 49152))
+        self.max_port = max_port or int(config.get('pub_max_port', 65536))
+        self.port_number = None
 
+        # Initialize no heartbeat
+        self._heartbeat = None
+        self._pub_lock = Lock()
+
+
+
+    def start(self):
+        """Start the publisher.
+        """
+        self.publish_socket = get_context().socket(zmq.PUB)
+        _set_tcp_keepalive(self.publish_socket)
+
+        self.bind()
+        LOGGER.info("publisher started on port %s", str(self.port_number))
+        return self
+
+    def bind(self):
         # Check for port 0 (random port)
         u__ = urlsplit(self.destination)
         port = u__.port
         if port == 0:
             dest = urlunsplit((u__.scheme, u__.hostname,
                                u__.path, u__.query, u__.fragment))
-            self.port_number = self.publish.bind_to_random_port(
+            self.port_number = self.publish_socket.bind_to_random_port(
                 dest,
-                min_port=min_port,
-                max_port=max_port)
+                min_port=self.min_port,
+                max_port=self.max_port)
             netloc = u__.hostname + ":" + str(self.port_number)
             self.destination = urlunsplit((u__.scheme, netloc, u__.path,
                                            u__.query, u__.fragment))
         else:
-            self.publish.bind(self.destination)
+            self.publish_socket.bind(self.destination)
             self.port_number = port
-
-        LOGGER.info("publisher started on port %s", str(self.port_number))
-
-        # Initialize no heartbeat
-        self._heartbeat = None
-        self._pub_lock = Lock()
-
-    def start(self):
-        """Start the publisher.
-
-        Actually just returns *self*, but needed for consistent use from context manager.
-        """
-        return self
 
     def send(self, msg):
         """Send the given message."""
         with self._pub_lock:
-            self.publish.send_string(msg)
+            self.publish_socket.send_string(msg)
 
     def stop(self):
         """Stop the publisher."""
-        self.publish.setsockopt(zmq.LINGER, 1)
-        self.publish.close()
+        self.publish_socket.setsockopt(zmq.LINGER, 1)
+        self.publish_socket.close()
+
+    def close(self):
+        """Alias for stop."""
+        self.stop()
 
     def heartbeat(self, min_interval=0):
         """Send a heartbeat ... but only if *min_interval* seconds has passed since last beat."""
@@ -210,7 +217,7 @@ class NoisyPublisher:
         pub_addr = _get_publish_address(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name,
                                                 min_port=self.min_port,
-                                                max_port=self.max_port)
+                                                max_port=self.max_port).start()
         LOGGER.debug("entering publish %s", str(self._publisher.destination))
         addr = _get_publish_address(self._publisher.port_number, str(get_own_ip()))
         self._broadcaster = sendaddressservice(self._name, addr,
@@ -232,6 +239,10 @@ class NoisyPublisher:
         if self._broadcaster is not None:
             self._broadcaster.stop()
             self._broadcaster = None
+
+    def close(self):
+        """Alias for stop."""
+        self.stop()
 
 
 def _get_publish_address(port, ip_address="*"):

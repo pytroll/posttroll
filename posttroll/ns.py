@@ -113,7 +113,7 @@ def get_active_address(name, arec):
         return Message("/oper/ns", "info", "")
 
 
-class NameServer(object):
+class NameServer:
     """The name server."""
 
     def __init__(self, max_age=timedelta(minutes=10), multicast_enabled=True, restrict_to_localhost=False):
