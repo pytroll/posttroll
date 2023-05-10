@@ -1,3 +1,19 @@
+## Version 1.10.0 (2023/05/10)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 46](https://github.com/pytroll/posttroll/pull/46) - Fix missed cleanup in last PR
+
+#### Features added
+
+* [PR 53](https://github.com/pytroll/posttroll/pull/53) - Add close methods for subscriber and publisher and testing utilities
+
+In this release 2 pull requests were closed.
+
+
 ###############################################################################
 ## Version 1.9.0 (2022/10/19)
 
