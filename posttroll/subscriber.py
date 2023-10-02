@@ -194,6 +194,8 @@ class Subscriber:
 
         for sub in list(self.subscribers) + self._hooks:
             self.poller.register(sub, POLLIN)
+        if not self.poller.sockets:
+            raise IOError("No sockect to poll")
         self._loop = True
         try:
             while self._loop:
