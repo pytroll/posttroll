@@ -29,7 +29,7 @@ import errno
 from posttroll import message
 from posttroll.bbmcast import MulticastSender, MC_GROUP
 from posttroll import get_context
-from zmq import REQ, LINGER
+from zmq import REQ, LINGER, NOBLOCK, ZMQError
 
 __all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
 
@@ -45,6 +45,7 @@ class DesignatedReceiversSender(object):
         self.default_port = default_port
 
         self.receivers = receivers
+        self._shutdown_event = threading.Event()
 
     def __call__(self, data):
         for receiver in self.receivers:
@@ -61,16 +62,22 @@ class DesignatedReceiversSender(object):
             else:
                 socket.connect("tcp://%s" % address)
             socket.send_string(data)
-            message = socket.recv_string()
-            if message != "ok":
-                LOGGER.warn("invalid acknowledge received: %s" % message)
+            while not self._shutdown_event.is_set():
+                try:
+                    message = socket.recv_string(NOBLOCK)
+                except ZMQError:
+                    self._shutdown_event.wait(.1)
+                    continue
+                if message != "ok":
+                    LOGGER.warn("invalid acknowledge received: %s" % message)
+                break
 
         finally:
             socket.close()
 
     def close(self):
         """Close the sender."""
-        pass
+        self._shutdown_event.set()
 #-----------------------------------------------------------------------------
 #
 # General thread to broadcast messages.
@@ -95,33 +102,32 @@ class MessageBroadcaster(object):
 
         self._interval = interval
         self._message = msg
-        self._do_run = False
-        self._is_running = False
+        self._shutdown_event = threading.Event()
         self._thread = threading.Thread(target=self._run)
 
     def start(self):
         """Start the broadcasting."""
         if self._interval > 0:
-            if not self._is_running:
-                self._do_run = True
+            if not self._thread.is_alive():
                 self._thread.start()
         return self
 
     def is_running(self):
         """Are we running."""
-        return self._is_running
+        return self._thread.is_alive()
 
     def stop(self):
         """Stop the broadcasting."""
-        self._do_run = False
+        self._shutdown_event.set()
+        self._sender.close()
+        self._thread.join()
         return self
 
     def _run(self):
         """Broadcasts forever."""
-        self._is_running = True
         network_fail = False
         try:
-            while self._do_run:
+            while not self._shutdown_event.is_set():
                 try:
                     if network_fail is True:
                         LOGGER.info("Network connection re-established!")
@@ -135,9 +141,8 @@ class MessageBroadcaster(object):
                         network_fail = True
                     else:
                         raise
-                time.sleep(self._interval)
+                self._shutdown_event.wait(self._interval)
         finally:
-            self._is_running = False
             self._sender.close()
 
 #-----------------------------------------------------------------------------

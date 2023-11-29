@@ -20,25 +20,4 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Tests package.
-"""
-
-from posttroll.tests import test_bbmcast, test_message, test_pubsub
-import unittest
-
-
-def suite():
-    """The global test suite.
-    """
-    mysuite = unittest.TestSuite()
-    # Test the documentation strings
-    # Use the unittests also
-    mysuite.addTests(test_bbmcast.suite())
-    mysuite.addTests(test_message.suite())
-    mysuite.addTests(test_pubsub.suite())
-
-    return mysuite
-
-
-def load_tests(loader, tests, pattern):
-    return suite()
+"""Tests package."""

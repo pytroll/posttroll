@@ -10,7 +10,7 @@ def patched_subscriber_recv(messages):
 
 @contextmanager
 def patched_publisher():
-    """Patch the Subscriber object to return given messages."""
+    """Patch the Publisher object to return given messages."""
     from unittest import mock
     published = []
 

@@ -107,13 +107,3 @@ class TestBB(unittest.TestCase):
                    str(random.randint(0, 255)) + "." +
                    str(random.randint(0, 255)))
         self.assertRaises(error, bbmcast.mcast_receiver, mcport, mcgroup)
-
-
-def suite():
-    """The suite for test_bbmcast.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBB))
-
-    return mysuite

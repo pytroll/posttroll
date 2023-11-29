@@ -149,7 +149,7 @@ class AddressReceiver(object):
     def _run(self):
         """Run the receiver."""
         port = broadcast_port
-        nameservers = []
+        nameservers = False
         if self._multicast_enabled:
             while True:
                 try:

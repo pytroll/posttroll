@@ -24,20 +24,14 @@
 
 """Simple library to subscribe to messages."""
 
-from time import sleep
+
 import logging
 import time
 from datetime import datetime, timedelta
-from threading import Lock
-from urllib.parse import urlsplit
 
-# pylint: disable=E0611
-from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
-
-# pylint: enable=E0611
-from posttroll import get_context
-from posttroll import _set_tcp_keepalive
-from posttroll.message import _MAGICK, Message
+from posttroll import config
+from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
+from posttroll.message import _MAGICK
 from posttroll.ns import get_pub_address
 
 LOGGER = logging.getLogger(__name__)
@@ -69,79 +63,28 @@ class Subscriber:
 
     def __init__(self, addresses, topics='', message_filter=None, translate=False):
         """Initialize the subscriber."""
-        self._topics = self._magickfy_topics(topics)
-        self._filter = message_filter
-        self._translate = translate
-
-        self.sub_addr = {}
-        self.addr_sub = {}
-
-        self._hooks = []
-        self._hooks_cb = {}
-
-        self.poller = Poller()
-        self._lock = Lock()
-
-        self.update(addresses)
-
-        self._loop = None
+        topics = self._magickfy_topics(topics)
+        backend = config.get("backend", "unsecure_zmq")
+        if backend == "unsecure_zmq":
+            self._subscriber = UnsecureZMQSubscriber(addresses, topics=topics,
+                                                     message_filter=message_filter, translate=translate)
+        else:
+            raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
     def add(self, address, topics=None):
         """Add *address* to the subscribing list for *topics*.
 
-        It topics is None we will subscibe to already specified topics.
+        It topics is None we will subscribe to already specified topics.
         """
-        with self._lock:
-            if address in self.addresses:
-                return
-
-            topics = self._magickfy_topics(topics) or self._topics
-            LOGGER.info("Subscriber adding address %s with topics %s",
-                        str(address), str(topics))
-            subscriber = self._add_sub_socket(address, topics)
-            self.sub_addr[subscriber] = address
-            self.addr_sub[address] = subscriber
-
-    def _add_sub_socket(self, address, topics):
-        subscriber = get_context().socket(SUB)
-        _set_tcp_keepalive(subscriber)
-        for t__ in topics:
-            subscriber.setsockopt_string(SUBSCRIBE, str(t__))
-        subscriber.connect(address)
-
-        if self.poller:
-            self.poller.register(subscriber, POLLIN)
-        return subscriber
+        return self._subscriber.add(address, self._magickfy_topics(topics))
 
     def remove(self, address):
         """Remove *address* from the subscribing list for *topics*."""
-        with self._lock:
-            try:
-                subscriber = self.addr_sub[address]
-            except KeyError:
-                return
-            LOGGER.info("Subscriber removing address %s", str(address))
-            del self.addr_sub[address]
-            del self.sub_addr[subscriber]
-            self._remove_sub_socket(subscriber)
-
-    def _remove_sub_socket(self, subscriber):
-        if self.poller:
-            self.poller.unregister(subscriber)
-        subscriber.close()
+        return self._subscriber.remove(address)
 
     def update(self, addresses):
         """Update with a set of addresses."""
-        if isinstance(addresses, str):
-            addresses = [addresses, ]
-        current_addresses, new_addresses = set(self.addresses), set(addresses)
-        addresses_to_remove = current_addresses.difference(new_addresses)
-        addresses_to_add = new_addresses.difference(current_addresses)
-        for addr in addresses_to_remove:
-            self.remove(addr)
-        for addr in addresses_to_add:
-            self.add(addr)
-        return bool(addresses_to_remove or addresses_to_add)
+        return self._subscriber.update(addresses)
 
     def add_hook_sub(self, address, topics, callback):
         """Specify a SUB *callback* in the same stream (thread) as the main receive loop.
@@ -152,11 +95,7 @@ class Subscriber:
         Good for operations, which is required to be done in the same thread as
         the main recieve loop (e.q operations on the underlying sockets).
         """
-        topics = self._magickfy_topics(topics)
-        LOGGER.info("Subscriber adding SUB hook %s for topics %s",
-                    str(address), str(topics))
-        socket = self._add_sub_socket(address, topics)
-        self._add_hook(socket, callback)
+        return self._subscriber.add_hook_sub(address, self._magickfy_topics(topics), callback)
 
     def add_hook_pull(self, address, callback):
         """Specify a PULL *callback* in the same stream (thread) as the main receive loop.
@@ -164,85 +103,33 @@ class Subscriber:
         The callback will be called with the received messages from the
         specified subscription. Good for pushed 'inproc' messages from another thread.
         """
-        LOGGER.info("Subscriber adding PULL hook %s", str(address))
-        socket = get_context().socket(PULL)
-        socket.connect(address)
-        if self.poller:
-            self.poller.register(socket, POLLIN)
-        self._add_hook(socket, callback)
-
-    def _add_hook(self, socket, callback):
-        """Add a generic hook. The passed socket has to be "receive only"."""
-        self._hooks.append(socket)
-        self._hooks_cb[socket] = callback
-
+        return self._subscriber.add_hook_pull(address, callback)
 
     @property
     def addresses(self):
         """Get the addresses."""
-        return self.sub_addr.values()
+        return self._subscriber.addresses
 
     @property
     def subscribers(self):
         """Get the subscribers."""
-        return self.sub_addr.keys()
+        return self._subscriber.subscribers
 
     def recv(self, timeout=None):
         """Receive, optionally with *timeout* in seconds."""
-        if timeout:
-            timeout *= 1000.
-
-        for sub in list(self.subscribers) + self._hooks:
-            self.poller.register(sub, POLLIN)
-        self._loop = True
-        try:
-            while self._loop:
-                sleep(0)
-                try:
-                    socks = dict(self.poller.poll(timeout=timeout))
-                    if socks:
-                        for sub in self.subscribers:
-                            if sub in socks and socks[sub] == POLLIN:
-                                m__ = Message.decode(sub.recv_string(NOBLOCK))
-                                if not self._filter or self._filter(m__):
-                                    if self._translate:
-                                        url = urlsplit(self.sub_addr[sub])
-                                        host = url[1].split(":")[0]
-                                        m__.sender = (m__.sender.split("@")[0]
-                                                      + "@" + host)
-                                    yield m__
-
-                        for sub in self._hooks:
-                            if sub in socks and socks[sub] == POLLIN:
-                                m__ = Message.decode(sub.recv_string(NOBLOCK))
-                                self._hooks_cb[sub](m__)
-                    else:
-                        # timeout
-                        yield None
-                except ZMQError as err:
-                    if self._loop:
-                        LOGGER.exception("Receive failed: %s", str(err))
-        finally:
-            for sub in list(self.subscribers) + self._hooks:
-                self.poller.unregister(sub)
+        return self._subscriber.recv(timeout)
 
     def __call__(self, **kwargs):
         """Handle calls with class instance."""
-        return self.recv(**kwargs)
+        return self._subscriber(**kwargs)
 
     def stop(self):
         """Stop the subscriber."""
-        self._loop = False
+        return self._subscriber.stop()
 
     def close(self):
         """Close the subscriber: stop it and close the local subscribers."""
-        self.stop()
-        for sub in list(self.subscribers) + self._hooks:
-            try:
-                sub.setsockopt(LINGER, 1)
-                sub.close()
-            except ZMQError:
-                pass
+        return self._subscriber.close()
 
     @staticmethod
     def _magickfy_topics(topics):
@@ -262,15 +149,6 @@ class Subscriber:
                     t__ = _MAGICK + '/' + t__
             ts_.append(t__)
         return ts_
-
-    def __del__(self):
-        """Clean up after the instance is deleted."""
-        for sub in list(self.subscribers) + self._hooks:
-            try:
-                sub.close()
-            except Exception:  # noqa: E722
-                pass
-
 
 class NSSubscriber:
     """Automatically subscribe to *services*.

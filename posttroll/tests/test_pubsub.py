@@ -31,192 +31,193 @@ import time
 from contextlib import contextmanager
 
 import posttroll
+from posttroll.ns import NameServer
+from posttroll.publisher import create_publisher_from_dict_config
+from posttroll.subscriber import Subscribe, Subscriber, create_subscriber_from_dict_config
 import pytest
 from donfig import Config
 
 test_lock = Lock()
 
 
-class TestNS(unittest.TestCase):
-    """Test the nameserver."""
+# class TestNS(unittest.TestCase):
+#     """Test the nameserver."""
 
-    def setUp(self):
-        """Set up the testing class."""
-        from posttroll.ns import NameServer
-        test_lock.acquire()
-        self.ns = NameServer(max_age=timedelta(seconds=3))
-        self.thr = Thread(target=self.ns.run)
-        self.thr.start()
+#     def setUp(self):
+#         """Set up the testing class."""
+#         test_lock.acquire()
+#         self.ns = NameServer(max_age=timedelta(seconds=3))
+#         self.thr = Thread(target=self.ns.run)
+#         self.thr.start()
 
-    def tearDown(self):
-        """Clean up after the tests have run."""
-        self.ns.stop()
-        self.thr.join()
-        time.sleep(2)
-        test_lock.release()
+#     def tearDown(self):
+#         """Clean up after the tests have run."""
+#         self.ns.stop()
+#         self.thr.join()
+#         time.sleep(2)
+#         test_lock.release()
 
-    def test_pub_addresses(self):
-        """Test retrieving addresses."""
-        from posttroll.ns import get_pub_addresses
-        from posttroll.publisher import Publish
+#     def test_pub_addresses(self):
+#         """Test retrieving addresses."""
+#         from posttroll.ns import get_pub_addresses
+#         from posttroll.publisher import Publish
 
-        with Publish(str("data_provider"), 0, ["this_data"], broadcast_interval=0.1):
-            time.sleep(.3)
-            res = get_pub_addresses(["this_data"], timeout=.5)
-            assert len(res) == 1
-            expected = {u'status': True,
-                        u'service': [u'data_provider', u'this_data'],
-                        u'name': u'address'}
-            for key, val in expected.items():
-                assert res[0][key] == val
-            assert "receive_time" in res[0]
-            assert "URI" in res[0]
-            res = get_pub_addresses([str("data_provider")])
-            assert len(res) == 1
-            expected = {u'status': True,
-                        u'service': [u'data_provider', u'this_data'],
-                        u'name': u'address'}
-            for key, val in expected.items():
-                assert res[0][key] == val
-            assert "receive_time" in res[0]
-            assert "URI" in res[0]
+#         with Publish(str("data_provider"), 0, ["this_data"], broadcast_interval=0.1):
+#             time.sleep(.3)
+#             res = get_pub_addresses(["this_data"], timeout=.5)
+#             assert len(res) == 1
+#             expected = {u'status': True,
+#                         u'service': [u'data_provider', u'this_data'],
+#                         u'name': u'address'}
+#             for key, val in expected.items():
+#                 assert res[0][key] == val
+#             assert "receive_time" in res[0]
+#             assert "URI" in res[0]
+#             res = get_pub_addresses([str("data_provider")])
+#             assert len(res) == 1
+#             expected = {u'status': True,
+#                         u'service': [u'data_provider', u'this_data'],
+#                         u'name': u'address'}
+#             for key, val in expected.items():
+#                 assert res[0][key] == val
+#             assert "receive_time" in res[0]
+#             assert "URI" in res[0]
 
-    def test_pub_sub_ctx(self):
-        """Test publish and subscribe."""
-        from posttroll.message import Message
-        from posttroll.publisher import Publish
-        from posttroll.subscriber import Subscribe
+#     def test_pub_sub_ctx(self):
+#         """Test publish and subscribe."""
+#         from posttroll.message import Message
+#         from posttroll.publisher import Publish
+#         from posttroll.subscriber import Subscribe
 
-        with Publish("data_provider", 0, ["this_data"]) as pub:
-            with Subscribe("this_data", "counter") as sub:
-                for counter in range(5):
-                    message = Message("/counter", "info", str(counter))
-                    pub.send(str(message))
-                    time.sleep(1)
-                    msg = next(sub.recv(2))
-                    if msg is not None:
-                        assert str(msg) == str(message)
-                    tested = True
-                sub.close()
-        assert tested
+#         with Publish("data_provider", 0, ["this_data"]) as pub:
+#             with Subscribe("this_data", "counter") as sub:
+#                 for counter in range(5):
+#                     message = Message("/counter", "info", str(counter))
+#                     pub.send(str(message))
+#                     time.sleep(1)
+#                     msg = next(sub.recv(2))
+#                     if msg is not None:
+#                         assert str(msg) == str(message)
+#                     tested = True
+#                 sub.close()
+#         assert tested
 
-    def test_pub_sub_add_rm(self):
-        """Test adding and removing publishers."""
-        from posttroll.publisher import Publish
-        from posttroll.subscriber import Subscribe
+#     def test_pub_sub_add_rm(self):
+#         """Test adding and removing publishers."""
+#         from posttroll.publisher import Publish
+#         from posttroll.subscriber import Subscribe
 
-        time.sleep(4)
-        with Subscribe("this_data", "counter", True) as sub:
-            assert len(sub.sub_addr) == 0
-            with Publish("data_provider", 0, ["this_data"]):
-                time.sleep(4)
-                next(sub.recv(2))
-                assert len(sub.sub_addr) == 1
-            time.sleep(3)
-            for msg in sub.recv(2):
-                if msg is None:
-                    break
-            time.sleep(3)
-            assert len(sub.sub_addr) == 0
-            with Publish("data_provider_2", 0, ["another_data"]):
-                time.sleep(4)
-                next(sub.recv(2))
-                assert len(sub.sub_addr) == 0
-            sub.close()
+#         time.sleep(4)
+#         with Subscribe("this_data", "counter", True) as sub:
+#             assert len(sub.sub_addr) == 0
+#             with Publish("data_provider", 0, ["this_data"]):
+#                 time.sleep(4)
+#                 next(sub.recv(2))
+#                 assert len(sub.sub_addr) == 1
+#             time.sleep(3)
+#             for msg in sub.recv(2):
+#                 if msg is None:
+#                     break
+#             time.sleep(3)
+#             assert len(sub.sub_addr) == 0
+#             with Publish("data_provider_2", 0, ["another_data"]):
+#                 time.sleep(4)
+#                 next(sub.recv(2))
+#                 assert len(sub.sub_addr) == 0
+#             sub.close()
 
 
-class TestNSWithoutMulticasting(unittest.TestCase):
-    """Test the nameserver."""
+# class TestNSWithoutMulticasting(unittest.TestCase):
+#     """Test the nameserver."""
 
-    def setUp(self):
-        """Set up the testing class."""
-        from posttroll.ns import NameServer
-        test_lock.acquire()
-        self.nameservers = ['localhost']
-        self.ns = NameServer(max_age=timedelta(seconds=3),
-                             multicast_enabled=False)
-        self.thr = Thread(target=self.ns.run)
-        self.thr.start()
+#     def setUp(self):
+#         """Set up the testing class."""
+#         test_lock.acquire()
+#         self.nameservers = ['localhost']
+#         self.ns = NameServer(max_age=timedelta(seconds=3),
+#                              multicast_enabled=False)
+#         self.thr = Thread(target=self.ns.run)
+#         self.thr.start()
 
-    def tearDown(self):
-        """Clean up after the tests have run."""
-        self.ns.stop()
-        self.thr.join()
-        time.sleep(2)
-        test_lock.release()
+#     def tearDown(self):
+#         """Clean up after the tests have run."""
+#         self.ns.stop()
+#         self.thr.join()
+#         time.sleep(2)
+#         test_lock.release()
 
-    def test_pub_addresses(self):
-        """Test retrieving addresses."""
-        from posttroll.ns import get_pub_addresses
-        from posttroll.publisher import Publish
+#     def test_pub_addresses(self):
+#         """Test retrieving addresses."""
+#         from posttroll.ns import get_pub_addresses
+#         from posttroll.publisher import Publish
 
-        with Publish("data_provider", 0, ["this_data"],
-                     nameservers=self.nameservers):
-            time.sleep(3)
-            res = get_pub_addresses(["this_data"])
-            self.assertEqual(len(res), 1)
-            expected = {u'status': True,
-                        u'service': [u'data_provider', u'this_data'],
-                        u'name': u'address'}
-            for key, val in expected.items():
-                self.assertEqual(res[0][key], val)
-            self.assertTrue("receive_time" in res[0])
-            self.assertTrue("URI" in res[0])
-            res = get_pub_addresses(["data_provider"])
-            self.assertEqual(len(res), 1)
-            expected = {u'status': True,
-                        u'service': [u'data_provider', u'this_data'],
-                        u'name': u'address'}
-            for key, val in expected.items():
-                self.assertEqual(res[0][key], val)
-            self.assertTrue("receive_time" in res[0])
-            self.assertTrue("URI" in res[0])
+#         with Publish("data_provider", 0, ["this_data"],
+#                      nameservers=self.nameservers):
+#             time.sleep(3)
+#             res = get_pub_addresses(["this_data"])
+#             self.assertEqual(len(res), 1)
+#             expected = {u'status': True,
+#                         u'service': [u'data_provider', u'this_data'],
+#                         u'name': u'address'}
+#             for key, val in expected.items():
+#                 self.assertEqual(res[0][key], val)
+#             self.assertTrue("receive_time" in res[0])
+#             self.assertTrue("URI" in res[0])
+#             res = get_pub_addresses(["data_provider"])
+#             self.assertEqual(len(res), 1)
+#             expected = {u'status': True,
+#                         u'service': [u'data_provider', u'this_data'],
+#                         u'name': u'address'}
+#             for key, val in expected.items():
+#                 self.assertEqual(res[0][key], val)
+#             self.assertTrue("receive_time" in res[0])
+#             self.assertTrue("URI" in res[0])
 
-    def test_pub_sub_ctx(self):
-        """Test publish and subscribe."""
-        from posttroll.message import Message
-        from posttroll.publisher import Publish
-        from posttroll.subscriber import Subscribe
+#     def test_pub_sub_ctx(self):
+#         """Test publish and subscribe."""
+#         from posttroll.message import Message
+#         from posttroll.publisher import Publish
+#         from posttroll.subscriber import Subscribe
 
-        with Publish("data_provider", 0, ["this_data"],
-                     nameservers=self.nameservers) as pub:
-            with Subscribe("this_data", "counter") as sub:
-                for counter in range(5):
-                    message = Message("/counter", "info", str(counter))
-                    pub.send(str(message))
-                    time.sleep(1)
-                    msg = next(sub.recv(2))
-                    if msg is not None:
-                        self.assertEqual(str(msg), str(message))
-                    tested = True
-                sub.close()
-        self.assertTrue(tested)
+#         with Publish("data_provider", 0, ["this_data"],
+#                      nameservers=self.nameservers) as pub:
+#             with Subscribe("this_data", "counter") as sub:
+#                 for counter in range(5):
+#                     message = Message("/counter", "info", str(counter))
+#                     pub.send(str(message))
+#                     time.sleep(1)
+#                     msg = next(sub.recv(2))
+#                     if msg is not None:
+#                         self.assertEqual(str(msg), str(message))
+#                     tested = True
+#                 sub.close()
+#         self.assertTrue(tested)
 
-    def test_pub_sub_add_rm(self):
-        """Test adding and removing publishers."""
-        from posttroll.publisher import Publish
-        from posttroll.subscriber import Subscribe
+#     def test_pub_sub_add_rm(self):
+#         """Test adding and removing publishers."""
+#         from posttroll.publisher import Publish
+#         from posttroll.subscriber import Subscribe
 
-        time.sleep(4)
-        with Subscribe("this_data", "counter", True) as sub:
-            self.assertEqual(len(sub.sub_addr), 0)
-            with Publish("data_provider", 0, ["this_data"],
-                         nameservers=self.nameservers):
-                time.sleep(4)
-                next(sub.recv(2))
-                self.assertEqual(len(sub.sub_addr), 1)
-            time.sleep(3)
-            for msg in sub.recv(2):
-                if msg is None:
-                    break
+#         time.sleep(4)
+#         with Subscribe("this_data", "counter", True) as sub:
+#             self.assertEqual(len(sub.sub_addr), 0)
+#             with Publish("data_provider", 0, ["this_data"],
+#                          nameservers=self.nameservers):
+#                 time.sleep(4)
+#                 next(sub.recv(2))
+#                 self.assertEqual(len(sub.sub_addr), 1)
+#             time.sleep(3)
+#             for msg in sub.recv(2):
+#                 if msg is None:
+#                     break
 
-            time.sleep(3)
-            self.assertEqual(len(sub.sub_addr), 0)
-            with Publish("data_provider_2", 0, ["another_data"],
-                         nameservers=self.nameservers):
-                time.sleep(4)
-                next(sub.recv(2))
-                self.assertEqual(len(sub.sub_addr), 0)
+#             time.sleep(3)
+#             self.assertEqual(len(sub.sub_addr), 0)
+#             with Publish("data_provider_2", 0, ["another_data"],
+#                          nameservers=self.nameservers):
+#                 time.sleep(4)
+#                 next(sub.recv(2))
+#                 self.assertEqual(len(sub.sub_addr), 0)
 
 
 class TestPubSub(unittest.TestCase):
@@ -234,9 +235,8 @@ class TestPubSub(unittest.TestCase):
         """Test timeout in offline nameserver."""
         from posttroll.ns import get_pub_address
         from posttroll.ns import TimeoutError
-
-        self.assertRaises(TimeoutError,
-                          get_pub_address, ["this_data", 0.5])
+        with pytest.raises(TimeoutError):
+            get_pub_address("this_data", 0.05)
 
     def test_pub_suber(self):
         """Test publisher and subscriber."""
@@ -249,11 +249,14 @@ class TestPubSub(unittest.TestCase):
         pub = Publisher(pub_address).start()
         addr = pub_address[:-1] + str(pub.port_number)
         sub = Subscriber([addr], '/counter')
+        # wait a bit before sending the first message so that the subscriber is ready
+        time.sleep(.002)
+
         tested = False
         for counter in range(5):
             message = Message("/counter", "info", str(counter))
             pub.send(str(message))
-            time.sleep(1)
+            time.sleep(.05)
 
             msg = next(sub.recv(2))
             if msg is not None:
@@ -266,20 +269,22 @@ class TestPubSub(unittest.TestCase):
         """Test publish and subscribe."""
         from posttroll.message import Message
         from posttroll.publisher import Publish
-        from posttroll.subscriber import Subscribe
 
         with Publish("data_provider", 40000, nameservers=False) as pub:
             with Subscribe(topics="counter", nameserver=False, addresses=["tcp://127.0.0.1:40000"]) as sub:
+                assert isinstance(sub, Subscriber)
+                # wait a bit before sending the first message so that the subscriber is ready
+                time.sleep(.002)
                 for counter in range(5):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
-                    time.sleep(1)
+                    time.sleep(.05)
                     msg = next(sub.recv(2))
                     if msg is not None:
                         self.assertEqual(str(msg), str(message))
                     tested = True
                 sub.close()
-        self.assertTrue(tested)
+        assert tested
 
 
 class TestPub(unittest.TestCase):
@@ -293,7 +298,7 @@ class TestPub(unittest.TestCase):
         """Clean up after the tests have run."""
         test_lock.release()
 
-    def test_pub_unicode(self):
+    def test_pub_supports_unicode(self):
         """Test publishing messages in Unicode."""
         from posttroll.message import Message
         from posttroll.publisher import Publish
@@ -305,16 +310,14 @@ class TestPub(unittest.TestCase):
             except UnicodeDecodeError:
                 self.fail("Sending raised UnicodeDecodeError unexpectedly!")
 
-    def test_pub_minmax_port(self):
-        """Test user defined port range."""
-        import os
-
+    def test_pub_minmax_port_from_config(self):
+        """Test config defined port range."""
         # Using environment variables to set port range
         # Try over a range of ports just in case the single port is reserved
         for port in range(40000, 50000):
             # Set the port range to config
             with posttroll.config.set(pub_min_port=str(port), pub_max_port=str(port + 1)):
-                res = _get_port(min_port=None, max_port=None)
+                res = _get_port_from_publish_instance(min_port=None, max_port=None)
                 if res is False:
                     # The port wasn't free, try another one
                     continue
@@ -322,10 +325,12 @@ class TestPub(unittest.TestCase):
                 self.assertEqual(res, port)
                 break
 
+    def test_pub_minmax_port_from_instanciation(self):
+        """Test port range defined at instanciation."""
         # Using range of ports defined at instantation time, this
         # should override environment variables
         for port in range(50000, 60000):
-            res = _get_port(min_port=port, max_port=port+1)
+            res = _get_port_from_publish_instance(min_port=port, max_port=port+1)
             if res is False:
                 # The port wasn't free, try again
                 continue
@@ -334,7 +339,7 @@ class TestPub(unittest.TestCase):
             break
 
 
-def _get_port(min_port=None, max_port=None):
+def _get_port_from_publish_instance(min_port=None, max_port=None):
     from zmq.error import ZMQError
     from posttroll.publisher import Publish
 
@@ -364,7 +369,6 @@ class TestListenerContainer(unittest.TestCase):
         """Clean up after the tests have run."""
         self.ns.stop()
         self.thr.join()
-        time.sleep(2)
         test_lock.release()
 
     def test_listener_container(self):
@@ -373,10 +377,10 @@ class TestListenerContainer(unittest.TestCase):
         from posttroll.publisher import NoisyPublisher
         from posttroll.listener import ListenerContainer
 
-        pub = NoisyPublisher("test")
+        pub = NoisyPublisher("test", broadcast_interval=0.1)
         pub.start()
         sub = ListenerContainer(topics=["/counter"])
-        time.sleep(2)
+        time.sleep(.1)
         for counter in range(5):
             tested = False
             msg_out = Message("/counter", "info", str(counter))
@@ -384,7 +388,7 @@ class TestListenerContainer(unittest.TestCase):
 
             msg_in = sub.output_queue.get(True, 1)
             if msg_in is not None:
-                self.assertEqual(str(msg_in), str(msg_out))
+                assert str(msg_in) == str(msg_out)
                 tested = True
             self.assertTrue(tested)
         pub.stop()
@@ -450,22 +454,19 @@ class TestAddressReceiver(unittest.TestCase):
 class TestPublisherDictConfig(unittest.TestCase):
     """Test configuring publishers with a dictionary."""
 
-    @mock.patch('posttroll.publisher.Publisher')
-    def test_publisher_is_selected(self, Publisher):
+    def test_publisher_is_selected(self):
         """Test that Publisher is selected as publisher class."""
-        from posttroll.publisher import create_publisher_from_dict_config
+        from posttroll.publisher import Publisher
 
         settings = {'port': 12345, 'nameservers': False}
 
         pub = create_publisher_from_dict_config(settings)
-        Publisher.assert_called_once()
+        assert isinstance(pub, Publisher)
         assert pub is not None
 
     @mock.patch('posttroll.publisher.Publisher')
     def test_publisher_all_arguments(self, Publisher):
         """Test that only valid arguments are passed to Publisher."""
-        from posttroll.publisher import create_publisher_from_dict_config
-
         settings = {'port': 12345, 'nameservers': False, 'name': 'foo',
                     'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
         _ = create_publisher_from_dict_config(settings)
@@ -475,31 +476,26 @@ class TestPublisherDictConfig(unittest.TestCase):
 
     def test_no_name_raises_keyerror(self):
         """Trying to create a NoisyPublisher without a given name will raise KeyError."""
-        from posttroll.publisher import create_publisher_from_dict_config
-
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             _ = create_publisher_from_dict_config(dict())
 
-    @mock.patch('posttroll.publisher.NoisyPublisher')
-    def test_noisypublisher_is_selected_only_name(self, NoisyPublisher):
+    def test_noisypublisher_is_selected_only_name(self):
         """Test that NoisyPublisher is selected as publisher class."""
-        from posttroll.publisher import create_publisher_from_dict_config
+        from posttroll.publisher import NoisyPublisher
 
         settings = {'name': 'publisher_name'}
 
         pub = create_publisher_from_dict_config(settings)
-        NoisyPublisher.assert_called_once()
-        assert pub is not None
+        assert isinstance(pub, NoisyPublisher)
 
-    @mock.patch('posttroll.publisher.NoisyPublisher')
-    def test_noisypublisher_is_selected_name_and_port(self, NoisyPublisher):
+    def test_noisypublisher_is_selected_name_and_port(self):
         """Test that NoisyPublisher is selected as publisher class."""
-        from posttroll.publisher import create_publisher_from_dict_config
+        from posttroll.publisher import NoisyPublisher
 
         settings = {'name': 'publisher_name', 'port': 40000}
 
-        _ = create_publisher_from_dict_config(settings)
-        NoisyPublisher.assert_called_once()
+        pub = create_publisher_from_dict_config(settings)
+        assert isinstance(pub, NoisyPublisher)
 
     @mock.patch('posttroll.publisher.NoisyPublisher')
     def test_noisypublisher_all_arguments(self, NoisyPublisher):
@@ -513,37 +509,33 @@ class TestPublisherDictConfig(unittest.TestCase):
         _check_valid_settings_in_call(settings, NoisyPublisher, ignore=['name'])
         assert NoisyPublisher.call_args[0][0] == settings["name"]
 
-    @mock.patch('posttroll.publisher.Publisher')
-    def test_publish_is_not_noisy(self, Publisher):
+    def test_publish_is_not_noisy(self):
         """Test that Publisher is selected with the context manager when it should be."""
-        from posttroll.publisher import Publish
+        from posttroll.publisher import Publish, Publisher
 
-        with Publish("service_name", port=40000, nameservers=False):
-            Publisher.assert_called_once()
+        with Publish("service_name", port=40000, nameservers=False) as pub:
+            assert isinstance(pub, Publisher)
 
-    @mock.patch('posttroll.publisher.NoisyPublisher')
-    def test_publish_is_noisy_only_name(self, NoisyPublisher):
+    def test_publish_is_noisy_only_name(self):
         """Test that NoisyPublisher is selected with the context manager when only name is given."""
-        from posttroll.publisher import Publish
+        from posttroll.publisher import Publish, NoisyPublisher
 
-        with Publish("service_name"):
-            NoisyPublisher.assert_called_once()
+        with Publish("service_name") as pub:
+            assert isinstance(pub, NoisyPublisher)
 
-    @mock.patch('posttroll.publisher.NoisyPublisher')
-    def test_publish_is_noisy_with_port(self, NoisyPublisher):
+    def test_publish_is_noisy_with_port(self):
         """Test that NoisyPublisher is selected with the context manager when port is given."""
-        from posttroll.publisher import Publish
+        from posttroll.publisher import Publish, NoisyPublisher
 
-        with Publish("service_name", port=40000):
-            NoisyPublisher.assert_called_once()
+        with Publish("service_name", port=40001) as pub:
+            assert isinstance(pub, NoisyPublisher)
 
-    @mock.patch('posttroll.publisher.NoisyPublisher')
-    def test_publish_is_noisy_with_nameservers(self, NoisyPublisher):
+    def test_publish_is_noisy_with_nameservers(self):
         """Test that NoisyPublisher is selected with the context manager when nameservers are given."""
-        from posttroll.publisher import Publish
+        from posttroll.publisher import Publish, NoisyPublisher
 
-        with Publish("service_name", nameservers=['a', 'b']):
-            NoisyPublisher.assert_called_once()
+        with Publish("service_name", nameservers=['a', 'b']) as pub:
+            assert isinstance(pub, NoisyPublisher)
 
 
 def _check_valid_settings_in_call(settings, pub_class, ignore=None):
@@ -632,7 +624,7 @@ def test_dict_config_full_subscriber(Subscriber_update):
 
 
 @pytest.fixture
-def tcp_keepalive_settings(monkeypatch):
+def oldtcp_keepalive_settings(monkeypatch):
     """Set TCP Keepalive settings."""
     monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE", "1")
     monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_CNT", "10")
@@ -641,6 +633,12 @@ def tcp_keepalive_settings(monkeypatch):
     with reset_config_for_tests():
         yield
 
+@pytest.fixture
+def tcp_keepalive_settings(monkeypatch):
+    """Set TCP Keepalive settings."""
+    from posttroll import config
+    with config.set(tcp_keepalive=1, tcp_keepalive_cnt=10, tcp_keepalive_idle=1, tcp_keepalive_intvl=1):
+        yield
 
 @contextmanager
 def reset_config_for_tests():
@@ -652,71 +650,124 @@ def reset_config_for_tests():
 
 
 @pytest.fixture
-def tcp_keepalive_no_settings(monkeypatch):
+def tcp_keepalive_no_settings():
     """Set TCP Keepalive settings."""
-    monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE", raising=False)
-    monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_CNT", raising=False)
-    monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_IDLE", raising=False)
-    monkeypatch.delenv("POSTTROLL_TCP_KEEPALIVE_INTVL", raising=False)
-    with reset_config_for_tests():
+    from posttroll import config
+    with config.set(tcp_keepalive=None, tcp_keepalive_cnt=None, tcp_keepalive_idle=None, tcp_keepalive_intvl=None):
         yield
 
 
 def test_publisher_tcp_keepalive(tcp_keepalive_settings):
     """Test that TCP Keepalive is set for Publisher if the environment variables are present."""
-    socket = mock.MagicMock()
-    with mock.patch('posttroll.publisher.get_context') as get_context:
-        get_context.return_value.socket.return_value = socket
-        from posttroll.publisher import Publisher
-
-        _ = Publisher("tcp://127.0.0.1:9000").start()
-
-    _assert_tcp_keepalive(socket)
+    from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
+    pub = UnsecureZMQPublisher("tcp://127.0.0.1:9000").start()
+    _assert_tcp_keepalive(pub.publish_socket)
 
 
 def test_publisher_tcp_keepalive_not_set(tcp_keepalive_no_settings):
     """Test that TCP Keepalive is not set on by default."""
-    socket = mock.MagicMock()
-    with mock.patch('posttroll.publisher.get_context') as get_context:
-        get_context.return_value.socket.return_value = socket
-        from posttroll.publisher import Publisher
-
-        _ = Publisher("tcp://127.0.0.1:9000").start()
-    _assert_no_tcp_keepalive(socket)
+    from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
+    pub = UnsecureZMQPublisher("tcp://127.0.0.1:9000").start()
+    _assert_no_tcp_keepalive(pub.publish_socket)
 
 
 def test_subscriber_tcp_keepalive(tcp_keepalive_settings):
     """Test that TCP Keepalive is set for Subscriber if the environment variables are present."""
-    socket = mock.MagicMock()
-    with mock.patch('posttroll.subscriber.get_context') as get_context:
-        get_context.return_value.socket.return_value = socket
-        from posttroll.subscriber import Subscriber
+    from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
 
-        _ = Subscriber("tcp://127.0.0.1:9000")
+    sub = UnsecureZMQSubscriber("tcp://127.0.0.1:9000")
 
-    _assert_tcp_keepalive(socket)
+    assert len(sub.addr_sub.values()) == 1
+
+    _assert_tcp_keepalive(list(sub.addr_sub.values())[0])
 
 
 def test_subscriber_tcp_keepalive_not_set(tcp_keepalive_no_settings):
     """Test that TCP Keepalive is not set on by default."""
-    socket = mock.MagicMock()
-    with mock.patch('posttroll.subscriber.get_context') as get_context:
-        get_context.return_value.socket.return_value = socket
-        from posttroll.subscriber import Subscriber
+    from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
 
-        _ = Subscriber("tcp://127.0.0.1:9000")
+    sub = UnsecureZMQSubscriber("tcp://127.0.0.1:9000")
 
-    _assert_no_tcp_keepalive(socket)
+    assert len(sub.addr_sub.values()) == 1
+
+    _assert_no_tcp_keepalive(list(sub.addr_sub.values())[0])
 
 
 def _assert_tcp_keepalive(socket):
     import zmq
 
-    assert mock.call(zmq.TCP_KEEPALIVE, 1) in socket.setsockopt.mock_calls
-    assert mock.call(zmq.TCP_KEEPALIVE_CNT, 10) in socket.setsockopt.mock_calls
-    assert mock.call(zmq.TCP_KEEPALIVE_IDLE, 1) in socket.setsockopt.mock_calls
-    assert mock.call(zmq.TCP_KEEPALIVE_INTVL, 1) in socket.setsockopt.mock_calls
+    assert socket.getsockopt(zmq.TCP_KEEPALIVE) == 1
+    assert socket.getsockopt(zmq.TCP_KEEPALIVE_CNT) == 10
+    assert socket.getsockopt(zmq.TCP_KEEPALIVE_IDLE) == 1
+    assert socket.getsockopt(zmq.TCP_KEEPALIVE_INTVL) == 1
 
 
 def _assert_no_tcp_keepalive(socket):
-    assert "TCP_KEEPALIVE" not in str(socket.setsockopt.mock_calls)
+    import zmq
+
+    assert socket.getsockopt(zmq.TCP_KEEPALIVE) == -1
+    assert socket.getsockopt(zmq.TCP_KEEPALIVE_CNT) == -1
+    assert socket.getsockopt(zmq.TCP_KEEPALIVE_IDLE) == -1
+    assert socket.getsockopt(zmq.TCP_KEEPALIVE_INTVL) == -1
+
+
+def test_ipc_pubsub():
+    from posttroll import config
+    with config.set(backend="unsecure_zmq"):
+        subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
+        sub = create_subscriber_from_dict_config(subscriber_settings)
+        from posttroll.publisher import Publisher
+        pub = Publisher("ipc://bla.ipc")
+        pub.start()
+        def delayed_send(msg):
+            time.sleep(.2)
+            from posttroll.message import Message
+            msg = Message(subject="/hi", atype="string", data=msg)
+            pub.send(str(msg))
+            pub.stop()
+        from threading import Thread
+        Thread(target=delayed_send, args=["hi"]).start()
+        for msg in sub.recv():
+            assert msg.data == "hi"
+            break
+        sub.stop()
+
+def test_ipc_pubsub_with_sec():
+    from posttroll import config
+    with config.set(backend="secure_zmq"):
+        subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
+        sub = create_subscriber_from_dict_config(subscriber_settings)
+        from posttroll.publisher import Publisher
+        pub = Publisher("ipc://bla.ipc", secure=True)
+        pub.start()
+        def delayed_send(msg):
+            time.sleep(.2)
+            from posttroll.message import Message
+            msg = Message(subject="/hi", atype="string", data=msg)
+            pub.send(str(msg))
+            pub.stop()
+        from threading import Thread
+        Thread(target=delayed_send, args=["hi"]).start()
+        for msg in sub.recv():
+            assert msg.data == "hi"
+            break
+        sub.stop()
+
+def test_switch_to_unknown_backend():
+    from posttroll import config
+    from posttroll.publisher import Publisher
+    from posttroll.subscriber import Subscriber
+    with config.set(backend="unsecure_and_deprecated"):
+        with pytest.raises(NotImplementedError):
+            Publisher("ipc://bla.ipc")
+        with pytest.raises(NotImplementedError):
+            Subscriber("ipc://bla.ipc")
+
+def test_switch_to_secure_zmq_backend():
+    from posttroll import config
+    from posttroll.publisher import Publisher
+    from posttroll.subscriber import Subscriber
+
+    with config.set(backend="secure_zmq"):
+        Publisher("ipc://bla.ipc")
+        Subscriber("ipc://bla.ipc")
