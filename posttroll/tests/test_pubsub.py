@@ -40,184 +40,184 @@ from donfig import Config
 test_lock = Lock()
 
 
-# class TestNS(unittest.TestCase):
-#     """Test the nameserver."""
+class TestNS(unittest.TestCase):
+    """Test the nameserver."""
 
-#     def setUp(self):
-#         """Set up the testing class."""
-#         test_lock.acquire()
-#         self.ns = NameServer(max_age=timedelta(seconds=3))
-#         self.thr = Thread(target=self.ns.run)
-#         self.thr.start()
+    def setUp(self):
+        """Set up the testing class."""
+        test_lock.acquire()
+        self.ns = NameServer(max_age=timedelta(seconds=3))
+        self.thr = Thread(target=self.ns.run)
+        self.thr.start()
 
-#     def tearDown(self):
-#         """Clean up after the tests have run."""
-#         self.ns.stop()
-#         self.thr.join()
-#         time.sleep(2)
-#         test_lock.release()
+    def tearDown(self):
+        """Clean up after the tests have run."""
+        self.ns.stop()
+        self.thr.join()
+        time.sleep(2)
+        test_lock.release()
 
-#     def test_pub_addresses(self):
-#         """Test retrieving addresses."""
-#         from posttroll.ns import get_pub_addresses
-#         from posttroll.publisher import Publish
+    def test_pub_addresses(self):
+        """Test retrieving addresses."""
+        from posttroll.ns import get_pub_addresses
+        from posttroll.publisher import Publish
 
-#         with Publish(str("data_provider"), 0, ["this_data"], broadcast_interval=0.1):
-#             time.sleep(.3)
-#             res = get_pub_addresses(["this_data"], timeout=.5)
-#             assert len(res) == 1
-#             expected = {u'status': True,
-#                         u'service': [u'data_provider', u'this_data'],
-#                         u'name': u'address'}
-#             for key, val in expected.items():
-#                 assert res[0][key] == val
-#             assert "receive_time" in res[0]
-#             assert "URI" in res[0]
-#             res = get_pub_addresses([str("data_provider")])
-#             assert len(res) == 1
-#             expected = {u'status': True,
-#                         u'service': [u'data_provider', u'this_data'],
-#                         u'name': u'address'}
-#             for key, val in expected.items():
-#                 assert res[0][key] == val
-#             assert "receive_time" in res[0]
-#             assert "URI" in res[0]
+        with Publish(str("data_provider"), 0, ["this_data"], broadcast_interval=0.1):
+            time.sleep(.3)
+            res = get_pub_addresses(["this_data"], timeout=.5)
+            assert len(res) == 1
+            expected = {u'status': True,
+                        u'service': [u'data_provider', u'this_data'],
+                        u'name': u'address'}
+            for key, val in expected.items():
+                assert res[0][key] == val
+            assert "receive_time" in res[0]
+            assert "URI" in res[0]
+            res = get_pub_addresses([str("data_provider")])
+            assert len(res) == 1
+            expected = {u'status': True,
+                        u'service': [u'data_provider', u'this_data'],
+                        u'name': u'address'}
+            for key, val in expected.items():
+                assert res[0][key] == val
+            assert "receive_time" in res[0]
+            assert "URI" in res[0]
 
-#     def test_pub_sub_ctx(self):
-#         """Test publish and subscribe."""
-#         from posttroll.message import Message
-#         from posttroll.publisher import Publish
-#         from posttroll.subscriber import Subscribe
+    def test_pub_sub_ctx(self):
+        """Test publish and subscribe."""
+        from posttroll.message import Message
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
 
-#         with Publish("data_provider", 0, ["this_data"]) as pub:
-#             with Subscribe("this_data", "counter") as sub:
-#                 for counter in range(5):
-#                     message = Message("/counter", "info", str(counter))
-#                     pub.send(str(message))
-#                     time.sleep(1)
-#                     msg = next(sub.recv(2))
-#                     if msg is not None:
-#                         assert str(msg) == str(message)
-#                     tested = True
-#                 sub.close()
-#         assert tested
+        with Publish("data_provider", 0, ["this_data"]) as pub:
+            with Subscribe("this_data", "counter") as sub:
+                for counter in range(5):
+                    message = Message("/counter", "info", str(counter))
+                    pub.send(str(message))
+                    time.sleep(1)
+                    msg = next(sub.recv(2))
+                    if msg is not None:
+                        assert str(msg) == str(message)
+                    tested = True
+                sub.close()
+        assert tested
 
-#     def test_pub_sub_add_rm(self):
-#         """Test adding and removing publishers."""
-#         from posttroll.publisher import Publish
-#         from posttroll.subscriber import Subscribe
+    def test_pub_sub_add_rm(self):
+        """Test adding and removing publishers."""
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
 
-#         time.sleep(4)
-#         with Subscribe("this_data", "counter", True) as sub:
-#             assert len(sub.sub_addr) == 0
-#             with Publish("data_provider", 0, ["this_data"]):
-#                 time.sleep(4)
-#                 next(sub.recv(2))
-#                 assert len(sub.sub_addr) == 1
-#             time.sleep(3)
-#             for msg in sub.recv(2):
-#                 if msg is None:
-#                     break
-#             time.sleep(3)
-#             assert len(sub.sub_addr) == 0
-#             with Publish("data_provider_2", 0, ["another_data"]):
-#                 time.sleep(4)
-#                 next(sub.recv(2))
-#                 assert len(sub.sub_addr) == 0
-#             sub.close()
+        time.sleep(4)
+        with Subscribe("this_data", "counter", True) as sub:
+            assert len(sub.sub_addr) == 0
+            with Publish("data_provider", 0, ["this_data"]):
+                time.sleep(4)
+                next(sub.recv(2))
+                assert len(sub.sub_addr) == 1
+            time.sleep(3)
+            for msg in sub.recv(2):
+                if msg is None:
+                    break
+            time.sleep(3)
+            assert len(sub.sub_addr) == 0
+            with Publish("data_provider_2", 0, ["another_data"]):
+                time.sleep(4)
+                next(sub.recv(2))
+                assert len(sub.sub_addr) == 0
+            sub.close()
 
 
-# class TestNSWithoutMulticasting(unittest.TestCase):
-#     """Test the nameserver."""
+class TestNSWithoutMulticasting(unittest.TestCase):
+    """Test the nameserver."""
 
-#     def setUp(self):
-#         """Set up the testing class."""
-#         test_lock.acquire()
-#         self.nameservers = ['localhost']
-#         self.ns = NameServer(max_age=timedelta(seconds=3),
-#                              multicast_enabled=False)
-#         self.thr = Thread(target=self.ns.run)
-#         self.thr.start()
+    def setUp(self):
+        """Set up the testing class."""
+        test_lock.acquire()
+        self.nameservers = ['localhost']
+        self.ns = NameServer(max_age=timedelta(seconds=3),
+                             multicast_enabled=False)
+        self.thr = Thread(target=self.ns.run)
+        self.thr.start()
 
-#     def tearDown(self):
-#         """Clean up after the tests have run."""
-#         self.ns.stop()
-#         self.thr.join()
-#         time.sleep(2)
-#         test_lock.release()
+    def tearDown(self):
+        """Clean up after the tests have run."""
+        self.ns.stop()
+        self.thr.join()
+        time.sleep(2)
+        test_lock.release()
 
-#     def test_pub_addresses(self):
-#         """Test retrieving addresses."""
-#         from posttroll.ns import get_pub_addresses
-#         from posttroll.publisher import Publish
+    def test_pub_addresses(self):
+        """Test retrieving addresses."""
+        from posttroll.ns import get_pub_addresses
+        from posttroll.publisher import Publish
 
-#         with Publish("data_provider", 0, ["this_data"],
-#                      nameservers=self.nameservers):
-#             time.sleep(3)
-#             res = get_pub_addresses(["this_data"])
-#             self.assertEqual(len(res), 1)
-#             expected = {u'status': True,
-#                         u'service': [u'data_provider', u'this_data'],
-#                         u'name': u'address'}
-#             for key, val in expected.items():
-#                 self.assertEqual(res[0][key], val)
-#             self.assertTrue("receive_time" in res[0])
-#             self.assertTrue("URI" in res[0])
-#             res = get_pub_addresses(["data_provider"])
-#             self.assertEqual(len(res), 1)
-#             expected = {u'status': True,
-#                         u'service': [u'data_provider', u'this_data'],
-#                         u'name': u'address'}
-#             for key, val in expected.items():
-#                 self.assertEqual(res[0][key], val)
-#             self.assertTrue("receive_time" in res[0])
-#             self.assertTrue("URI" in res[0])
+        with Publish("data_provider", 0, ["this_data"],
+                     nameservers=self.nameservers):
+            time.sleep(3)
+            res = get_pub_addresses(["this_data"])
+            self.assertEqual(len(res), 1)
+            expected = {u'status': True,
+                        u'service': [u'data_provider', u'this_data'],
+                        u'name': u'address'}
+            for key, val in expected.items():
+                self.assertEqual(res[0][key], val)
+            self.assertTrue("receive_time" in res[0])
+            self.assertTrue("URI" in res[0])
+            res = get_pub_addresses(["data_provider"])
+            self.assertEqual(len(res), 1)
+            expected = {u'status': True,
+                        u'service': [u'data_provider', u'this_data'],
+                        u'name': u'address'}
+            for key, val in expected.items():
+                self.assertEqual(res[0][key], val)
+            self.assertTrue("receive_time" in res[0])
+            self.assertTrue("URI" in res[0])
 
-#     def test_pub_sub_ctx(self):
-#         """Test publish and subscribe."""
-#         from posttroll.message import Message
-#         from posttroll.publisher import Publish
-#         from posttroll.subscriber import Subscribe
+    def test_pub_sub_ctx(self):
+        """Test publish and subscribe."""
+        from posttroll.message import Message
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
 
-#         with Publish("data_provider", 0, ["this_data"],
-#                      nameservers=self.nameservers) as pub:
-#             with Subscribe("this_data", "counter") as sub:
-#                 for counter in range(5):
-#                     message = Message("/counter", "info", str(counter))
-#                     pub.send(str(message))
-#                     time.sleep(1)
-#                     msg = next(sub.recv(2))
-#                     if msg is not None:
-#                         self.assertEqual(str(msg), str(message))
-#                     tested = True
-#                 sub.close()
-#         self.assertTrue(tested)
+        with Publish("data_provider", 0, ["this_data"],
+                     nameservers=self.nameservers) as pub:
+            with Subscribe("this_data", "counter") as sub:
+                for counter in range(5):
+                    message = Message("/counter", "info", str(counter))
+                    pub.send(str(message))
+                    time.sleep(1)
+                    msg = next(sub.recv(2))
+                    if msg is not None:
+                        self.assertEqual(str(msg), str(message))
+                    tested = True
+                sub.close()
+        self.assertTrue(tested)
 
-#     def test_pub_sub_add_rm(self):
-#         """Test adding and removing publishers."""
-#         from posttroll.publisher import Publish
-#         from posttroll.subscriber import Subscribe
+    def test_pub_sub_add_rm(self):
+        """Test adding and removing publishers."""
+        from posttroll.publisher import Publish
+        from posttroll.subscriber import Subscribe
 
-#         time.sleep(4)
-#         with Subscribe("this_data", "counter", True) as sub:
-#             self.assertEqual(len(sub.sub_addr), 0)
-#             with Publish("data_provider", 0, ["this_data"],
-#                          nameservers=self.nameservers):
-#                 time.sleep(4)
-#                 next(sub.recv(2))
-#                 self.assertEqual(len(sub.sub_addr), 1)
-#             time.sleep(3)
-#             for msg in sub.recv(2):
-#                 if msg is None:
-#                     break
+        time.sleep(4)
+        with Subscribe("this_data", "counter", True) as sub:
+            self.assertEqual(len(sub.sub_addr), 0)
+            with Publish("data_provider", 0, ["this_data"],
+                         nameservers=self.nameservers):
+                time.sleep(4)
+                next(sub.recv(2))
+                self.assertEqual(len(sub.sub_addr), 1)
+            time.sleep(3)
+            for msg in sub.recv(2):
+                if msg is None:
+                    break
 
-#             time.sleep(3)
-#             self.assertEqual(len(sub.sub_addr), 0)
-#             with Publish("data_provider_2", 0, ["another_data"],
-#                          nameservers=self.nameservers):
-#                 time.sleep(4)
-#                 next(sub.recv(2))
-#                 self.assertEqual(len(sub.sub_addr), 0)
+            time.sleep(3)
+            self.assertEqual(len(sub.sub_addr), 0)
+            with Publish("data_provider_2", 0, ["another_data"],
+                         nameservers=self.nameservers):
+                time.sleep(4)
+                next(sub.recv(2))
+                self.assertEqual(len(sub.sub_addr), 0)
 
 
 class TestPubSub(unittest.TestCase):
@@ -604,7 +604,7 @@ def test_dict_config_full_nssubscriber(NSSubscriber_start):
     NSSubscriber_start.assert_called_once()
 
 
-@mock.patch('posttroll.subscriber.Subscriber.update')
+@mock.patch('posttroll.subscriber.UnsecureZMQSubscriber.update')
 def test_dict_config_full_subscriber(Subscriber_update):
     """Test that all Subscriber options are passed."""
     from posttroll.subscriber import create_subscriber_from_dict_config
@@ -620,17 +620,6 @@ def test_dict_config_full_subscriber(Subscriber_update):
         "message_filter": "val8",
     }
     _ = create_subscriber_from_dict_config(settings)
-
-
-@pytest.fixture
-def oldtcp_keepalive_settings(monkeypatch):
-    """Set TCP Keepalive settings."""
-    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE", "1")
-    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_CNT", "10")
-    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_IDLE", "1")
-    monkeypatch.setenv("POSTTROLL_TCP_KEEPALIVE_INTVL", "1")
-    with reset_config_for_tests():
-        yield
 
 @pytest.fixture
 def tcp_keepalive_settings(monkeypatch):
