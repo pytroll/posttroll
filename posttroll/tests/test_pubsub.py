@@ -109,21 +109,21 @@ class TestNS(unittest.TestCase):
 
         time.sleep(4)
         with Subscribe("this_data", "counter", True) as sub:
-            assert len(sub.sub_addr) == 0
+            assert len(sub.addresses) == 0
             with Publish("data_provider", 0, ["this_data"]):
                 time.sleep(4)
                 next(sub.recv(2))
-                assert len(sub.sub_addr) == 1
+                assert len(sub.addresses) == 1
             time.sleep(3)
             for msg in sub.recv(2):
                 if msg is None:
                     break
             time.sleep(3)
-            assert len(sub.sub_addr) == 0
+            assert len(sub.addresses) == 0
             with Publish("data_provider_2", 0, ["another_data"]):
                 time.sleep(4)
                 next(sub.recv(2))
-                assert len(sub.sub_addr) == 0
+                assert len(sub.addresses) == 0
             sub.close()
 
 
@@ -200,24 +200,24 @@ class TestNSWithoutMulticasting(unittest.TestCase):
 
         time.sleep(4)
         with Subscribe("this_data", "counter", True) as sub:
-            self.assertEqual(len(sub.sub_addr), 0)
+            assert len(sub.addresses) == 0
             with Publish("data_provider", 0, ["this_data"],
                          nameservers=self.nameservers):
                 time.sleep(4)
                 next(sub.recv(2))
-                self.assertEqual(len(sub.sub_addr), 1)
+                assert len(sub.addresses) == 1
             time.sleep(3)
             for msg in sub.recv(2):
                 if msg is None:
                     break
 
             time.sleep(3)
-            self.assertEqual(len(sub.sub_addr), 0)
+            assert len(sub.sub_addr) == 0
             with Publish("data_provider_2", 0, ["another_data"],
                          nameservers=self.nameservers):
                 time.sleep(4)
                 next(sub.recv(2))
-                self.assertEqual(len(sub.sub_addr), 0)
+                assert len(sub.sub_addr) == 0
 
 
 class TestPubSub(unittest.TestCase):
