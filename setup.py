@@ -52,6 +52,6 @@ setup(name="posttroll",
           'Topic :: Scientific/Engineering',
           'Topic :: Communications'
       ],
-      python_requires='>=3.7',
+      python_requires='>=3.10',
       test_suite='posttroll.tests.suite',
       )
