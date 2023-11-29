@@ -1,6 +1,6 @@
 from threading import Lock
 from urllib.parse import urlsplit
-from posttroll.message import _MAGICK, Message
+from posttroll.message import Message
 from zmq import Poller, SUB, SUBSCRIBE, POLLIN, PULL, ZMQError, NOBLOCK, LINGER
 from time import sleep
 import logging

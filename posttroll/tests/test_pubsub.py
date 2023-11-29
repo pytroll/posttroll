@@ -359,7 +359,6 @@ class TestListenerContainer(unittest.TestCase):
 
     def setUp(self):
         """Set up the testing class."""
-        from posttroll.ns import NameServer
         test_lock.acquire()
         self.ns = NameServer(max_age=timedelta(seconds=3))
         self.thr = Thread(target=self.ns.run)
