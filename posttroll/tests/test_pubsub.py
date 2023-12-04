@@ -233,18 +233,15 @@ class TestPubSub(unittest.TestCase):
 
     def test_pub_address_timeout(self):
         """Test timeout in offline nameserver."""
-        from posttroll.ns import get_pub_address
-        from posttroll.ns import TimeoutError
+        from posttroll.ns import TimeoutError, get_pub_address
         with pytest.raises(TimeoutError):
             get_pub_address("this_data", 0.05)
 
     def test_pub_suber(self):
         """Test publisher and subscriber."""
         from posttroll.message import Message
-        from posttroll.publisher import Publisher
-        from posttroll.publisher import get_own_ip
+        from posttroll.publisher import Publisher, get_own_ip
         from posttroll.subscriber import Subscriber
-
         pub_address = "tcp://" + str(get_own_ip()) + ":0"
         pub = Publisher(pub_address).start()
         addr = pub_address[:-1] + str(pub.port_number)
@@ -281,7 +278,7 @@ class TestPubSub(unittest.TestCase):
                     time.sleep(.05)
                     msg = next(sub.recv(2))
                     if msg is not None:
-                        self.assertEqual(str(msg), str(message))
+                        assert str(msg) == str(message)
                     tested = True
                 sub.close()
         assert tested
@@ -341,6 +338,7 @@ class TestPub(unittest.TestCase):
 
 def _get_port_from_publish_instance(min_port=None, max_port=None):
     from zmq.error import ZMQError
+
     from posttroll.publisher import Publish
 
     try:
@@ -372,9 +370,9 @@ class TestListenerContainer(unittest.TestCase):
 
     def test_listener_container(self):
         """Test listener container."""
+        from posttroll.listener import ListenerContainer
         from posttroll.message import Message
         from posttroll.publisher import NoisyPublisher
-        from posttroll.listener import ListenerContainer
 
         pub = NoisyPublisher("test", broadcast_interval=0.1)
         pub.start()
@@ -389,7 +387,7 @@ class TestListenerContainer(unittest.TestCase):
             if msg_in is not None:
                 assert str(msg_in) == str(msg_out)
                 tested = True
-            self.assertTrue(tested)
+            assert tested
         pub.stop()
         sub.stop()
 
@@ -407,9 +405,9 @@ class TestListenerContainerNoNameserver(unittest.TestCase):
 
     def test_listener_container(self):
         """Test listener container."""
+        from posttroll.listener import ListenerContainer
         from posttroll.message import Message
         from posttroll.publisher import Publisher
-        from posttroll.listener import ListenerContainer
 
         pub_addr = "tcp://127.0.0.1:55000"
         pub = Publisher(pub_addr, name="test")
@@ -424,9 +422,9 @@ class TestListenerContainerNoNameserver(unittest.TestCase):
 
             msg_in = sub.output_queue.get(True, 1)
             if msg_in is not None:
-                self.assertEqual(str(msg_in), str(msg_out))
+                assert str(msg_in) == str(msg_out)
                 tested = True
-            self.assertTrue(tested)
+            assert tested
         pub.stop()
         sub.stop()
 
@@ -517,21 +515,21 @@ class TestPublisherDictConfig(unittest.TestCase):
 
     def test_publish_is_noisy_only_name(self):
         """Test that NoisyPublisher is selected with the context manager when only name is given."""
-        from posttroll.publisher import Publish, NoisyPublisher
+        from posttroll.publisher import NoisyPublisher, Publish
 
         with Publish("service_name") as pub:
             assert isinstance(pub, NoisyPublisher)
 
     def test_publish_is_noisy_with_port(self):
         """Test that NoisyPublisher is selected with the context manager when port is given."""
-        from posttroll.publisher import Publish, NoisyPublisher
+        from posttroll.publisher import NoisyPublisher, Publish
 
         with Publish("service_name", port=40001) as pub:
             assert isinstance(pub, NoisyPublisher)
 
     def test_publish_is_noisy_with_nameservers(self):
         """Test that NoisyPublisher is selected with the context manager when nameservers are given."""
-        from posttroll.publisher import Publish, NoisyPublisher
+        from posttroll.publisher import NoisyPublisher, Publish
 
         with Publish("service_name", nameservers=['a', 'b']) as pub:
             assert isinstance(pub, NoisyPublisher)
@@ -621,8 +619,8 @@ def test_dict_config_full_subscriber(Subscriber_update):
     }
     _ = create_subscriber_from_dict_config(settings)
 
-@pytest.fixture
-def tcp_keepalive_settings(monkeypatch):
+@pytest.fixture()
+def _tcp_keepalive_settings(monkeypatch):
     """Set TCP Keepalive settings."""
     from posttroll import config
     with config.set(tcp_keepalive=1, tcp_keepalive_cnt=10, tcp_keepalive_idle=1, tcp_keepalive_intvl=1):
@@ -637,29 +635,32 @@ def reset_config_for_tests():
     posttroll.config = old_config
 
 
-@pytest.fixture
-def tcp_keepalive_no_settings():
+@pytest.fixture()
+def _tcp_keepalive_no_settings():
     """Set TCP Keepalive settings."""
     from posttroll import config
     with config.set(tcp_keepalive=None, tcp_keepalive_cnt=None, tcp_keepalive_idle=None, tcp_keepalive_intvl=None):
         yield
 
 
-def test_publisher_tcp_keepalive(tcp_keepalive_settings):
+@pytest.mark.usefixtures("_tcp_keepalive_settings")
+def test_publisher_tcp_keepalive():
     """Test that TCP Keepalive is set for Publisher if the environment variables are present."""
     from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
     pub = UnsecureZMQPublisher("tcp://127.0.0.1:9000").start()
     _assert_tcp_keepalive(pub.publish_socket)
 
 
-def test_publisher_tcp_keepalive_not_set(tcp_keepalive_no_settings):
+@pytest.mark.usefixtures("_tcp_keepalive_no_settings")
+def test_publisher_tcp_keepalive_not_set():
     """Test that TCP Keepalive is not set on by default."""
     from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
     pub = UnsecureZMQPublisher("tcp://127.0.0.1:9000").start()
     _assert_no_tcp_keepalive(pub.publish_socket)
 
 
-def test_subscriber_tcp_keepalive(tcp_keepalive_settings):
+@pytest.mark.usefixtures("_tcp_keepalive_settings")
+def test_subscriber_tcp_keepalive():
     """Test that TCP Keepalive is set for Subscriber if the environment variables are present."""
     from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
 
@@ -670,7 +671,8 @@ def test_subscriber_tcp_keepalive(tcp_keepalive_settings):
     _assert_tcp_keepalive(list(sub.addr_sub.values())[0])
 
 
-def test_subscriber_tcp_keepalive_not_set(tcp_keepalive_no_settings):
+@pytest.mark.usefixtures("_tcp_keepalive_no_settings")
+def test_subscriber_tcp_keepalive_not_set():
     """Test that TCP Keepalive is not set on by default."""
     from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
 
@@ -700,6 +702,7 @@ def _assert_no_tcp_keepalive(socket):
 
 
 def test_ipc_pubsub():
+    """Test pub-sub on an ipc socket."""
     from posttroll import config
     with config.set(backend="unsecure_zmq"):
         subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
@@ -721,6 +724,7 @@ def test_ipc_pubsub():
         sub.stop()
 
 def test_ipc_pubsub_with_sec():
+    """Test pub-sub on a secure ipc socket."""
     from posttroll import config
     with config.set(backend="secure_zmq"):
         subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
@@ -742,6 +746,7 @@ def test_ipc_pubsub_with_sec():
         sub.stop()
 
 def test_switch_to_unknown_backend():
+    """Test switching to unknown backend."""
     from posttroll import config
     from posttroll.publisher import Publisher
     from posttroll.subscriber import Subscriber
@@ -752,6 +757,7 @@ def test_switch_to_unknown_backend():
             Subscriber("ipc://bla.ipc")
 
 def test_switch_to_secure_zmq_backend():
+    """Test switching to the secure_zmq backend."""
     from posttroll import config
     from posttroll.publisher import Publisher
     from posttroll.subscriber import Subscriber
