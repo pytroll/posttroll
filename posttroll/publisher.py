@@ -109,8 +109,7 @@ class Publisher:
 
 
     def start(self):
-        """Start the publisher.
-        """
+        """Start the publisher."""
         self.publish_socket = get_context().socket(zmq.PUB)
         _set_tcp_keepalive(self.publish_socket)
 
