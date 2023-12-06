@@ -1,21 +1,21 @@
-from threading import Lock
-from urllib.parse import urlsplit
-from posttroll.message import Message
-from zmq import Poller, SUB, SUBSCRIBE, POLLIN, PULL, ZMQError, NOBLOCK, LINGER
-from time import sleep
+"""ZMQ implementation of the subscriber."""
+
 import logging
+from threading import Lock
+from time import sleep
+from urllib.parse import urlsplit
 
-from posttroll import get_context
-from posttroll.backends.zmq import _set_tcp_keepalive
+from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
 
-
+from posttroll.backends.zmq import _set_tcp_keepalive, get_context
+from posttroll.message import Message
 
 LOGGER = logging.getLogger(__name__)
 
 class UnsecureZMQSubscriber:
     """Unsecure ZMQ implementation of the subscriber."""
 
-    def __init__(self, addresses, topics='', message_filter=None, translate=False):
+    def __init__(self, addresses, topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
         self._topics = topics
         self._filter = message_filter

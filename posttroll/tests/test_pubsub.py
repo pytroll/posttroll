@@ -23,19 +23,20 @@
 
 """Test the publishing and subscribing facilities."""
 
-import unittest
-from unittest import mock
-from datetime import timedelta
-from threading import Thread, Lock
 import time
+import unittest
 from contextlib import contextmanager
+from datetime import timedelta
+from threading import Lock, Thread
+from unittest import mock
+
+import pytest
+from donfig import Config
 
 import posttroll
 from posttroll.ns import NameServer
 from posttroll.publisher import create_publisher_from_dict_config
 from posttroll.subscriber import Subscribe, Subscriber, create_subscriber_from_dict_config
-import pytest
-from donfig import Config
 
 test_lock = Lock()
 
@@ -66,18 +67,18 @@ class TestNS(unittest.TestCase):
             time.sleep(.3)
             res = get_pub_addresses(["this_data"], timeout=.5)
             assert len(res) == 1
-            expected = {u'status': True,
-                        u'service': [u'data_provider', u'this_data'],
-                        u'name': u'address'}
+            expected = {u"status": True,
+                        u"service": [u"data_provider", u"this_data"],
+                        u"name": u"address"}
             for key, val in expected.items():
                 assert res[0][key] == val
             assert "receive_time" in res[0]
             assert "URI" in res[0]
             res = get_pub_addresses([str("data_provider")])
             assert len(res) == 1
-            expected = {u'status': True,
-                        u'service': [u'data_provider', u'this_data'],
-                        u'name': u'address'}
+            expected = {u"status": True,
+                        u"service": [u"data_provider", u"this_data"],
+                        u"name": u"address"}
             for key, val in expected.items():
                 assert res[0][key] == val
             assert "receive_time" in res[0]
@@ -133,7 +134,7 @@ class TestNSWithoutMulticasting(unittest.TestCase):
     def setUp(self):
         """Set up the testing class."""
         test_lock.acquire()
-        self.nameservers = ['localhost']
+        self.nameservers = ["localhost"]
         self.ns = NameServer(max_age=timedelta(seconds=3),
                              multicast_enabled=False)
         self.thr = Thread(target=self.ns.run)
@@ -155,23 +156,23 @@ class TestNSWithoutMulticasting(unittest.TestCase):
                      nameservers=self.nameservers):
             time.sleep(3)
             res = get_pub_addresses(["this_data"])
-            self.assertEqual(len(res), 1)
-            expected = {u'status': True,
-                        u'service': [u'data_provider', u'this_data'],
-                        u'name': u'address'}
+            assert len(res) == 1
+            expected = {u"status": True,
+                        u"service": [u"data_provider", u"this_data"],
+                        u"name": u"address"}
             for key, val in expected.items():
-                self.assertEqual(res[0][key], val)
-            self.assertTrue("receive_time" in res[0])
-            self.assertTrue("URI" in res[0])
+                assert res[0][key] == val
+            assert "receive_time" in res[0]
+            assert "URI" in res[0]
             res = get_pub_addresses(["data_provider"])
-            self.assertEqual(len(res), 1)
-            expected = {u'status': True,
-                        u'service': [u'data_provider', u'this_data'],
-                        u'name': u'address'}
+            assert len(res) == 1
+            expected = {u"status": True,
+                        u"service": [u"data_provider", u"this_data"],
+                        u"name": u"address"}
             for key, val in expected.items():
-                self.assertEqual(res[0][key], val)
-            self.assertTrue("receive_time" in res[0])
-            self.assertTrue("URI" in res[0])
+                assert res[0][key] == val
+            assert "receive_time" in res[0]
+            assert "URI" in res[0]
 
     def test_pub_sub_ctx(self):
         """Test publish and subscribe."""
@@ -188,10 +189,10 @@ class TestNSWithoutMulticasting(unittest.TestCase):
                     time.sleep(1)
                     msg = next(sub.recv(2))
                     if msg is not None:
-                        self.assertEqual(str(msg), str(message))
+                        assert str(msg) == str(message)
                     tested = True
                 sub.close()
-        self.assertTrue(tested)
+        assert tested
 
     def test_pub_sub_add_rm(self):
         """Test adding and removing publishers."""
@@ -233,7 +234,7 @@ class TestPubSub(unittest.TestCase):
 
     def test_pub_address_timeout(self):
         """Test timeout in offline nameserver."""
-        from posttroll.ns import TimeoutError, get_pub_address
+        from posttroll.ns import get_pub_address
         with pytest.raises(TimeoutError):
             get_pub_address("this_data", 0.05)
 
@@ -245,7 +246,7 @@ class TestPubSub(unittest.TestCase):
         pub_address = "tcp://" + str(get_own_ip()) + ":0"
         pub = Publisher(pub_address).start()
         addr = pub_address[:-1] + str(pub.port_number)
-        sub = Subscriber([addr], '/counter')
+        sub = Subscriber([addr], "/counter")
         # wait a bit before sending the first message so that the subscriber is ready
         time.sleep(.002)
 
@@ -300,7 +301,7 @@ class TestPub(unittest.TestCase):
         from posttroll.message import Message
         from posttroll.publisher import Publish
 
-        message = Message("/pџтяöll", "info", 'hej')
+        message = Message("/pџтяöll", "info", "hej")
         with Publish("a_service", 9000) as pub:
             try:
                 pub.send(message.encode())
@@ -319,7 +320,7 @@ class TestPub(unittest.TestCase):
                     # The port wasn't free, try another one
                     continue
                 # Port was selected, make sure it's within the "range" of one
-                self.assertEqual(res, port)
+                assert res == port
                 break
 
     def test_pub_minmax_port_from_instanciation(self):
@@ -332,7 +333,7 @@ class TestPub(unittest.TestCase):
                 # The port wasn't free, try again
                 continue
             # Port was selected, make sure it's within the "range" of one
-            self.assertEqual(res, port)
+            assert res == port
             break
 
 
@@ -439,7 +440,7 @@ class TestAddressReceiver(unittest.TestCase):
         """Test address receiver restricted only to localhost."""
         mcr_instance = mock.Mock()
         mcrec.return_value = mcr_instance
-        mcr_instance.return_value = 'blabla', ('255.255.255.255', 12)
+        mcr_instance.return_value = "blabla", ("255.255.255.255", 12)
         from posttroll.address_receiver import AddressReceiver
         adr = AddressReceiver(restrict_to_localhost=True)
         adr.start()
@@ -455,16 +456,16 @@ class TestPublisherDictConfig(unittest.TestCase):
         """Test that Publisher is selected as publisher class."""
         from posttroll.publisher import Publisher
 
-        settings = {'port': 12345, 'nameservers': False}
+        settings = {"port": 12345, "nameservers": False}
 
         pub = create_publisher_from_dict_config(settings)
         assert isinstance(pub, Publisher)
         assert pub is not None
 
-    @mock.patch('posttroll.publisher.Publisher')
+    @mock.patch("posttroll.publisher.Publisher")
     def test_publisher_all_arguments(self, Publisher):
         """Test that only valid arguments are passed to Publisher."""
-        settings = {'port': 12345, 'nameservers': False, 'name': 'foo',
+        settings = {"port": 12345, 'nameservers': False, 'name': 'foo',
                     'min_port': 40000, 'max_port': 41000, 'invalid_arg': 'bar'}
         _ = create_publisher_from_dict_config(settings)
         _check_valid_settings_in_call(settings, Publisher, ignore=['port', 'nameservers'])

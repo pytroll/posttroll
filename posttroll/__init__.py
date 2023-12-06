@@ -25,30 +25,28 @@
 """Posttroll packages."""
 
 import logging
-import os
 import sys
 from datetime import datetime
 
-import zmq
 from donfig import Config
 
 from .version import get_versions
 
 config = Config("posttroll")
-context = {}
+# context = {}
 logger = logging.getLogger(__name__)
 
 
-def get_context():
-    """Provide the context to use.
+# def get_context():
+#     """Provide the context to use.
 
-    This function takes care of creating new contexts in case of forks.
-    """
-    pid = os.getpid()
-    if pid not in context:
-        context[pid] = zmq.Context()
-        logger.debug("renewed context for PID %d", pid)
-    return context[pid]
+#     This function takes care of creating new contexts in case of forks.
+#     """
+#     pid = os.getpid()
+#     if pid not in context:
+#         context[pid] = zmq.Context()
+#         logger.debug("renewed context for PID %d", pid)
+#     return context[pid]
 
 
 def strp_isoformat(strg):

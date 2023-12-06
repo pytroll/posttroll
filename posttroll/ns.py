@@ -30,11 +30,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-from threading import Lock
-# pylint: disable=E0611
-from zmq import LINGER, NOBLOCK, POLLIN, REP, REQ, Poller
-
-from posttroll import get_context
+from posttroll import config
 from posttroll.address_receiver import AddressReceiver
 from posttroll.message import Message
 
@@ -45,13 +41,6 @@ PORT = int(os.environ.get("NAMESERVER_PORT", 5557))
 
 logger = logging.getLogger(__name__)
 
-nslock = Lock()
-
-class TimeoutError(BaseException):
-
-    """A timeout."""
-    pass
-
 # Client functions.
 
 
@@ -59,6 +48,7 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     """Get the address of the publisher for a given list of publisher *names*
     from the nameserver on *nameserver* (localhost by default).
     """
+
     addrs = []
     if names is None:
         names = ["", ]
@@ -72,40 +62,23 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     return addrs
 
 
+
+
 def get_pub_address(name, timeout=10, nameserver="localhost"):
-    """Get the address of the publisher for a given publisher *name* from the
-    nameserver on *nameserver* (localhost by default)."""
-    # Socket to talk to server
-    socket = get_context().socket(REQ)
-    try:
-        socket.setsockopt(LINGER, int(timeout * 1000))
-        socket.connect("tcp://" + nameserver + ":" + str(PORT))
-        logger.debug('Connecting to %s',
-                     "tcp://" + nameserver + ":" + str(PORT))
-        poller = Poller()
-        poller.register(socket, POLLIN)
+    """Get the address of the publisher.
 
-        message = Message("/oper/ns", "request", {"service": name})
-        socket.send_string(str(message))
-
-        # Get the reply.
-        sock = poller.poll(timeout=timeout * 1000)
-        if sock:
-            if sock[0][0] == socket:
-                message = Message.decode(socket.recv_string(NOBLOCK))
-                return message.data
-        else:
-            raise TimeoutError("Didn't get an address after %d seconds."
-                               % timeout)
-    finally:
-        socket.close()
+    For a given publisher *name* from the nameserver on *nameserver* (localhost by default).
+    """
+    backend = config.get("backend", "unsecure_zmq")
+    if backend == "unsecure_zmq":
+        from posttroll.backends.zmq.ns import unsecure_zmq_get_pub_address
+        return unsecure_zmq_get_pub_address(name, timeout, nameserver)
 
 # Server part.
 
 
 def get_active_address(name, arec):
-    """Get the addresses of the active modules for a given publisher *name*.
-    """
+    """Get the addresses of the active modules for a given publisher *name*."""
     addrs = arec.get(name)
     if addrs:
         return Message("/oper/ns", "info", addrs)
@@ -113,57 +86,32 @@ def get_active_address(name, arec):
         return Message("/oper/ns", "info", "")
 
 
+
 class NameServer:
     """The name server."""
 
     def __init__(self, max_age=timedelta(minutes=10), multicast_enabled=True, restrict_to_localhost=False):
-        self.loop = True
-        self.listener = None
         self._max_age = max_age
         self._multicast_enabled = multicast_enabled
         self._restrict_to_localhost = restrict_to_localhost
+        backend = config.get("backend", "unsecure_zmq")
+        if backend == "unsecure_zmq":
+            from posttroll.backends.zmq.ns import UnsecureZMQNameServer
+            self._ns = UnsecureZMQNameServer()
 
     def run(self, *args):
-        """Run the listener and answer to requests.
-        """
+        """Run the nameserver."""
         del args
 
         arec = AddressReceiver(max_age=self._max_age,
                                multicast_enabled=self._multicast_enabled,
                                restrict_to_localhost=self._restrict_to_localhost)
         arec.start()
-        port = PORT
-
         try:
-            with nslock:
-                self.listener = get_context().socket(REP)
-                self.listener.bind("tcp://*:" + str(port))
-                logger.debug('Listening on port %s', str(port))
-                poller = Poller()
-                poller.register(self.listener, POLLIN)
-            while self.loop:
-                with nslock:
-                    socks = dict(poller.poll(1000))
-                    if socks:
-                        if socks.get(self.listener) == POLLIN:
-                            msg = self.listener.recv_string()
-                    else:
-                        continue
-                    logger.debug("Replying to request: " + str(msg))
-                    msg = Message.decode(msg)
-                    active_address = get_active_address(msg.data["service"], arec)
-                    self.listener.send_unicode(str(active_address))
-        except KeyboardInterrupt:
-            # Needed to stop the nameserver.
-            pass
+            return self._ns.run(arec)
         finally:
             arec.stop()
-            self.stop()
 
     def stop(self):
-        """Stop the name server.
-        """
-        self.listener.setsockopt(LINGER, 1)
-        self.loop = False
-        with nslock:
-            self.listener.close()
+        """Stop the nameserver."""
+        return self._ns.stop()

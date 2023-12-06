@@ -21,62 +21,36 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading
-import logging
 import errno
+import logging
+import threading
 
-from posttroll import message
-from posttroll.bbmcast import MulticastSender, MC_GROUP
-from posttroll import get_context
-from zmq import REQ, LINGER, NOBLOCK, ZMQError
+from posttroll import config, message
+from posttroll.bbmcast import MC_GROUP, MulticastSender
 
-__all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
+__all__ = ("MessageBroadcaster", "AddressBroadcaster", "sendaddress")
 
 LOGGER = logging.getLogger(__name__)
 
 broadcast_port = 21200
 
 
-class DesignatedReceiversSender(object):
+class DesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
-
     def __init__(self, default_port, receivers):
-        self.default_port = default_port
-
-        self.receivers = receivers
-        self._shutdown_event = threading.Event()
+        backend = config.get("backend", "unsecure_zmq")
+        if backend == "unsecure_zmq":
+            from posttroll.backends.zmq.message_broadcaster import UnsecureZMQDesignatedReceiversSender
+            self._sender = UnsecureZMQDesignatedReceiversSender(default_port, receivers)
 
     def __call__(self, data):
-        for receiver in self.receivers:
-            self._send_to_address(receiver, data)
-
-    def _send_to_address(self, address, data, timeout=10):
-        """Send data to *address* and *port* without verification of response."""
-        # Socket to talk to server
-        socket = get_context().socket(REQ)
-        try:
-            socket.setsockopt(LINGER, timeout * 1000)
-            if address.find(":") == -1:
-                socket.connect("tcp://%s:%d" % (address, self.default_port))
-            else:
-                socket.connect("tcp://%s" % address)
-            socket.send_string(data)
-            while not self._shutdown_event.is_set():
-                try:
-                    message = socket.recv_string(NOBLOCK)
-                except ZMQError:
-                    self._shutdown_event.wait(.1)
-                    continue
-                if message != "ok":
-                    LOGGER.warn("invalid acknowledge received: %s" % message)
-                break
-
-        finally:
-            socket.close()
+        """Send data."""
+        return self._sender(data)
 
     def close(self):
         """Close the sender."""
-        self._shutdown_event.set()
+        return self._sender.close()
+
 #-----------------------------------------------------------------------------
 #
 # General thread to broadcast messages.
@@ -91,6 +65,7 @@ class MessageBroadcaster(object):
     """
 
     def __init__(self, msg, port, interval, designated_receivers=None):
+        """Set up the message broadcaster."""
         if designated_receivers:
             self._sender = DesignatedReceiversSender(port,
                                                      designated_receivers)
@@ -152,9 +127,10 @@ class MessageBroadcaster(object):
 
 
 class AddressBroadcaster(MessageBroadcaster):
-    """Class to broadcast stuff."""
+    """Class to broadcast addresses."""
 
     def __init__(self, name, address, interval, nameservers):
+        """Set up the Address broadcaster."""
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": "%s:%d" % address}).encode()
         MessageBroadcaster.__init__(self, msg, broadcast_port, interval,

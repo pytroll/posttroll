@@ -27,28 +27,25 @@ It will look like:
 /<server-name>/address info ... host:port
 """
 import copy
+import errno
 import logging
 import os
 import threading
-import errno
 import time
-
 from datetime import datetime, timedelta
 
 import netifaces
-from zmq import REP, LINGER
 
+from posttroll import config
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
 from posttroll.message import Message
 from posttroll.publisher import Publish
-from posttroll import get_context
 
-
-__all__ = ('AddressReceiver', 'getaddress')
+__all__ = ("AddressReceiver", "getaddress")
 
 LOGGER = logging.getLogger(__name__)
 
-debug = os.environ.get('DEBUG', False)
+debug = os.environ.get("DEBUG", False)
 broadcast_port = 21200
 
 default_publish_port = 16543
@@ -64,7 +61,7 @@ def get_local_ips():
     for addr in inet_addrs:
         if addr is not None:
             for add in addr:
-                ips.append(add['addr'])
+                ips.append(add["addr"])
     return ips
 
 # -----------------------------------------------------------------------------
@@ -169,7 +166,9 @@ class AddressReceiver(object):
                     break
 
         else:
-            recv = _SimpleReceiver(port)
+            if config.get("backend", "unsecure_zmq") == "unsecure_zmq":
+                from posttroll.backends.zmq.address_receiver import SimpleReceiver
+            recv = SimpleReceiver(port)
             nameservers = ["localhost"]
 
         self._is_running = True
@@ -219,26 +218,6 @@ class AddressReceiver(object):
         with self._address_lock:
             metadata["receive_time"] = datetime.utcnow()
             self._addresses[adr] = metadata
-
-
-class _SimpleReceiver(object):
-
-    """ Simple listing on port for address messages."""
-
-    def __init__(self, port=None):
-        self._port = port or default_publish_port
-        self._socket = get_context().socket(REP)
-        self._socket.bind("tcp://*:" + str(port))
-
-    def __call__(self):
-        message = self._socket.recv_string()
-        self._socket.send_string("ok")
-        return message, None
-
-    def close(self):
-        """Close the receiver."""
-        self._socket.setsockopt(LINGER, 1)
-        self._socket.close()
 
 
 # -----------------------------------------------------------------------------

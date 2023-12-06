@@ -1,10 +1,12 @@
+"""ZMQ implementation of the publisher."""
+
+import logging
 from threading import Lock
 from urllib.parse import urlsplit, urlunsplit
-import zmq
-import logging
 
-from posttroll import get_context
-from posttroll.backends.zmq import _set_tcp_keepalive
+import zmq
+
+from posttroll.backends.zmq import _set_tcp_keepalive, get_context
 
 LOGGER = logging.getLogger(__name__)
 
