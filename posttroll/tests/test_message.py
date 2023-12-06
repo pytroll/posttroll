@@ -138,11 +138,7 @@ class Test(unittest.TestCase):
     def test_serialization(self):
         """Test json serialization."""
         compare_file = "/message_metadata.dumps"
-        try:
-            import json
-        except ImportError:
-            import simplejson as json
-            compare_file += ".simplejson"
+        import json
         metadata = copy.copy(SOME_METADATA)
         metadata["timestamp"] = metadata["timestamp"].isoformat()
         fp_ = open(DATADIR + compare_file)
