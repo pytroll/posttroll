@@ -1,6 +1,9 @@
+import pytest
 from posttroll.testing import patched_publisher
 
+
 def test_fake_publisher():
+    """Test running a fake publisher."""
     from posttroll.publisher import create_publisher_from_dict_config
 
     with patched_publisher() as messages:
@@ -9,3 +12,13 @@ def test_fake_publisher():
         pub.send("bla")
         pub.stop()
         assert "bla" in messages
+
+
+def test_fake_publisher_crashes_when_not_started():
+    """Test fake publisher needs to be started."""
+    from posttroll.publisher import create_publisher_from_dict_config
+
+    with patched_publisher():
+        pub = create_publisher_from_dict_config(dict(port=1979, nameservers=False))
+        with pytest.raises(RuntimeError):
+            pub.send("bla")
