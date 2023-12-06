@@ -34,7 +34,7 @@ from donfig import Config
 
 from .version import get_versions
 
-config = Config('posttroll')
+config = Config("posttroll")
 context = {}
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def get_context():
     pid = os.getpid()
     if pid not in context:
         context[pid] = zmq.Context()
-        logger.debug('renewed context for PID %d', pid)
+        logger.debug("renewed context for PID %d", pid)
     return context[pid]
 
 

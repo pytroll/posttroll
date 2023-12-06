@@ -27,9 +27,9 @@ import logging
 import socket
 from datetime import datetime, timedelta
 
+from posttroll import config
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
-from posttroll import config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -89,8 +89,8 @@ class Publisher:
         """Bind the publisher class to a port."""
         # Limit port range or use the defaults when no port is defined
         # by the user
-        min_port = min_port or int(config.get('pub_min_port', 49152))
-        max_port = max_port or int(config.get('pub_max_port', 65536))
+        min_port = min_port or int(config.get("pub_min_port", 49152))
+        max_port = max_port or int(config.get("pub_max_port", 65536))
         # Initialize no heartbeat
         self._heartbeat = None
 
@@ -143,7 +143,7 @@ class _PublisherHeartbeat:
 
     def __init__(self, publisher):
         self.publisher = publisher
-        self.subject = '/heartbeat/' + publisher.name
+        self.subject = "/heartbeat/" + publisher.name
         self.lastbeat = datetime(1900, 1, 1)
 
     def __call__(self, min_interval=0):
@@ -228,6 +228,7 @@ class NoisyPublisher:
 
     @property
     def port_number(self):
+        """Get the port number."""
         return self._publisher.port_number
 
 
@@ -266,9 +267,9 @@ class Publish:
     def __init__(self, name, port=0, aliases=None, broadcast_interval=2, nameservers=None,
                  min_port=None, max_port=None):
         """Initialize the class."""
-        settings = {'name': name, 'port': port, 'min_port': min_port, 'max_port': max_port,
-                    'aliases': aliases, 'broadcast_interval': broadcast_interval,
-                    'nameservers': nameservers}
+        settings = {"name": name, "port": port, "min_port": min_port, "max_port": max_port,
+                    "aliases": aliases, "broadcast_interval": broadcast_interval,
+                    "nameservers": nameservers}
         self.publisher = create_publisher_from_dict_config(settings)
 
     def __enter__(self):
@@ -300,13 +301,13 @@ def create_publisher_from_dict_config(settings):
     described in the docstrings of the respective classes, namely :class:`~posttroll.publisher.Publisher` and
     :class:`~posttroll.publisher.NoisyPublisher`.
     """
-    if settings.get('port') and settings.get('nameservers') is False:
+    if settings.get("port") and settings.get("nameservers") is False:
         return _get_publisher_instance(settings)
     return _get_noisypublisher_instance(settings)
 
 
 def _get_publisher_instance(settings):
-    publisher_address = _create_tcp_publish_address(settings['port'])
+    publisher_address = _create_tcp_publish_address(settings["port"])
     publisher_name = settings.get("name", "")
     min_port = settings.get("min_port")
     max_port = settings.get("max_port")
