@@ -26,6 +26,8 @@ def patched_publisher():
     def fake_send(self, message):
         if getattr(self, "test_pub_started", None) is None:
             raise RuntimeError("Cannot 'send' before the publisher is started.")
+        if not isinstance(message, str):
+            raise TypeError(f"`send` takes a str, not a {type(message)}")
         published.append(message)
 
     def fake_start(self, *args, **kwargs):
