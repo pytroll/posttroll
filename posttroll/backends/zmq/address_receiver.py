@@ -1,10 +1,11 @@
+from zmq import LINGER, REP
+
 from posttroll.address_receiver import default_publish_port
 from posttroll.backends.zmq import get_context
-from zmq import REP, LINGER
+
 
 class SimpleReceiver(object):
-
-    """ Simple listing on port for address messages."""
+    """Simple listing on port for address messages."""
 
     def __init__(self, port=None):
         self._port = port or default_publish_port

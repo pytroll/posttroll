@@ -48,7 +48,6 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     """Get the address of the publisher for a given list of publisher *names*
     from the nameserver on *nameserver* (localhost by default).
     """
-
     addrs = []
     if names is None:
         names = ["", ]

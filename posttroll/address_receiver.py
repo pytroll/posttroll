@@ -80,7 +80,7 @@ class AddressReceiver(object):
         self._port = port or default_publish_port
         self._address_lock = threading.Lock()
         self._addresses = {}
-        self._subject = '/address'
+        self._subject = "/address"
         self._do_heartbeat = do_heartbeat
         self._multicast_enabled = multicast_enabled
         self._last_age_check = datetime(1900, 1, 1)
@@ -117,7 +117,7 @@ class AddressReceiver(object):
                     mda = copy.copy(metadata)
                     mda["receive_time"] = mda["receive_time"].isoformat()
                     addrs.append(mda)
-        LOGGER.debug('return address %s', str(addrs))
+        LOGGER.debug("return address %s", str(addrs))
         return addrs
 
     def _check_age(self, pub, min_interval=zero_seconds):
@@ -133,10 +133,10 @@ class AddressReceiver(object):
             for addr, metadata in self._addresses.items():
                 atime = metadata["receive_time"]
                 if now - atime > self._max_age:
-                    mda = {'status': False,
-                           'URI': addr,
-                           'service': metadata['service']}
-                    msg = Message('/address/' + metadata['name'], 'info', mda)
+                    mda = {"status": False,
+                           "URI": addr,
+                           "service": metadata["service"]}
+                    msg = Message("/address/" + metadata["name"], "info", mda)
                     to_del.append(addr)
                     LOGGER.info("publish remove '%s'", str(msg))
                     pub.send(msg.encode())
@@ -182,7 +182,7 @@ class AddressReceiver(object):
                             ip_, port = fromaddr
                             if self._restrict_to_localhost and ip_ not in self._local_ips:
                                 # discard external message
-                                LOGGER.debug('Discard external message')
+                                LOGGER.debug("Discard external message")
                                 continue
                         LOGGER.debug("data %s", data)
                     except SocketTimeout:
@@ -195,14 +195,14 @@ class AddressReceiver(object):
                             pub.heartbeat(min_interval=29)
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
-                    if(msg.type == 'info' and
+                    if(msg.type == "info" and
                        msg.subject.lower().startswith(self._subject)):
                         addr = msg.data["URI"]
-                        msg.data['status'] = True
+                        msg.data["status"] = True
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
 
-                        LOGGER.debug('receiving address %s %s %s', str(addr),
+                        LOGGER.debug("receiving address %s %s %s", str(addr),
                                      str(name), str(metadata))
                         if addr not in self._addresses:
                             LOGGER.info("nameserver: publish add '%s'",

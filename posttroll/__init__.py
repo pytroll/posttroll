@@ -60,18 +60,18 @@ def strp_isoformat(strg):
         return strg
     if len(strg) < 19 or len(strg) > 26:
         if len(strg) > 30:
-            strg = strg[:30] + '...'
+            strg = strg[:30] + "..."
         raise ValueError("Invalid ISO formatted time string '%s'" % strg)
     if strg.find(".") == -1:
-        strg += '.000000'
-    if sys.version[0:3] >= '2.6':
+        strg += ".000000"
+    if sys.version[0:3] >= "2.6":
         return datetime.strptime(strg, "%Y-%m-%dT%H:%M:%S.%f")
     else:
         dat, mis = strg.split(".")
         dat = datetime.strptime(dat, "%Y-%m-%dT%H:%M:%S")
-        mis = int(float('.' + mis)*1000000)
+        mis = int(float("." + mis)*1000000)
         return dat.replace(microsecond=mis)
 
 
-__version__ = get_versions()['version']
+__version__ = get_versions()["version"]
 del get_versions

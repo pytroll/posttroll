@@ -1,9 +1,9 @@
+import logging
 import threading
-from posttroll.backends.zmq import get_context
 
 from zmq import LINGER, NOBLOCK, REQ, ZMQError
 
-import logging
+from posttroll.backends.zmq import get_context
 
 logger = logging.getLogger(__name__)
 

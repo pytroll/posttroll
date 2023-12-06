@@ -23,35 +23,35 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup
+
 import versioneer
 
-
-requirements = ['pyzmq', 'netifaces', "donfig"]
+requirements = ["pyzmq", "netifaces", "donfig"]
 
 
 setup(name="posttroll",
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
-      description='Messaging system for pytroll',
-      author='The pytroll team',
-      author_email='pytroll@googlegroups.com',
+      description="Messaging system for pytroll",
+      author="The pytroll team",
+      author_email="pytroll@googlegroups.com",
       url="http://github.com/pytroll/posttroll",
-      packages=['posttroll'],
+      packages=["posttroll"],
       entry_points={
-          'console_scripts': ['pytroll-logger = posttroll.logger:run', ]},
-      scripts=['bin/nameserver'],
+          "console_scripts": ["pytroll-logger = posttroll.logger:run", ]},
+      scripts=["bin/nameserver"],
       zip_safe=False,
       license="GPLv3",
       install_requires=requirements,
       classifiers=[
-          'Development Status :: 5 - Production/Stable',
-          'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-          'Programming Language :: Python',
-          'Operating System :: OS Independent',
-          'Intended Audience :: Science/Research',
-          'Topic :: Scientific/Engineering',
-          'Topic :: Communications'
+          "Development Status :: 5 - Production/Stable",
+          "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+          "Programming Language :: Python",
+          "Operating System :: OS Independent",
+          "Intended Audience :: Science/Research",
+          "Topic :: Scientific/Engineering",
+          "Topic :: Communications"
       ],
-      python_requires='>=3.10',
-      test_suite='posttroll.tests.suite',
+      python_requires=">=3.10",
+      test_suite="posttroll.tests.suite",
       )

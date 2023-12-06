@@ -23,11 +23,12 @@
 
 """Listener module."""
 
-from posttroll.subscriber import create_subscriber_from_dict_config
+import logging
+import time
 from queue import Queue
 from threading import Thread
-import time
-import logging
+
+from posttroll.subscriber import create_subscriber_from_dict_config
 
 
 class ListenerContainer:
@@ -106,11 +107,11 @@ class Listener:
 
     def _get_subscriber_config(self):
         config = {
-            'services': self.services,
-            'topics': self.topics,
-            'addr_listener': True,
-            'addresses': self.addresses,
-            'nameserver': self.nameserver,
+            "services": self.services,
+            "topics": self.topics,
+            "addr_listener": True,
+            "addresses": self.addresses,
+            "nameserver": self.nameserver,
         }
         return config
 

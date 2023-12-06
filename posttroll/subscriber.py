@@ -61,7 +61,7 @@ class Subscriber:
 
     """
 
-    def __init__(self, addresses, topics='', message_filter=None, translate=False):
+    def __init__(self, addresses, topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
         topics = self._magickfy_topics(topics)
         backend = config.get("backend", "unsecure_zmq")
@@ -143,10 +143,10 @@ class Subscriber:
         ts_ = []
         for t__ in topics:
             if not t__.startswith(_MAGICK):
-                if t__ and t__[0] == '/':
+                if t__ and t__[0] == "/":
                     t__ = _MAGICK + t__
                 else:
-                    t__ = _MAGICK + '/' + t__
+                    t__ = _MAGICK + "/" + t__
             ts_.append(t__)
         return ts_
 
@@ -257,14 +257,14 @@ class Subscribe:
                  message_filter=None):
         """Initialize the class."""
         settings = {
-            'services': services,
-            'topics': topics,
-            'message_filter': message_filter,
-            'translate': translate,
-            'addr_listener': addr_listener,
-            'addresses': addresses,
-            'timeout': timeout,
-            'nameserver': nameserver,
+            "services": services,
+            "topics": topics,
+            "message_filter": message_filter,
+            "translate": translate,
+            "addr_listener": addr_listener,
+            "addresses": addresses,
+            "timeout": timeout,
+            "nameserver": nameserver,
         }
         self.subscriber = create_subscriber_from_dict_config(settings)
 
@@ -302,9 +302,9 @@ class _AddressListener:
     def handle_msg(self, msg):
         """Handle the message *msg*."""
         addr_ = msg.data["URI"]
-        status = msg.data.get('status', True)
+        status = msg.data.get("status", True)
         if status:
-            msg_services = msg.data.get('service')
+            msg_services = msg.data.get("service")
             for service in self.services:
                 if not service or service in msg_services:
                     LOGGER.debug("Adding address %s %s", str(addr_),
@@ -333,28 +333,28 @@ def create_subscriber_from_dict_config(settings):
     :class:`~posttroll.subscriber.Subscriber` and :class:`~posttroll.subscriber.NSSubscriber`.
 
     """
-    if settings.get('addresses') and settings.get('nameserver') is False:
+    if settings.get("addresses") and settings.get("nameserver") is False:
         return _get_subscriber_instance(settings)
     return _get_nssubscriber_instance(settings).start()
 
 
 def _get_subscriber_instance(settings):
-    addresses = settings['addresses']
-    topics = settings.get('topics', '')
-    message_filter = settings.get('message_filter', None)
-    translate = settings.get('translate', False)
+    addresses = settings["addresses"]
+    topics = settings.get("topics", "")
+    message_filter = settings.get("message_filter", None)
+    translate = settings.get("translate", False)
 
     return Subscriber(addresses, topics=topics, message_filter=message_filter, translate=translate)
 
 
 def _get_nssubscriber_instance(settings):
-    services = settings.get('services', '')
-    topics = settings.get('topics', _MAGICK)
-    addr_listener = settings.get('addr_listener', False)
-    addresses = settings.get('addresses', None)
-    timeout = settings.get('timeout', 10)
-    translate = settings.get('translate', False)
-    nameserver = settings.get('nameserver', 'localhost') or 'localhost'
+    services = settings.get("services", "")
+    topics = settings.get("topics", _MAGICK)
+    addr_listener = settings.get("addr_listener", False)
+    addresses = settings.get("addresses", None)
+    timeout = settings.get("timeout", 10)
+    translate = settings.get("translate", False)
+    nameserver = settings.get("nameserver", "localhost") or "localhost"
 
     return NSSubscriber(
         services=services,

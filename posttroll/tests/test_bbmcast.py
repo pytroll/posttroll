@@ -20,45 +20,42 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
 import random
-from socket import SOL_SOCKET, SO_BROADCAST, error
+import unittest
+from socket import SO_BROADCAST, SOL_SOCKET, error
 
 from posttroll import bbmcast
 
 
 class TestBB(unittest.TestCase):
-
-    """Test class.
-    """
+    """Test class."""
 
     def test_mcast_sender(self):
-        """Unit test for mcast_sender.
-        """
+        """Unit test for mcast_sender."""
         mcgroup = (str(random.randint(224, 239)) + "." +
                    str(random.randint(0, 255)) + "." +
                    str(random.randint(0, 255)) + "." +
                    str(random.randint(0, 255)))
         socket, group = bbmcast.mcast_sender(mcgroup)
         if mcgroup in ("0.0.0.0", "255.255.255.255"):
-            self.assertEqual(group, "<broadcast>")
-            self.assertEqual(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
+            assert group == "<broadcast>"
+            assert socket.getsockopt(SOL_SOCKET, SO_BROADCAST) == 1
         else:
-            self.assertEqual(group, mcgroup)
-            self.assertEqual(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 0)
+            assert group == mcgroup
+            assert socket.getsockopt(SOL_SOCKET, SO_BROADCAST) == 0
 
         socket.close()
 
         mcgroup = "0.0.0.0"
         socket, group = bbmcast.mcast_sender(mcgroup)
-        self.assertEqual(group, "<broadcast>")
-        self.assertEqual(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
+        assert group == "<broadcast>"
+        assert socket.getsockopt(SOL_SOCKET, SO_BROADCAST) == 1
         socket.close()
 
         mcgroup = "255.255.255.255"
         socket, group = bbmcast.mcast_sender(mcgroup)
-        self.assertEqual(group, "<broadcast>")
-        self.assertEqual(socket.getsockopt(SOL_SOCKET, SO_BROADCAST), 1)
+        assert group == "<broadcast>"
+        assert socket.getsockopt(SOL_SOCKET, SO_BROADCAST) == 1
         socket.close()
 
         mcgroup = (str(random.randint(0, 223)) + "." +
@@ -74,17 +71,16 @@ class TestBB(unittest.TestCase):
         self.assertRaises(IOError, bbmcast.mcast_sender, mcgroup)
 
     def test_mcast_receiver(self):
-        """Unit test for mcast_receiver.
-        """
+        """Unit test for mcast_receiver."""
         mcport = random.randint(1025, 65535)
         mcgroup = "0.0.0.0"
         socket, group = bbmcast.mcast_receiver(mcport, mcgroup)
-        self.assertEqual(group, "<broadcast>")
+        assert group == "<broadcast>"
         socket.close()
 
         mcgroup = "255.255.255.255"
         socket, group = bbmcast.mcast_receiver(mcport, mcgroup)
-        self.assertEqual(group, "<broadcast>")
+        assert group == "<broadcast>"
         socket.close()
 
         # Valid multicast range is 224.0.0.0 to 239.255.255.255
@@ -93,7 +89,7 @@ class TestBB(unittest.TestCase):
                    str(random.randint(0, 255)) + "." +
                    str(random.randint(0, 255)))
         socket, group = bbmcast.mcast_receiver(mcport, mcgroup)
-        self.assertEqual(group, mcgroup)
+        assert group == mcgroup
         socket.close()
 
         mcgroup = (str(random.randint(0, 223)) + "." +

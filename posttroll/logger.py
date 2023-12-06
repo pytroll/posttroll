@@ -20,28 +20,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Logger for pytroll system.
-"""
+"""Logger for pytroll system."""
 
 
 # TODO: remove old hanging subscriptions
 
-from posttroll.subscriber import Subscribe
-from posttroll.publisher import NoisyPublisher
-from posttroll.message import Message
-from threading import Thread
-
 import copy
 import logging
 import logging.handlers
+from threading import Thread
+
+from posttroll.message import Message
+from posttroll.publisher import NoisyPublisher
+from posttroll.subscriber import Subscribe
 
 LOGGER = logging.getLogger(__name__)
 
 
 class PytrollFormatter(logging.Formatter):
-
-    """Formats a pytroll message inside a log record.
-    """
+    """Formats a pytroll message inside a log record."""
 
     def __init__(self, fmt, datefmt):
         logging.Formatter.__init__(self, fmt, datefmt)
@@ -54,9 +51,7 @@ class PytrollFormatter(logging.Formatter):
 
 
 class PytrollHandler(logging.Handler):
-
-    """Sends the record through a pytroll publisher.
-    """
+    """Sends the record through a pytroll publisher."""
 
     def __init__(self, name, port=0):
         logging.Handler.__init__(self)
@@ -75,11 +70,11 @@ class PytrollHandler(logging.Handler):
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
 COLORS = {
-    'WARNING': YELLOW,
-    'INFO': GREEN,
-    'DEBUG': BLUE,
-    'CRITICAL': MAGENTA,
-    'ERROR': RED
+    "WARNING": YELLOW,
+    "INFO": GREEN,
+    "DEBUG": BLUE,
+    "CRITICAL": MAGENTA,
+    "ERROR": RED
 }
 
 COLOR_SEQ = "\033[1;%dm"
@@ -87,9 +82,7 @@ RESET_SEQ = "\033[0m"
 
 
 class ColoredFormatter(logging.Formatter):
-
-    """Adds a color for the levelname.
-    """
+    """Adds a color for the levelname."""
 
     def __init__(self, msg, use_color=True):
         logging.Formatter.__init__(self, msg)
@@ -110,7 +103,6 @@ class ColoredFormatter(logging.Formatter):
 
 
 class Logger(object):
-
     """The logging machine.
 
     Contains a thread listening to incomming messages, and a thread logging.
@@ -122,13 +114,11 @@ class Logger(object):
         self.loop = True
 
     def start(self):
-        """Starts the logging.
-        """
+        """Starts the logging."""
         self.log_thread.start()
 
     def log(self):
-        """Log stuff.
-        """
+        """Log stuff."""
         with Subscribe(services=[""], addr_listener=True) as sub:
             for msg in sub.recv(1):
                 if msg:
@@ -156,14 +146,12 @@ class Logger(object):
                     break
 
     def stop(self):
-        """Stop the machine.
-        """
+        """Stop the machine."""
         self.loop = False
 
 
 def run():
-    """Main function
-    """
+    """Main function."""
     import argparse
 
     global LOGGER
@@ -212,5 +200,5 @@ def run():
         print("Thanks for using pytroll/logger. "
               "See you soon on www.pytroll.org!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
