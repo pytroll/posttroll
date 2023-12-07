@@ -26,7 +26,7 @@ import logging
 import threading
 
 from posttroll import config, message
-from posttroll.bbmcast import MC_GROUP, MulticastSender
+from posttroll.bbmcast import MulticastSender
 
 __all__ = ("MessageBroadcaster", "AddressBroadcaster", "sendaddress")
 
@@ -70,9 +70,7 @@ class MessageBroadcaster(object):
             self._sender = DesignatedReceiversSender(port,
                                                      designated_receivers)
         else:
-            # mcgroup = None or '<broadcast>' is broadcast
-            # mcgroup = MC_GROUP is default multicast group
-            self._sender = MulticastSender(port, mcgroup=MC_GROUP)
+            self._sender = MulticastSender(port)
 
         self._interval = interval
         self._message = msg

@@ -31,10 +31,12 @@ This is based on python-examples Demo/sockets/mcast.py
 import logging
 import os
 import struct
+import warnings
 from socket import (
     AF_INET,
     INADDR_ANY,
     IP_ADD_MEMBERSHIP,
+    IP_MULTICAST_IF,
     IP_MULTICAST_LOOP,
     IP_MULTICAST_TTL,
     IPPROTO_IP,
@@ -45,15 +47,20 @@ from socket import (
     SOL_IP,
     SOL_SOCKET,
     gethostbyname,
+    inet_aton,
     socket,
     timeout,
 )
+
+from posttroll import config
 
 __all__ = ("MulticastSender", "MulticastReceiver", "mcast_sender",
            "mcast_receiver", "SocketTimeout")
 
 # 224.0.0.0 through 224.0.0.255 is reserved administrative tasks
-MC_GROUP = os.environ.get("PYTROLL_MC_GROUP", "225.0.0.212")
+DEFAULT_MC_GROUP = "225.0.0.212"
+
+MULTICAST_INTERFACE = config.get("multicast_interface", "0.0.0.0")
 
 # local network multicast (<32)
 TTL_LOCALNET = int(os.environ.get("PYTROLL_MC_TTL", 31))
@@ -69,14 +76,14 @@ SocketTimeout = timeout  # for easy access to socket.timeout
 # -----------------------------------------------------------------------------
 
 
-class MulticastSender(object):
+class MulticastSender:
     """Multicast sender on *port* and *mcgroup*."""
 
-    def __init__(self, port, mcgroup=MC_GROUP):
+    def __init__(self, port, mcgroup=None):
         self.port = port
         self.group = mcgroup
         self.socket, self.group = mcast_sender(mcgroup)
-        logger.debug("Started multicast group %s", mcgroup)
+        logger.debug("Started multicast group %s", self.group)
 
     def __call__(self, data):
         self.socket.sendto(data.encode(), (self.group, self.port))
@@ -88,8 +95,10 @@ class MulticastSender(object):
 # Allow non-object interface
 
 
-def mcast_sender(mcgroup=MC_GROUP):
+def mcast_sender(mcgroup=None):
     """Non-object interface for sending multicast messages."""
+    if mcgroup is None:
+        mcgroup = get_mc_group()
     sock = socket(AF_INET, SOCK_DGRAM)
     try:
         sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
@@ -98,15 +107,27 @@ def mcast_sender(mcgroup=MC_GROUP):
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         elif((int(mcgroup.split(".")[0]) > 239) or
              (int(mcgroup.split(".")[0]) < 224)):
-            raise IOError("Invalid multicast address.")
+            raise IOError(f"Invalid multicast address {mcgroup}")
         else:
             group = mcgroup
             ttl = struct.pack("b", TTL_LOCALNET)  # Time-to-live
             sock.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, ttl)
+            if MULTICAST_INTERFACE != "0.0.0.0":
+                sock.setsockopt(IPPROTO_IP, IP_MULTICAST_IF, inet_aton(MULTICAST_INTERFACE))
     except Exception:
         sock.close()
         raise
     return sock, group
+
+def get_mc_group():
+    try:
+        mcgroup = os.environ["PYTROLL_MC_GROUP"]
+        warnings.warn("PYTROLL_MC_GROUP is pending deprecation, please use POSTTROLL_MC_GROUP instead.",
+                      PendingDeprecationWarning)
+    except KeyError:
+        mcgroup = DEFAULT_MC_GROUP
+    mcgroup = config.get("mc_group", mcgroup)
+    return mcgroup
 
 # -----------------------------------------------------------------------------
 #
@@ -119,7 +140,7 @@ class MulticastReceiver(object):
     """Multicast receiver on *port* for an *mcgroup*."""
     BUFSIZE = 1024
 
-    def __init__(self, port, mcgroup=MC_GROUP):
+    def __init__(self, port, mcgroup=None):
         # Note: a multicast receiver will also receive broadcast on same port.
         self.port = port
         self.socket, self.group = mcast_receiver(port, mcgroup)
@@ -141,8 +162,10 @@ class MulticastReceiver(object):
 # Allow non-object interface
 
 
-def mcast_receiver(port, mcgroup=MC_GROUP):
+def mcast_receiver(port, mcgroup=None):
     """Open a UDP socket, bind it to a port and select a multicast group."""
+    if mcgroup is None:
+        mcgroup = get_mc_group()
     if _is_broadcast_group(mcgroup):
         group = None
     else:
@@ -167,15 +190,14 @@ def mcast_receiver(port, mcgroup=MC_GROUP):
         if group:
             group = gethostbyname(group)
 
-            # Construct binary group address
-            bytes_ = [int(b) for b in group.split(".")]
-            grpaddr = 0
-            for byte in bytes_:
-                grpaddr = (grpaddr << 8) | byte
+            # Construct struct mreq
+            if MULTICAST_INTERFACE == "0.0.0.0":
+                ifaddr = INADDR_ANY
+                mreq = struct.pack("=4sl", inet_aton(group), ifaddr)
 
-            # Construct struct mreq from grpaddr and ifaddr
-            ifaddr = INADDR_ANY
-            mreq = struct.pack("!LL", grpaddr, ifaddr)
+            else:
+                ifaddr = inet_aton(MULTICAST_INTERFACE)
+                mreq = struct.pack("=4s4s", inet_aton(group), ifaddr)
 
             # Add group membership
             sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, mreq)
