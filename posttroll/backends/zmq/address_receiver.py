@@ -1,3 +1,5 @@
+"""ZMQ implementation of the the simple receiver."""
+
 from zmq import LINGER, REP
 
 from posttroll.address_receiver import default_publish_port
@@ -8,11 +10,13 @@ class SimpleReceiver(object):
     """Simple listing on port for address messages."""
 
     def __init__(self, port=None):
+        """Set up the receiver."""
         self._port = port or default_publish_port
         self._socket = get_context().socket(REP)
         self._socket.bind("tcp://*:" + str(port))
 
     def __call__(self):
+        """Receive a message."""
         message = self._socket.recv_string()
         self._socket.send_string("ok")
         return message, None

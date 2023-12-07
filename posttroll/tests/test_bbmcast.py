@@ -120,7 +120,7 @@ def test_mcast_send_recv(reraise):
     message = "Ho Ho Ho!"
 
     def check_message(sock, message):
-        data, sender = sock.recvfrom(1024)
+        data, _ = sock.recvfrom(1024)
         with reraise:
             assert data.decode() == message
 
