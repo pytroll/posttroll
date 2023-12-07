@@ -32,6 +32,7 @@ import logging
 import os
 import struct
 import warnings
+from contextlib import suppress
 from socket import (
     AF_INET,
     INADDR_ANY,
@@ -59,8 +60,6 @@ __all__ = ("MulticastSender", "MulticastReceiver", "mcast_sender",
 
 # 224.0.0.0 through 224.0.0.255 is reserved administrative tasks
 DEFAULT_MC_GROUP = "225.0.0.212"
-
-MULTICAST_INTERFACE = config.get("multicast_interface", "0.0.0.0")
 
 # local network multicast (<32)
 TTL_LOCALNET = int(os.environ.get("PYTROLL_MC_TTL", 31))
@@ -114,8 +113,10 @@ def mcast_sender(mcgroup=None):
             group = mcgroup
             ttl = struct.pack("b", TTL_LOCALNET)  # Time-to-live
             sock.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, ttl)
-            if MULTICAST_INTERFACE != "0.0.0.0":
-                sock.setsockopt(IPPROTO_IP, IP_MULTICAST_IF, inet_aton(MULTICAST_INTERFACE))
+
+            with suppress(KeyError):
+                multicast_interface = config.get("multicast_interface")
+                sock.setsockopt(IPPROTO_IP, IP_MULTICAST_IF, inet_aton(multicast_interface))
     except Exception:
         sock.close()
         raise
@@ -195,13 +196,13 @@ def mcast_receiver(port, mcgroup=None):
             group = gethostbyname(group)
 
             # Construct struct mreq
-            if MULTICAST_INTERFACE == "0.0.0.0":
+            try:
+                multicast_interface = config.get("multicast_interface")
+                ifaddr = inet_aton(multicast_interface)
+                mreq = struct.pack("=4s4s", inet_aton(group), ifaddr)
+            except KeyError:
                 ifaddr = INADDR_ANY
                 mreq = struct.pack("=4sl", inet_aton(group), ifaddr)
-
-            else:
-                ifaddr = inet_aton(MULTICAST_INTERFACE)
-                mreq = struct.pack("=4s4s", inet_aton(group), ifaddr)
 
             # Add group membership
             sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, mreq)
