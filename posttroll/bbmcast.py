@@ -80,12 +80,14 @@ class MulticastSender:
     """Multicast sender on *port* and *mcgroup*."""
 
     def __init__(self, port, mcgroup=None):
+        """Set up the multicast sender."""
         self.port = port
         self.group = mcgroup
         self.socket, self.group = mcast_sender(mcgroup)
         logger.debug("Started multicast group %s", self.group)
 
     def __call__(self, data):
+        """Send data."""
         self.socket.sendto(data.encode(), (self.group, self.port))
 
     def close(self):
@@ -141,6 +143,7 @@ class MulticastReceiver(object):
     BUFSIZE = 1024
 
     def __init__(self, port, mcgroup=None):
+        """Set up the multicast receiver."""
         # Note: a multicast receiver will also receive broadcast on same port.
         self.port = port
         self.socket, self.group = mcast_receiver(port, mcgroup)
@@ -151,6 +154,7 @@ class MulticastReceiver(object):
         return self
 
     def __call__(self):
+        """Receive data."""
         data, sender = self.socket.recvfrom(self.BUFSIZE)
         return data.decode(), sender
 
