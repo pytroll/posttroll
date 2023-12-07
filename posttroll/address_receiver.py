@@ -76,6 +76,7 @@ class AddressReceiver(object):
 
     def __init__(self, max_age=ten_minutes, port=None,
                  do_heartbeat=True, multicast_enabled=True, restrict_to_localhost=False):
+        """Set up the address receiver."""
         self._max_age = max_age
         self._port = port or default_publish_port
         self._address_lock = threading.Lock()
@@ -138,7 +139,7 @@ class AddressReceiver(object):
                            "service": metadata["service"]}
                     msg = Message("/address/" + metadata["name"], "info", mda)
                     to_del.append(addr)
-                    LOGGER.info("publish remove '%s'", str(msg))
+                    LOGGER.info(f"publish remove '{msg}'")
                     pub.send(msg.encode())
             for addr in to_del:
                 del self._addresses[addr]

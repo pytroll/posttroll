@@ -45,7 +45,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
-    """Get the address of the publisher for a given list of publisher *names*
+    """Get the address of the publisher.
+
+    For a given list of publisher *names*
     from the nameserver on *nameserver* (localhost by default).
     """
     addrs = []
@@ -90,6 +92,7 @@ class NameServer:
     """The name server."""
 
     def __init__(self, max_age=timedelta(minutes=10), multicast_enabled=True, restrict_to_localhost=False):
+        """Set up the nameserver."""
         self._max_age = max_age
         self._multicast_enabled = multicast_enabled
         self._restrict_to_localhost = restrict_to_localhost

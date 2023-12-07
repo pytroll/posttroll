@@ -61,7 +61,7 @@ class UnsecureZMQNameServer:
             with nslock:
                 self.listener = get_context().socket(REP)
                 self.listener.bind("tcp://*:" + str(port))
-                logger.debug("Listening on port %s", str(port))
+                logger.debug(f"Nameserver listening on port {port}")
                 poller = Poller()
                 poller.register(self.listener, POLLIN)
             while self.loop:

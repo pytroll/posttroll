@@ -231,6 +231,10 @@ class NoisyPublisher:
         """Get the port number."""
         return self._publisher.port_number
 
+    def heartbeat(self, min_interval=0):
+        """Send a heartbeat ... but only if *min_interval* seconds has passed since last beat."""
+        self._publisher.heartbeat(min_interval)
+
 
 def _create_tcp_publish_address(port, ip_address="*"):
     return "tcp://" + ip_address + ":" + str(port)

@@ -135,7 +135,8 @@ class TestNSWithoutMulticasting:
         """Set up the testing class."""
         test_lock.acquire()
         self.nameservers = ["localhost"]
-        self.ns = NameServer(max_age=timedelta(seconds=3),
+        self.max_age = .3
+        self.ns = NameServer(max_age=timedelta(seconds=self.max_age),
                              multicast_enabled=False)
         self.thr = Thread(target=self.ns.run)
         self.thr.start()
@@ -147,33 +148,32 @@ class TestNSWithoutMulticasting:
         time.sleep(2)
         test_lock.release()
 
-    def test_pub_addresses(self, reraise):
+    def test_pub_addresses(self):
         """Test retrieving addresses."""
         from posttroll.ns import get_pub_addresses
         from posttroll.publisher import Publish
 
-        with reraise:
-            with Publish("data_provider", 0, ["this_data"],
-                        nameservers=self.nameservers):
-                time.sleep(3)
-                res = get_pub_addresses(["this_data"])
-                assert len(res) == 1
-                expected = {u"status": True,
-                            u"service": [u"data_provider", u"this_data"],
-                            u"name": u"address"}
-                for key, val in expected.items():
-                    assert res[0][key] == val
-                assert "receive_time" in res[0]
-                assert "URI" in res[0]
-                res = get_pub_addresses(["data_provider"])
-                assert len(res) == 1
-                expected = {u"status": True,
-                            u"service": [u"data_provider", u"this_data"],
-                            u"name": u"address"}
-                for key, val in expected.items():
-                    assert res[0][key] == val
-                assert "receive_time" in res[0]
-                assert "URI" in res[0]
+        with Publish("data_provider", 0, ["this_data"],
+                    nameservers=self.nameservers, broadcast_interval=.1):
+            time.sleep(.2)
+            res = get_pub_addresses(["this_data"])
+            assert len(res) == 1
+            expected = {u"status": True,
+                        u"service": [u"data_provider", u"this_data"],
+                        u"name": u"address"}
+            for key, val in expected.items():
+                assert res[0][key] == val
+            assert "receive_time" in res[0]
+            assert "URI" in res[0]
+            res = get_pub_addresses(["data_provider"])
+            assert len(res) == 1
+            expected = {u"status": True,
+                        u"service": [u"data_provider", u"this_data"],
+                        u"name": u"address"}
+            for key, val in expected.items():
+                assert res[0][key] == val
+            assert "receive_time" in res[0]
+            assert "URI" in res[0]
 
     def test_pub_sub_ctx(self):
         """Test publish and subscribe."""
@@ -182,12 +182,12 @@ class TestNSWithoutMulticasting:
         from posttroll.subscriber import Subscribe
 
         with Publish("data_provider", 0, ["this_data"],
-                     nameservers=self.nameservers) as pub:
+                     nameservers=self.nameservers, broadcast_interval=.1) as pub:
             with Subscribe("this_data", "counter") as sub:
                 for counter in range(5):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
-                    time.sleep(1)
+                    time.sleep(.1)
                     msg = next(sub.recv(2))
                     if msg is not None:
                         assert str(msg) == str(message)
@@ -200,26 +200,27 @@ class TestNSWithoutMulticasting:
         from posttroll.publisher import Publish
         from posttroll.subscriber import Subscribe
 
-        time.sleep(4)
-        with Subscribe("this_data", "counter", True) as sub:
+        with Subscribe("this_data", "counter", True, timeout=.1) as sub:
             assert len(sub.addresses) == 0
             with Publish("data_provider", 0, ["this_data"],
-                         nameservers=self.nameservers):
+                         nameservers=self.nameservers, broadcast_interval=.1):
                 time.sleep(4)
-                next(sub.recv(2))
+                next(sub.recv(.2))
                 assert len(sub.addresses) == 1
+
             time.sleep(3)
-            for msg in sub.recv(2):
+
+            for msg in sub.recv(.2):
                 if msg is None:
                     break
 
             time.sleep(3)
-            assert len(sub.sub_addr) == 0
+            assert len(sub.addresses) == 0
             with Publish("data_provider_2", 0, ["another_data"],
-                         nameservers=self.nameservers):
+                         nameservers=self.nameservers, broadcast_interval=.1):
                 time.sleep(4)
-                next(sub.recv(2))
-                assert len(sub.sub_addr) == 0
+                next(sub.recv(.2))
+                assert len(sub.addresses) == 0
 
 
 class TestPubSub(unittest.TestCase):
@@ -649,40 +650,38 @@ def _tcp_keepalive_no_settings():
 def test_publisher_tcp_keepalive():
     """Test that TCP Keepalive is set for Publisher if the environment variables are present."""
     from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
-    pub = UnsecureZMQPublisher("tcp://127.0.0.1:9000").start()
+    pub = UnsecureZMQPublisher("tcp://127.0.0.1:9001").start()
     _assert_tcp_keepalive(pub.publish_socket)
+    pub.stop()
 
 
 @pytest.mark.usefixtures("_tcp_keepalive_no_settings")
 def test_publisher_tcp_keepalive_not_set():
     """Test that TCP Keepalive is not set on by default."""
     from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
-    pub = UnsecureZMQPublisher("tcp://127.0.0.1:9000").start()
+    pub = UnsecureZMQPublisher("tcp://127.0.0.1:9002").start()
     _assert_no_tcp_keepalive(pub.publish_socket)
+    pub.stop()
 
 
 @pytest.mark.usefixtures("_tcp_keepalive_settings")
 def test_subscriber_tcp_keepalive():
     """Test that TCP Keepalive is set for Subscriber if the environment variables are present."""
     from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
-
     sub = UnsecureZMQSubscriber("tcp://127.0.0.1:9000")
-
     assert len(sub.addr_sub.values()) == 1
-
     _assert_tcp_keepalive(list(sub.addr_sub.values())[0])
+    sub.stop()
 
 
 @pytest.mark.usefixtures("_tcp_keepalive_no_settings")
 def test_subscriber_tcp_keepalive_not_set():
     """Test that TCP Keepalive is not set on by default."""
     from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
-
     sub = UnsecureZMQSubscriber("tcp://127.0.0.1:9000")
-
     assert len(sub.addr_sub.values()) == 1
-
     _assert_no_tcp_keepalive(list(sub.addr_sub.values())[0])
+    sub.close()
 
 
 def _assert_tcp_keepalive(socket):
