@@ -128,10 +128,10 @@ class TestNS(unittest.TestCase):
             sub.close()
 
 
-class TestNSWithoutMulticasting(unittest.TestCase):
+class TestNSWithoutMulticasting:
     """Test the nameserver."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the testing class."""
         test_lock.acquire()
         self.nameservers = ["localhost"]
@@ -140,39 +140,40 @@ class TestNSWithoutMulticasting(unittest.TestCase):
         self.thr = Thread(target=self.ns.run)
         self.thr.start()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Clean up after the tests have run."""
         self.ns.stop()
         self.thr.join()
         time.sleep(2)
         test_lock.release()
 
-    def test_pub_addresses(self):
+    def test_pub_addresses(self, reraise):
         """Test retrieving addresses."""
         from posttroll.ns import get_pub_addresses
         from posttroll.publisher import Publish
 
-        with Publish("data_provider", 0, ["this_data"],
-                     nameservers=self.nameservers):
-            time.sleep(3)
-            res = get_pub_addresses(["this_data"])
-            assert len(res) == 1
-            expected = {u"status": True,
-                        u"service": [u"data_provider", u"this_data"],
-                        u"name": u"address"}
-            for key, val in expected.items():
-                assert res[0][key] == val
-            assert "receive_time" in res[0]
-            assert "URI" in res[0]
-            res = get_pub_addresses(["data_provider"])
-            assert len(res) == 1
-            expected = {u"status": True,
-                        u"service": [u"data_provider", u"this_data"],
-                        u"name": u"address"}
-            for key, val in expected.items():
-                assert res[0][key] == val
-            assert "receive_time" in res[0]
-            assert "URI" in res[0]
+        with reraise:
+            with Publish("data_provider", 0, ["this_data"],
+                        nameservers=self.nameservers):
+                time.sleep(3)
+                res = get_pub_addresses(["this_data"])
+                assert len(res) == 1
+                expected = {u"status": True,
+                            u"service": [u"data_provider", u"this_data"],
+                            u"name": u"address"}
+                for key, val in expected.items():
+                    assert res[0][key] == val
+                assert "receive_time" in res[0]
+                assert "URI" in res[0]
+                res = get_pub_addresses(["data_provider"])
+                assert len(res) == 1
+                expected = {u"status": True,
+                            u"service": [u"data_provider", u"this_data"],
+                            u"name": u"address"}
+                for key, val in expected.items():
+                    assert res[0][key] == val
+                assert "receive_time" in res[0]
+                assert "URI" in res[0]
 
     def test_pub_sub_ctx(self):
         """Test publish and subscribe."""
