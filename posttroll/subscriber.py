@@ -30,7 +30,6 @@ import time
 from datetime import datetime, timedelta
 
 from posttroll import config
-from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
 from posttroll.message import _MAGICK
 from posttroll.ns import get_pub_address
 
@@ -66,7 +65,12 @@ class Subscriber:
         topics = self._magickfy_topics(topics)
         backend = config.get("backend", "unsecure_zmq")
         if backend == "unsecure_zmq":
+            from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
             self._subscriber = UnsecureZMQSubscriber(addresses, topics=topics,
+                                                     message_filter=message_filter, translate=translate)
+        elif backend == "secure_zmq":
+            from posttroll.backends.zmq.subscriber import SecureZMQSubscriber
+            self._subscriber = SecureZMQSubscriber(addresses, topics=topics,
                                                      message_filter=message_filter, translate=translate)
         else:
             raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")

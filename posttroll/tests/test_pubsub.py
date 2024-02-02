@@ -605,8 +605,7 @@ def test_dict_config_full_nssubscriber(NSSubscriber_start):
     NSSubscriber_start.assert_called_once()
 
 
-@mock.patch("posttroll.subscriber.UnsecureZMQSubscriber.update")
-def test_dict_config_full_subscriber(Subscriber_update):
+def test_dict_config_full_subscriber():
     """Test that all Subscriber options are passed."""
     from posttroll.subscriber import create_subscriber_from_dict_config
 
@@ -614,13 +613,14 @@ def test_dict_config_full_subscriber(Subscriber_update):
         "services": "val1",
         "topics": "val2",
         "addr_listener": "val3",
-        "addresses": "val4",
+        "addresses": "ipc://bla.ipc",
         "timeout": "val5",
         "translate": "val6",
         "nameserver": False,
         "message_filter": "val8",
     }
     _ = create_subscriber_from_dict_config(settings)
+
 
 @pytest.fixture()
 def _tcp_keepalive_settings(monkeypatch):
@@ -731,20 +731,22 @@ def test_ipc_pubsub_with_sec():
         subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
         sub = create_subscriber_from_dict_config(subscriber_settings)
         from posttroll.publisher import Publisher
-        pub = Publisher("ipc://bla.ipc", secure=True)
+        pub = Publisher("ipc://bla.ipc")
         pub.start()
         def delayed_send(msg):
             time.sleep(.2)
             from posttroll.message import Message
             msg = Message(subject="/hi", atype="string", data=msg)
             pub.send(str(msg))
-            pub.stop()
         from threading import Thread
-        Thread(target=delayed_send, args=["hi"]).start()
+        thr = Thread(target=delayed_send, args=["hi"])
+        thr.start()
         for msg in sub.recv():
             assert msg.data == "hi"
             break
         sub.stop()
+        thr.join()
+        pub.stop()
 
 def test_switch_to_unknown_backend():
     """Test switching to unknown backend."""
@@ -764,5 +766,15 @@ def test_switch_to_secure_zmq_backend():
     from posttroll.subscriber import Subscriber
 
     with config.set(backend="secure_zmq"):
+        Publisher("ipc://bla.ipc")
+        Subscriber("ipc://bla.ipc")
+
+def test_switch_to_unsecure_zmq_backend():
+    """Test switching to the secure_zmq backend."""
+    from posttroll import config
+    from posttroll.publisher import Publisher
+    from posttroll.subscriber import Subscriber
+
+    with config.set(backend="unsecure_zmq"):
         Publisher("ipc://bla.ipc")
         Subscriber("ipc://bla.ipc")

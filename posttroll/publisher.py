@@ -99,8 +99,8 @@ class Publisher:
             from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
             self._publisher = UnsecureZMQPublisher(address, name, min_port, max_port)
         elif backend == "secure_zmq":
-            from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
-            self._publisher = UnsecureZMQPublisher(address, name, min_port, max_port)
+            from posttroll.backends.zmq.publisher import SecureZMQPublisher
+            self._publisher = SecureZMQPublisher(address, name, min_port, max_port)
         else:
             raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
