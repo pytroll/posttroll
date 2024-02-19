@@ -62,9 +62,9 @@ class UnsecureZMQPublisher:
         self.publish_socket.close()
 
 class SecureZMQPublisher:
-    """Unsecure ZMQ implementation of the publisher class."""
+    """Secure ZMQ implementation of the publisher class."""
 
-    def __init__(self, address, name="", min_port=None, max_port=None):
+    def __init__(self, address, name="", min_port=None, max_port=None, server_secret_key=None, public_keys_directory=None, authorized_sub_addresses=None):
         """Bind the publisher class to a port."""
         self.name = name
         self.destination = address
@@ -74,9 +74,31 @@ class SecureZMQPublisher:
         self.port_number = None
         self._pub_lock = Lock()
 
+        self._server_secret_key = server_secret_key
+        self._authorized_sub_addresses = authorized_sub_addresses or []
+        self._pub_keys_dir = public_keys_directory
+        self._authenticator = None
+
     def start(self):
         """Start the publisher."""
-        self.publish_socket = get_context().socket(zmq.PUB)
+        ctx = get_context()
+
+        # Start an authenticator for this context.
+        from zmq.auth.thread import ThreadAuthenticator
+        auth = ThreadAuthenticator(ctx)
+        auth.start()
+        auth.allow(*self._authorized_sub_addresses)
+        # Tell authenticator to use the certificate in a directory
+        auth.configure_curve(domain='*', location=self._pub_keys_dir)
+        self._authenticator = auth
+
+        self.publish_socket = ctx.socket(zmq.PUB)
+
+        server_public, server_secret =zmq.auth.load_certificate(self._server_secret_key)
+        self.publish_socket.curve_secretkey = server_secret
+        self.publish_socket.curve_publickey = server_public
+        self.publish_socket.curve_server = True
+
         _set_tcp_keepalive(self.publish_socket)
 
         self._bind()
@@ -110,3 +132,4 @@ class SecureZMQPublisher:
         """Stop the publisher."""
         self.publish_socket.setsockopt(zmq.LINGER, 1)
         self.publish_socket.close()
+        self._authenticator.stop()

@@ -34,6 +34,11 @@ class UnsecureZMQSubscriber:
 
         self._loop = None
 
+    @property
+    def running(self):
+        """Check if suscriber is running."""
+        return self._loop
+
     def add(self, address, topics=None):
         """Add *address* to the subscribing list for *topics*.
 
@@ -203,13 +208,16 @@ class UnsecureZMQSubscriber:
 
 
 class SecureZMQSubscriber:
-    """Unsecure ZMQ implementation of the subscriber."""
+    """Secure ZMQ implementation of the subscriber, using Curve."""
 
-    def __init__(self, addresses, topics="", message_filter=None, translate=False):
+    def __init__(self, addresses, topics="", message_filter=None, translate=False, client_secret_key_file=None, server_public_key_file=None):
         """Initialize the subscriber."""
         self._topics = topics
         self._filter = message_filter
         self._translate = translate
+
+        self._client_secret_file = client_secret_key_file
+        self._server_public_key_file = server_public_key_file
 
         self.sub_addr = {}
         self.addr_sub = {}
@@ -223,6 +231,11 @@ class SecureZMQSubscriber:
         self.update(addresses)
 
         self._loop = None
+
+    @property
+    def running(self):
+        """Check if suscriber is running."""
+        return self._loop
 
     def add(self, address, topics=None):
         """Add *address* to the subscribing list for *topics*.
@@ -241,7 +254,18 @@ class SecureZMQSubscriber:
             self.addr_sub[address] = subscriber
 
     def _add_sub_socket(self, address, topics):
+        import zmq.auth
         subscriber = get_context().socket(SUB)
+
+        client_public, client_secret = zmq.auth.load_certificate(self._client_secret_file)
+        subscriber.curve_secretkey = client_secret
+        subscriber.curve_publickey = client_public
+
+        server_public, _ = zmq.auth.load_certificate(self._server_public_key_file)
+        # The client must know the server's public key to make a CURVE connection.
+        subscriber.curve_serverkey = server_public
+
+
         _set_tcp_keepalive(subscriber)
         for t__ in topics:
             subscriber.setsockopt_string(SUBSCRIBE, str(t__))

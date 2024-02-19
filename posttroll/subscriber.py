@@ -60,7 +60,7 @@ class Subscriber:
 
     """
 
-    def __init__(self, addresses, topics="", message_filter=None, translate=False):
+    def __init__(self, addresses, topics="", message_filter=None, translate=False, **kwargs):
         """Initialize the subscriber."""
         topics = self._magickfy_topics(topics)
         backend = config.get("backend", "unsecure_zmq")
@@ -71,7 +71,7 @@ class Subscriber:
         elif backend == "secure_zmq":
             from posttroll.backends.zmq.subscriber import SecureZMQSubscriber
             self._subscriber = SecureZMQSubscriber(addresses, topics=topics,
-                                                     message_filter=message_filter, translate=translate)
+                                                     message_filter=message_filter, translate=translate, **kwargs)
         else:
             raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
@@ -134,6 +134,11 @@ class Subscriber:
     def close(self):
         """Close the subscriber: stop it and close the local subscribers."""
         return self._subscriber.close()
+
+    @property
+    def running(self):
+        """Check if suscriber is running."""
+        return self._subscriber.running
 
     @staticmethod
     def _magickfy_topics(topics):
@@ -343,12 +348,14 @@ def create_subscriber_from_dict_config(settings):
 
 
 def _get_subscriber_instance(settings):
-    addresses = settings["addresses"]
-    topics = settings.get("topics", "")
-    message_filter = settings.get("message_filter", None)
-    translate = settings.get("translate", False)
+    addresses = settings.pop("addresses")
+    topics = settings.pop("topics", "")
+    message_filter = settings.pop("message_filter", None)
+    translate = settings.pop("translate", False)
+    _ = settings.pop("nameserver", None)
+    _ = settings.pop("port", None)
 
-    return Subscriber(addresses, topics=topics, message_filter=message_filter, translate=translate)
+    return Subscriber(addresses, topics=topics, message_filter=message_filter, translate=translate, **settings)
 
 
 def _get_nssubscriber_instance(settings):

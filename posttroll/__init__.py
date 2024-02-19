@@ -37,16 +37,17 @@ config = Config("posttroll")
 logger = logging.getLogger(__name__)
 
 
-# def get_context():
-#     """Provide the context to use.
+def get_context():
+    """Provide the context to use.
 
-#     This function takes care of creating new contexts in case of forks.
-#     """
-#     pid = os.getpid()
-#     if pid not in context:
-#         context[pid] = zmq.Context()
-#         logger.debug("renewed context for PID %d", pid)
-#     return context[pid]
+    This function takes care of creating new contexts in case of forks.
+    """
+    backend = config.get("backend", "unsecure_zmq")
+    if "zmq" in backend:
+        from posttroll.backends.zmq import get_context
+        return get_context()
+    else:
+        raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
 
 def strp_isoformat(strg):

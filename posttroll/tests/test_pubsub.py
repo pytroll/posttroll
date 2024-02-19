@@ -724,14 +724,61 @@ def test_ipc_pubsub():
             break
         sub.stop()
 
-def test_ipc_pubsub_with_sec():
+
+def create_keys(tmp_path):
     """Test pub-sub on a secure ipc socket."""
+    base_dir = tmp_path
+    keys_dir = base_dir / "certificates"
+    public_keys_dir = base_dir / "public_keys"
+    secret_keys_dir = base_dir / "private_keys"
+
+    keys_dir.mkdir()
+    public_keys_dir.mkdir()
+    secret_keys_dir.mkdir()
+
+    import zmq.auth
+    import os
+    import shutil
+
+    # create new keys in certificates dir
+    server_public_file, server_secret_file = zmq.auth.create_certificates(
+        keys_dir, "server"
+    )
+    client_public_file, client_secret_file = zmq.auth.create_certificates(
+        keys_dir, "client"
+    )
+
+    # move public keys to appropriate directory
+    for key_file in os.listdir(keys_dir):
+        if key_file.endswith(".key"):
+            shutil.move(
+                os.path.join(keys_dir, key_file), os.path.join(public_keys_dir, '.')
+            )
+
+    # move secret keys to appropriate directory
+    for key_file in os.listdir(keys_dir):
+        if key_file.endswith(".key_secret"):
+            shutil.move(
+                os.path.join(keys_dir, key_file), os.path.join(secret_keys_dir, '.')
+            )
+
+
+def test_ipc_pubsub_with_sec(tmp_path):
+    """Test pub-sub on a secure ipc socket."""
+    base_dir = tmp_path
+    public_keys_dir = base_dir / "public_keys"
+    secret_keys_dir = base_dir / "private_keys"
+
+    create_keys(tmp_path)
+
     from posttroll import config
     with config.set(backend="secure_zmq"):
-        subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
+        subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202,
+                                   client_secret_key_file=secret_keys_dir / "client.key_secret",
+                                   server_public_key_file=public_keys_dir / "server.key")
         sub = create_subscriber_from_dict_config(subscriber_settings)
         from posttroll.publisher import Publisher
-        pub = Publisher("ipc://bla.ipc")
+        pub = Publisher("ipc://bla.ipc", server_secret_key=secret_keys_dir / "server.key_secret", public_keys_directory=public_keys_dir)
         pub.start()
         def delayed_send(msg):
             time.sleep(.2)
@@ -739,14 +786,16 @@ def test_ipc_pubsub_with_sec():
             msg = Message(subject="/hi", atype="string", data=msg)
             pub.send(str(msg))
         from threading import Thread
-        thr = Thread(target=delayed_send, args=["hi"])
+        thr = Thread(target=delayed_send, args=["very sensitive message"])
         thr.start()
-        for msg in sub.recv():
-            assert msg.data == "hi"
-            break
-        sub.stop()
-        thr.join()
-        pub.stop()
+        try:
+            for msg in sub.recv():
+                assert msg.data == "very sensitive message"
+                break
+        finally:
+            sub.stop()
+            thr.join()
+            pub.stop()
 
 def test_switch_to_unknown_backend():
     """Test switching to unknown backend."""
