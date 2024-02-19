@@ -115,6 +115,17 @@ to specify the nameserver(s) explicitly in the publishing code::
 .. seealso:: :class:`posttroll.publisher.Publish`
              and :class:`posttroll.subscriber.Subscribe`
 
+Configuration parameters
+------------------------
+
+Global configuration variables that are available through a Donfig configuration object:
+- tcp_keepalive
+- tcp_keepalive_cnt
+- tcp_keepalive_idle
+- tcp_keepalive_intvl
+- multicast_interface
+- mc_group
+
 Setting TCP keep-alive
 ----------------------
 

@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.10", "3.11", "3.12"]
         experimental: [false]
     steps:
       - name: Checkout source
@@ -21,7 +21,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          pip install -U pytest pytest-cov pyzmq netifaces donfig
+          pip install -U pytest pytest-cov pyzmq netifaces donfig pytest-reraise
       - name: Install posttroll
         run: |
           pip install --no-deps -e .

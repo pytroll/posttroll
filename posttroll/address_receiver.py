@@ -27,28 +27,25 @@ It will look like:
 /<server-name>/address info ... host:port
 """
 import copy
+import errno
 import logging
 import os
 import threading
-import errno
 import time
-
 from datetime import datetime, timedelta
 
 import netifaces
-from zmq import REP, LINGER
 
+from posttroll import config
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout
 from posttroll.message import Message
 from posttroll.publisher import Publish
-from posttroll import get_context
 
-
-__all__ = ('AddressReceiver', 'getaddress')
+__all__ = ("AddressReceiver", "getaddress")
 
 LOGGER = logging.getLogger(__name__)
 
-debug = os.environ.get('DEBUG', False)
+debug = os.environ.get("DEBUG", False)
 broadcast_port = 21200
 
 default_publish_port = 16543
@@ -64,7 +61,7 @@ def get_local_ips():
     for addr in inet_addrs:
         if addr is not None:
             for add in addr:
-                ips.append(add['addr'])
+                ips.append(add["addr"])
     return ips
 
 # -----------------------------------------------------------------------------
@@ -79,11 +76,12 @@ class AddressReceiver(object):
 
     def __init__(self, max_age=ten_minutes, port=None,
                  do_heartbeat=True, multicast_enabled=True, restrict_to_localhost=False):
+        """Set up the address receiver."""
         self._max_age = max_age
         self._port = port or default_publish_port
         self._address_lock = threading.Lock()
         self._addresses = {}
-        self._subject = '/address'
+        self._subject = "/address"
         self._do_heartbeat = do_heartbeat
         self._multicast_enabled = multicast_enabled
         self._last_age_check = datetime(1900, 1, 1)
@@ -120,7 +118,7 @@ class AddressReceiver(object):
                     mda = copy.copy(metadata)
                     mda["receive_time"] = mda["receive_time"].isoformat()
                     addrs.append(mda)
-        LOGGER.debug('return address %s', str(addrs))
+        LOGGER.debug("return address %s", str(addrs))
         return addrs
 
     def _check_age(self, pub, min_interval=zero_seconds):
@@ -136,12 +134,12 @@ class AddressReceiver(object):
             for addr, metadata in self._addresses.items():
                 atime = metadata["receive_time"]
                 if now - atime > self._max_age:
-                    mda = {'status': False,
-                           'URI': addr,
-                           'service': metadata['service']}
-                    msg = Message('/address/' + metadata['name'], 'info', mda)
+                    mda = {"status": False,
+                           "URI": addr,
+                           "service": metadata["service"]}
+                    msg = Message("/address/" + metadata["name"], "info", mda)
                     to_del.append(addr)
-                    LOGGER.info("publish remove '%s'", str(msg))
+                    LOGGER.info(f"publish remove '{msg}'")
                     pub.send(msg.encode())
             for addr in to_del:
                 del self._addresses[addr]
@@ -149,7 +147,7 @@ class AddressReceiver(object):
     def _run(self):
         """Run the receiver."""
         port = broadcast_port
-        nameservers = []
+        nameservers = False
         if self._multicast_enabled:
             while True:
                 try:
@@ -169,7 +167,9 @@ class AddressReceiver(object):
                     break
 
         else:
-            recv = _SimpleReceiver(port)
+            if config.get("backend", "unsecure_zmq") == "unsecure_zmq":
+                from posttroll.backends.zmq.address_receiver import SimpleReceiver
+            recv = SimpleReceiver(port)
             nameservers = ["localhost"]
 
         self._is_running = True
@@ -183,7 +183,7 @@ class AddressReceiver(object):
                             ip_, port = fromaddr
                             if self._restrict_to_localhost and ip_ not in self._local_ips:
                                 # discard external message
-                                LOGGER.debug('Discard external message')
+                                LOGGER.debug("Discard external message")
                                 continue
                         LOGGER.debug("data %s", data)
                     except SocketTimeout:
@@ -196,14 +196,14 @@ class AddressReceiver(object):
                             pub.heartbeat(min_interval=29)
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
-                    if(msg.type == 'info' and
+                    if(msg.type == "info" and
                        msg.subject.lower().startswith(self._subject)):
                         addr = msg.data["URI"]
-                        msg.data['status'] = True
+                        msg.data["status"] = True
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
 
-                        LOGGER.debug('receiving address %s %s %s', str(addr),
+                        LOGGER.debug("receiving address %s %s %s", str(addr),
                                      str(name), str(metadata))
                         if addr not in self._addresses:
                             LOGGER.info("nameserver: publish add '%s'",
@@ -219,26 +219,6 @@ class AddressReceiver(object):
         with self._address_lock:
             metadata["receive_time"] = datetime.utcnow()
             self._addresses[adr] = metadata
-
-
-class _SimpleReceiver(object):
-
-    """ Simple listing on port for address messages."""
-
-    def __init__(self, port=None):
-        self._port = port or default_publish_port
-        self._socket = get_context().socket(REP)
-        self._socket.bind("tcp://*:" + str(port))
-
-    def __call__(self):
-        message = self._socket.recv_string()
-        self._socket.send_string("ok")
-        return message, None
-
-    def close(self):
-        """Close the receiver."""
-        self._socket.setsockopt(LINGER, 1)
-        self._socket.close()
 
 
 # -----------------------------------------------------------------------------

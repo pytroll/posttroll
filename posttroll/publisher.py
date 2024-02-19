@@ -23,19 +23,13 @@
 
 """The publisher module gives high-level tools to publish messages on a port."""
 
-import os
 import logging
 import socket
 from datetime import datetime, timedelta
-from threading import Lock
-from urllib.parse import urlsplit, urlunsplit
-import zmq
 
-from posttroll import get_context
-from posttroll import _set_tcp_keepalive
+from posttroll import config
 from posttroll.message import Message
 from posttroll.message_broadcaster import sendaddressservice
-from posttroll import config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -91,59 +85,37 @@ class Publisher:
 
     """
 
-    def __init__(self, address, name="", min_port=None, max_port=None):
+    def __init__(self, address, name="", min_port=None, max_port=None, **kwargs):
         """Bind the publisher class to a port."""
-        self.name = name
-        self.destination = address
-        self.publish_socket = None
         # Limit port range or use the defaults when no port is defined
         # by the user
-        self.min_port = min_port or int(config.get('pub_min_port', 49152))
-        self.max_port = max_port or int(config.get('pub_max_port', 65536))
-        self.port_number = None
-
+        min_port = min_port or int(config.get("pub_min_port", 49152))
+        max_port = max_port or int(config.get("pub_max_port", 65536))
         # Initialize no heartbeat
         self._heartbeat = None
-        self._pub_lock = Lock()
 
-
+        backend = config.get("backend", "unsecure_zmq")
+        if backend == "unsecure_zmq":
+            from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
+            self._publisher = UnsecureZMQPublisher(address, name, min_port, max_port)
+        elif backend == "secure_zmq":
+            from posttroll.backends.zmq.publisher import SecureZMQPublisher
+            self._publisher = SecureZMQPublisher(address, name, min_port, max_port, **kwargs)
+        else:
+            raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
     def start(self):
         """Start the publisher."""
-        self.publish_socket = get_context().socket(zmq.PUB)
-        _set_tcp_keepalive(self.publish_socket)
-
-        self.bind()
-        LOGGER.info("publisher started on port %s", str(self.port_number))
+        self._publisher.start()
         return self
-
-    def bind(self):
-        # Check for port 0 (random port)
-        u__ = urlsplit(self.destination)
-        port = u__.port
-        if port == 0:
-            dest = urlunsplit((u__.scheme, u__.hostname,
-                               u__.path, u__.query, u__.fragment))
-            self.port_number = self.publish_socket.bind_to_random_port(
-                dest,
-                min_port=self.min_port,
-                max_port=self.max_port)
-            netloc = u__.hostname + ":" + str(self.port_number)
-            self.destination = urlunsplit((u__.scheme, netloc, u__.path,
-                                           u__.query, u__.fragment))
-        else:
-            self.publish_socket.bind(self.destination)
-            self.port_number = port
 
     def send(self, msg):
         """Send the given message."""
-        with self._pub_lock:
-            self.publish_socket.send_string(msg)
+        return self._publisher.send(msg)
 
     def stop(self):
         """Stop the publisher."""
-        self.publish_socket.setsockopt(zmq.LINGER, 1)
-        self.publish_socket.close()
+        return self._publisher.stop()
 
     def close(self):
         """Alias for stop."""
@@ -155,13 +127,23 @@ class Publisher:
             self._heartbeat = _PublisherHeartbeat(self)
         self._heartbeat(min_interval)
 
+    @property
+    def name(self):
+        """Get the name of the publisher."""
+        return self._publisher.name
+
+    @property
+    def port_number(self):
+        """Get the port number from the actual publisher."""
+        return self._publisher.port_number
+
 
 class _PublisherHeartbeat:
     """Publisher for heartbeat."""
 
     def __init__(self, publisher):
         self.publisher = publisher
-        self.subject = '/heartbeat/' + publisher.name
+        self.subject = "/heartbeat/" + publisher.name
         self.lastbeat = datetime(1900, 1, 1)
 
     def __call__(self, min_interval=0):
@@ -213,17 +195,18 @@ class NoisyPublisher:
 
     def start(self):
         """Start the publisher."""
-        pub_addr = _get_publish_address(self._port)
+        pub_addr = _create_tcp_publish_address(self._port)
         self._publisher = self._publisher_class(pub_addr, self._name,
                                                 min_port=self.min_port,
-                                                max_port=self.max_port).start()
-        LOGGER.debug("entering publish %s", str(self._publisher.destination))
-        addr = _get_publish_address(self._publisher.port_number, str(get_own_ip()))
+                                                max_port=self.max_port)
+        self._publisher.start()
+        addr = _create_tcp_publish_address(self._publisher.port_number, str(get_own_ip()))
         self._broadcaster = sendaddressservice(self._name, addr,
                                                self._aliases,
                                                self._broadcast_interval,
-                                               self._nameservers).start()
-        return self._publisher
+                                               self._nameservers)
+        self._broadcaster.start()
+        return self
 
     def send(self, msg):
         """Send a *msg*."""
@@ -243,8 +226,17 @@ class NoisyPublisher:
         """Alias for stop."""
         self.stop()
 
+    @property
+    def port_number(self):
+        """Get the port number."""
+        return self._publisher.port_number
 
-def _get_publish_address(port, ip_address="*"):
+    def heartbeat(self, min_interval=0):
+        """Send a heartbeat ... but only if *min_interval* seconds has passed since last beat."""
+        self._publisher.heartbeat(min_interval)
+
+
+def _create_tcp_publish_address(port, ip_address="*"):
     return "tcp://" + ip_address + ":" + str(port)
 
 
@@ -279,9 +271,9 @@ class Publish:
     def __init__(self, name, port=0, aliases=None, broadcast_interval=2, nameservers=None,
                  min_port=None, max_port=None):
         """Initialize the class."""
-        settings = {'name': name, 'port': port, 'min_port': min_port, 'max_port': max_port,
-                    'aliases': aliases, 'broadcast_interval': broadcast_interval,
-                    'nameservers': nameservers}
+        settings = {"name": name, "port": port, "min_port": min_port, "max_port": max_port,
+                    "aliases": aliases, "broadcast_interval": broadcast_interval,
+                    "nameservers": nameservers}
         self.publisher = create_publisher_from_dict_config(settings)
 
     def __enter__(self):
@@ -313,13 +305,13 @@ def create_publisher_from_dict_config(settings):
     described in the docstrings of the respective classes, namely :class:`~posttroll.publisher.Publisher` and
     :class:`~posttroll.publisher.NoisyPublisher`.
     """
-    if settings.get('port') and settings.get('nameservers') is False:
+    if settings.get("port") and settings.get("nameservers") is False:
         return _get_publisher_instance(settings)
     return _get_noisypublisher_instance(settings)
 
 
 def _get_publisher_instance(settings):
-    publisher_address = _get_publish_address(settings['port'])
+    publisher_address = _create_tcp_publish_address(settings["port"])
     publisher_name = settings.get("name", "")
     min_port = settings.get("min_port")
     max_port = settings.get("max_port")
