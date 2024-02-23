@@ -307,8 +307,6 @@ class TestPub(unittest.TestCase):
 
     def test_pub_minmax_port(self):
         """Test user defined port range."""
-        import os
-
         # Using environment variables to set port range
         # Try over a range of ports just in case the single port is reserved
         for port in range(40000, 50000):
@@ -720,3 +718,28 @@ def _assert_tcp_keepalive(socket):
 
 def _assert_no_tcp_keepalive(socket):
     assert "TCP_KEEPALIVE" not in str(socket.setsockopt.mock_calls)
+
+
+def test_noisypublisher_heartbeat():
+    """Test that the heartbeat in the NoisyPublisher works."""
+    from posttroll.ns import NameServer
+    from posttroll.publisher import NoisyPublisher
+    from posttroll.subscriber import Subscribe
+
+    ns_ = NameServer()
+    thr = Thread(target=ns_.run)
+    thr.start()
+
+    pub = NoisyPublisher("test")
+    pub.start()
+    time.sleep(0.2)
+
+    with Subscribe("test", topics="/heartbeat/test", nameserver="localhost") as sub:
+        time.sleep(0.2)
+        pub.heartbeat(min_interval=10)
+        msg = next(sub.recv(1))
+    assert msg.type == "beat"
+    assert msg.data == {'min_interval': 10}
+    pub.stop()
+    ns_.stop()
+    thr.join()
