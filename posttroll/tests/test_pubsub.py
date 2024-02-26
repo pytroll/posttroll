@@ -444,6 +444,16 @@ class TestAddressReceiver(unittest.TestCase):
         msg.decode.assert_not_called()
         adr.stop()
 
+    @mock.patch("posttroll.address_receiver.Publish")
+    def test_publish_oserror(self, pub):
+        """Test address receiver handle oserror in publish."""
+        pub.side_effect = OSError
+        from posttroll.address_receiver import AddressReceiver
+        adr = AddressReceiver()
+        adr.start()
+        time.sleep(3)
+        self.assertFalse(adr.is_running())
+        adr.stop()
 
 class TestPublisherDictConfig(unittest.TestCase):
     """Test configuring publishers with a dictionary."""
@@ -589,6 +599,18 @@ def test_dict_config_subscriber(NSSubscriber, Subscriber):
     assert subscriber == Subscriber.return_value
     Subscriber.assert_called_once()
     NSSubscriber.assert_not_called()
+
+
+@mock.patch('posttroll.ns.AddressReceiver')
+def test_nameserver_addressreceiver_fails_to_start(arec):
+    from posttroll.ns import NameServer
+    arec_instance = mock.Mock()
+    arec.return_value = arec_instance
+    arec_instance.is_running.return_value = False
+    ns = NameServer(max_age=timedelta(seconds=3),
+                    multicast_enabled=False)
+    ns_run_ret = ns.run()
+    assert ns_run_ret is None
 
 
 @mock.patch('posttroll.subscriber.NSSubscriber.start')
