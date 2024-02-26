@@ -23,7 +23,6 @@
 
 """The publisher module gives high-level tools to publish messages on a port."""
 
-import os
 import logging
 import socket
 from datetime import datetime, timedelta
@@ -106,8 +105,6 @@ class Publisher:
         self._heartbeat = None
         self._pub_lock = Lock()
 
-
-
     def start(self):
         """Start the publisher."""
         self.publish_socket = get_context().socket(zmq.PUB)
@@ -118,6 +115,7 @@ class Publisher:
         return self
 
     def bind(self):
+        """Bind the port."""
         # Check for port 0 (random port)
         u__ = urlsplit(self.destination)
         port = u__.port
@@ -242,6 +240,10 @@ class NoisyPublisher:
     def close(self):
         """Alias for stop."""
         self.stop()
+
+    def heartbeat(self, min_interval=0):
+        """Publish a heartbeat."""
+        self._publisher.heartbeat(min_interval=min_interval)
 
 
 def _get_publish_address(port, ip_address="*"):
