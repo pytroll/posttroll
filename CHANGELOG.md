@@ -1,3 +1,22 @@
+## Version 1.11.0 (2024/02/26)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 63](https://github.com/pytroll/posttroll/pull/63) - Add a `heartbeat()` method to `NoisyPublisher`
+* [PR 59](https://github.com/pytroll/posttroll/pull/59) - Fix testing publisher to only accept str to send
+* [PR 58](https://github.com/pytroll/posttroll/pull/58) - Crash fake publisher when not started
+* [PR 57](https://github.com/pytroll/posttroll/pull/57) - Make testing's patched_subscriber_recv  interruptible
+
+#### Features added
+
+* [PR 62](https://github.com/pytroll/posttroll/pull/62) - Update CI to use Python 3.10 - 3.12
+
+In this release 5 pull requests were closed.
+
+
 ## Version 1.10.0 (2023/05/10)
 
 
