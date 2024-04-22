@@ -17,6 +17,7 @@ def patched_subscriber_recv(messages):
     with mock.patch("posttroll.subscriber.Subscriber.recv", interuptible_recv):
         yield
 
+
 @contextmanager
 def patched_publisher():
     """Patch the Subscriber object to return given messages."""

@@ -23,9 +23,9 @@
 
 """The publisher module gives high-level tools to publish messages on a port."""
 
+import datetime as dt
 import logging
 import socket
-from datetime import datetime, timedelta
 from threading import Lock
 from urllib.parse import urlsplit, urlunsplit
 import zmq
@@ -160,13 +160,13 @@ class _PublisherHeartbeat:
     def __init__(self, publisher):
         self.publisher = publisher
         self.subject = '/heartbeat/' + publisher.name
-        self.lastbeat = datetime(1900, 1, 1)
+        self.lastbeat = dt.datetime(1900, 1, 1)
 
     def __call__(self, min_interval=0):
         if not min_interval or (
-            (datetime.utcnow() - self.lastbeat >=
-             timedelta(seconds=min_interval))):
-            self.lastbeat = datetime.utcnow()
+            (dt.datetime.utcnow() - self.lastbeat >=
+             dt.timedelta(seconds=min_interval))):
+            self.lastbeat = dt.datetime.utcnow()
             LOGGER.debug("Publish heartbeat (min_interval is %.1f sec)", min_interval)
             self.publisher.send(Message(self.subject, "beat",
                                         {"min_interval": min_interval}).encode())

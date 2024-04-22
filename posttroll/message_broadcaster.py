@@ -1,25 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010-2012, 2014, 2015.
-
+#
 # Author(s):
-
+#
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud    <martin.raspaud@smhi.se>
-
+#
 # This file is part of pytroll.
-
+#
 # Pytroll is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # Pytroll is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
+
+"""Message broadcast module."""
 
 import time
 import threading
@@ -42,11 +44,12 @@ class DesignatedReceiversSender(object):
     """Sends message to multiple *receivers* on *port*."""
 
     def __init__(self, default_port, receivers):
+        """Set settings."""
         self.default_port = default_port
-
         self.receivers = receivers
 
     def __call__(self, data):
+        """Send messages from all receivers."""
         for receiver in self.receivers:
             self._send_to_address(receiver, data)
 
@@ -71,11 +74,13 @@ class DesignatedReceiversSender(object):
     def close(self):
         """Close the sender."""
         pass
-#-----------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------
 #
 # General thread to broadcast messages.
 #
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 class MessageBroadcaster(object):
@@ -85,6 +90,7 @@ class MessageBroadcaster(object):
     """
 
     def __init__(self, msg, port, interval, designated_receivers=None):
+        """Initialize message broadcaster."""
         if designated_receivers:
             self._sender = DesignatedReceiversSender(port,
                                                      designated_receivers)
@@ -140,17 +146,19 @@ class MessageBroadcaster(object):
             self._is_running = False
             self._sender.close()
 
-#-----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 #
 # General thread to broadcast addresses.
 #
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 class AddressBroadcaster(MessageBroadcaster):
     """Class to broadcast stuff."""
 
     def __init__(self, name, address, interval, nameservers):
+        """Initialize address broadcasting."""
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": "%s:%d" % address}).encode()
         MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
@@ -172,6 +180,7 @@ class AddressServiceBroadcaster(MessageBroadcaster):
     """Class to broadcast stuff."""
 
     def __init__(self, name, address, data_type, interval=2, nameservers=None):
+        """Initialize broadcaster."""
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
                                "service": data_type}).encode()

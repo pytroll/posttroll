@@ -21,8 +21,7 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Test module for the message class.
-"""
+"""Test module for the message class."""
 
 import os
 import sys
@@ -47,13 +46,10 @@ SOME_METADATA = {'timestamp': datetime(2010, 12, 3, 16, 28, 39),
 
 
 class Test(unittest.TestCase):
-
-    """Test class.
-    """
+    """Test class."""
 
     def test_encode_decode(self):
-        """Test the encoding/decoding of the message class.
-        """
+        """Test the encoding/decoding of the message class."""
         msg1 = Message('/test/whatup/doc', 'info', data='not much to say')
 
         sender = '%s@%s' % (msg1.user, msg1.host)
@@ -64,8 +60,7 @@ class Test(unittest.TestCase):
                         msg='Messaging, encoding, decoding failed')
 
     def test_decode(self):
-        """Test the decoding of a message.
-        """
+        """Test the decoding of a message."""
         rawstr = (_MAGICK +
                   r'/test/1/2/3 info ras@hawaii 2008-04-11T22:13:22.123000 v1.01' +
                   r' text/ascii "what' + r"'" + r's up doc"')
@@ -75,8 +70,7 @@ class Test(unittest.TestCase):
                         msg='Messaging, decoding of message failed')
 
     def test_encode(self):
-        """Test the encoding of a message.
-        """
+        """Test the encoding of a message."""
         subject = '/test/whatup/doc'
         atype = "info"
         data = 'not much to say'
@@ -114,7 +108,8 @@ class Test(unittest.TestCase):
 
     def test_iso(self):
         """Test handling of iso-8859-1."""
-        msg = 'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}'
+        msg = ('pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN '
+               '2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}')
         try:
             iso_msg = msg.decode('utf-8').encode('iso-8859-1')
         except AttributeError:
@@ -125,8 +120,7 @@ class Test(unittest.TestCase):
             self.fail('Unexpected iso decoding error')
 
     def test_pickle(self):
-        """Test pickling.
-        """
+        """Test pickling."""
         import pickle
         msg1 = Message('/test/whatup/doc', 'info', data='not much to say')
         try:
@@ -146,8 +140,7 @@ class Test(unittest.TestCase):
                 pass
 
     def test_metadata(self):
-        """Test metadata encoding/decoding.
-        """
+        """Test metadata encoding/decoding."""
         metadata = copy.copy(SOME_METADATA)
         msg = Message.decode(Message('/sat/polar/smb/level1', 'file',
                                      data=metadata).encode())
@@ -156,8 +149,7 @@ class Test(unittest.TestCase):
                         msg='Messaging, metadata decoding / encoding failed')
 
     def test_serialization(self):
-        """Test json serialization.
-        """
+        """Test json serialization."""
         compare_file = '/message_metadata.dumps'
         try:
             import json
@@ -181,13 +173,13 @@ class Test(unittest.TestCase):
 
 
 def suite():
-    """The suite for test_message.
-    """
+    """Create the suite for test_message."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(Test))
 
     return mysuite
+
 
 if __name__ == '__main__':
     unittest.main()
