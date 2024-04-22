@@ -27,13 +27,12 @@ It will look like:
 /<server-name>/address info ... host:port
 """
 import copy
+import datetime as dt
+import errno
 import logging
 import os
 import threading
-import errno
 import time
-
-from datetime import datetime, timedelta
 
 import netifaces
 from zmq import REP, LINGER
@@ -53,8 +52,8 @@ broadcast_port = 21200
 
 default_publish_port = 16543
 
-ten_minutes = timedelta(minutes=10)
-zero_seconds = timedelta(seconds=0)
+ten_minutes = dt.timedelta(minutes=10)
+zero_seconds = dt.timedelta(seconds=0)
 
 
 def get_local_ips():
@@ -88,7 +87,7 @@ class AddressReceiver(object):
         self._subject = '/address'
         self._do_heartbeat = do_heartbeat
         self._multicast_enabled = multicast_enabled
-        self._last_age_check = datetime(1900, 1, 1)
+        self._last_age_check = dt.datetime(1900, 1, 1)
         self._do_run = False
         self._is_running = False
         self._thread = threading.Thread(target=self._run)
@@ -127,11 +126,11 @@ class AddressReceiver(object):
 
     def _check_age(self, pub, min_interval=zero_seconds):
         """Check the age of the receiver."""
-        now = datetime.utcnow()
+        now = dt.datetime.utcnow()
         if (now - self._last_age_check) <= min_interval:
             return
 
-        LOGGER.debug("%s - checking addresses", str(datetime.utcnow()))
+        LOGGER.debug("%s - checking addresses", str(dt.datetime.utcnow()))
         self._last_age_check = now
         to_del = []
         with self._address_lock:
@@ -218,7 +217,7 @@ class AddressReceiver(object):
     def _add(self, adr, metadata):
         """Add an address."""
         with self._address_lock:
-            metadata["receive_time"] = datetime.utcnow()
+            metadata["receive_time"] = dt.datetime.utcnow()
             self._addresses[adr] = metadata
 
 

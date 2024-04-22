@@ -25,10 +25,10 @@
 
 Default port is 5557, if $NAMESERVER_PORT is not defined.
 """
+import datetime as dt
 import logging
 import os
 import time
-from datetime import datetime, timedelta
 
 from threading import Lock
 # pylint: disable=E0611
@@ -67,8 +67,8 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     if names is None:
         names = ["", ]
     for name in names:
-        then = datetime.now() + timedelta(seconds=timeout)
-        while datetime.now() < then:
+        then = dt.datetime.now() + dt.timedelta(seconds=timeout)
+        while dt.datetime.now() < then:
             addrs += get_pub_address(name, nameserver=nameserver, timeout=timeout)
             if addrs:
                 break
@@ -127,7 +127,7 @@ class NameServer:
         """Initialize nameserver."""
         self.loop = True
         self.listener = None
-        self._max_age = max_age or timedelta(minutes=10)
+        self._max_age = max_age or dt.timedelta(minutes=10)
         self._multicast_enabled = multicast_enabled
         self._restrict_to_localhost = restrict_to_localhost
 

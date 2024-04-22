@@ -38,8 +38,9 @@ will be encoded as (at the right time and by the right user at the right host)::
 Note: the Message class is not optimized for BIG messages.
 """
 
+import datetime as dt
 import re
-from datetime import datetime
+
 try:
     import json
 except ImportError:
@@ -131,7 +132,7 @@ class Message(object):
                 self.type = atype
             self.type = atype
             self.sender = _getsender()
-            self.time = datetime.utcnow()
+            self.time = dt.datetime.utcnow()
             self.data = data
             self.binary = binary
         self.version = _VERSION
