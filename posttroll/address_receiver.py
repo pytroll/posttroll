@@ -58,6 +58,7 @@ zero_seconds = timedelta(seconds=0)
 
 
 def get_local_ips():
+    """Get local IP addresses."""
     inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
                   for iface in netifaces.interfaces()]
     ips = []
@@ -79,6 +80,7 @@ class AddressReceiver(object):
 
     def __init__(self, max_age=ten_minutes, port=None,
                  do_heartbeat=True, multicast_enabled=True, restrict_to_localhost=False):
+        """Initialize addres receiver."""
         self._max_age = max_age
         self._port = port or default_publish_port
         self._address_lock = threading.Lock()
@@ -196,8 +198,7 @@ class AddressReceiver(object):
                             pub.heartbeat(min_interval=29)
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
-                    if(msg.type == 'info' and
-                       msg.subject.lower().startswith(self._subject)):
+                    if msg.type == 'info' and msg.subject.lower().startswith(self._subject):
                         addr = msg.data["URI"]
                         msg.data['status'] = True
                         metadata = copy.copy(msg.data)
@@ -222,15 +223,16 @@ class AddressReceiver(object):
 
 
 class _SimpleReceiver(object):
-
-    """ Simple listing on port for address messages."""
+    """Simple listing on port for address messages."""
 
     def __init__(self, port=None):
+        """Initialize receiver."""
         self._port = port or default_publish_port
         self._socket = get_context().socket(REP)
         self._socket.bind("tcp://*:" + str(port))
 
     def __call__(self):
+        """Receive and return a message."""
         message = self._socket.recv_string()
         self._socket.send_string("ok")
         return message, None

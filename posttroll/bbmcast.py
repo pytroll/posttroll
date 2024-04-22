@@ -60,12 +60,14 @@ class MulticastSender(object):
     """Multicast sender on *port* and *mcgroup*."""
 
     def __init__(self, port, mcgroup=MC_GROUP):
+        """Initialize multicast sending."""
         self.port = port
         self.group = mcgroup
         self.socket, self.group = mcast_sender(mcgroup)
         logger.debug('Started multicast group %s', mcgroup)
 
     def __call__(self, data):
+        """Send data to a socket."""
         self.socket.sendto(data.encode(), (self.group, self.port))
 
     def close(self):
@@ -76,16 +78,14 @@ class MulticastSender(object):
 
 
 def mcast_sender(mcgroup=MC_GROUP):
-    """Non-object interface for sending multicast messages.
-    """
+    """Non-object interface for sending multicast messages."""
     sock = socket(AF_INET, SOCK_DGRAM)
     try:
         sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         if _is_broadcast_group(mcgroup):
             group = '<broadcast>'
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        elif((int(mcgroup.split(".")[0]) > 239) or
-             (int(mcgroup.split(".")[0]) < 224)):
+        elif int(mcgroup.split(".")[0]) > 239 or int(mcgroup.split(".")[0]) < 224:
             raise IOError("Invalid multicast address.")
         else:
             group = mcgroup
@@ -105,20 +105,25 @@ def mcast_sender(mcgroup=MC_GROUP):
 
 class MulticastReceiver(object):
     """Multicast receiver on *port* for an *mcgroup*."""
+
     BUFSIZE = 1024
 
     def __init__(self, port, mcgroup=MC_GROUP):
+        """Initialize multicast receiver."""
         # Note: a multicast receiver will also receive broadcast on same port.
         self.port = port
         self.socket, self.group = mcast_receiver(port, mcgroup)
 
     def settimeout(self, tout=None):
-        """A timeout will throw a 'socket.timeout'.
+        """Set timeout.
+
+        A timeout will throw a 'socket.timeout'.
         """
         self.socket.settimeout(tout)
         return self
 
     def __call__(self):
+        """Receive data from a socket."""
         data, sender = self.socket.recvfrom(self.BUFSIZE)
         return data.decode(), sender
 
@@ -131,9 +136,7 @@ class MulticastReceiver(object):
 
 
 def mcast_receiver(port, mcgroup=MC_GROUP):
-    """Open a UDP socket, bind it to a port and select a multicast group.
-    """
-
+    """Open a UDP socket, bind it to a port and select a multicast group."""
     if _is_broadcast_group(mcgroup):
         group = None
     else:
@@ -184,8 +187,7 @@ def mcast_receiver(port, mcgroup=MC_GROUP):
 
 
 def _is_broadcast_group(group):
-    """Check if *group* is a valid multicasting group.
-    """
+    """Check if *group* is a valid multicasting group."""
     if not group or gethostbyname(group) in ('0.0.0.0', '255.255.255.255'):
         return True
     return False

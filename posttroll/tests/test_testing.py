@@ -25,6 +25,7 @@ def test_fake_publisher_crashes_when_not_started():
         with pytest.raises(RuntimeError):
             pub.send("bla")
 
+
 def test_fake_publisher_crashes_when_send_is_used_with_non_string_type():
     """Test fake publisher needs to be started."""
     from posttroll.publisher import create_publisher_from_dict_config

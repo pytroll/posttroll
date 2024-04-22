@@ -23,8 +23,9 @@
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
 
-"""A Message goes like:
-<subject> <type> <sender> <timestamp> <version> [mime-type data]
+"""Module for Pytroll messages.
+
+A Message is formatted as: <subject> <type> <sender> <timestamp> <version> [mime-type data]
 
 ::
 
@@ -34,12 +35,11 @@ will be encoded as (at the right time and by the right user at the right host)::
 
   pytroll://DC/juhu info henry@prodsat 2010-12-01T12:21:11.123456 v1.01 application/json "jhuuuu !!!"
 
-Note: It's not optimized for BIG messages.
+Note: the Message class is not optimized for BIG messages.
 """
 
 import re
 from datetime import datetime
-import _strptime
 try:
     import json
 except ImportError:
@@ -52,10 +52,10 @@ _VERSION = 'v1.01'
 
 
 class MessageError(Exception):
+    """This modules exceptions."""
 
-    """This modules exceptions.
-    """
     pass
+
 
 # -----------------------------------------------------------------------------
 #
@@ -65,33 +65,38 @@ class MessageError(Exception):
 
 
 def is_valid_subject(obj):
-    """Currently we only check for empty strings.
+    """Check that the message subject is valid.
+
+    Currently we only check for empty strings.
     """
     return isinstance(obj, str) and bool(obj)
 
 
 def is_valid_type(obj):
-    """Currently we only check for empty strings.
+    """Check that the message type is valid.
+
+    Currently we only check for empty strings.
     """
     return isinstance(obj, str) and bool(obj)
 
 
 def is_valid_sender(obj):
-    """Currently we only check for empty strings.
+    """Check that the sender is valid.
+
+    Currently we only check for empty strings.
     """
     return isinstance(obj, str) and bool(obj)
 
 
 def is_valid_data(obj):
-    """Check if data is JSON serializable.
-    """
+    """Check if data is JSON serializable."""
     if obj:
         try:
-            tmp = json.dumps(obj, default=datetime_encoder)
-            del tmp
+            _ = json.dumps(obj, default=datetime_encoder)
         except (TypeError, UnicodeDecodeError):
             return False
     return True
+
 
 # -----------------------------------------------------------------------------
 #
@@ -101,7 +106,6 @@ def is_valid_data(obj):
 
 
 class Message(object):
-
     """A Message.
 
     - Has to be initialized with a *rawstr* (encoded message to decode) OR
@@ -113,9 +117,7 @@ class Message(object):
     """
 
     def __init__(self, subject='', atype='', data='', binary=False, rawstr=None):
-        """Initialize a Message from a subject, type and data...
-        or from a raw string.
-        """
+        """Initialize a Message from a subject, type and data, or from a raw string."""
         if rawstr:
             self.__dict__ = _decode(rawstr)
         else:
@@ -137,8 +139,7 @@ class Message(object):
 
     @property
     def user(self):
-        """Try to return a user from a sender.
-        """
+        """Try to return a user from a sender."""
         try:
             return self.sender[:self.sender.index('@')]
         except ValueError:
@@ -146,8 +147,7 @@ class Message(object):
 
     @property
     def host(self):
-        """Try to return a host from a sender.
-        """
+        """Try to return a host from a sender."""
         try:
             return self.sender[self.sender.index('@') + 1:]
         except ValueError:
@@ -155,39 +155,37 @@ class Message(object):
 
     @property
     def head(self):
-        """Return header of a message (a message without the data part).
-        """
+        """Return header of a message (a message without the data part)."""
         self._validate()
         return _encode(self, head=True)
 
     @staticmethod
     def decode(rawstr):
-        """Decode a raw string into a Message.
-        """
+        """Decode a raw string into a Message."""
         return Message(rawstr=rawstr)
 
     def encode(self):
-        """Encode a Message to a raw string.
-        """
+        """Encode a Message to a raw string."""
         self._validate()
         return _encode(self, binary=self.binary)
 
     def __repr__(self):
+        """Return the textual representation of the Message."""
         return self.encode()
 
     def __unicode__(self):
+        """Return the unicode representation of the Message."""
         return self.encode()
 
     def __str__(self):
+        """Return the human readable representation of the Message."""
         try:
             return unicode(self).encode('utf-8')
         except NameError:
             return self.encode()
 
-
     def _validate(self):
-        """Validate a messages attributes.
-        """
+        """Validate a messages attributes."""
         if not is_valid_subject(self.subject):
             raise MessageError("Invalid subject: '%s'" % self.subject)
         if not is_valid_type(self.type):
@@ -198,15 +196,15 @@ class Message(object):
             raise MessageError("Invalid data: data is not JSON serializable: %s"
                                % str(self.data))
 
-    #
-    # Make it pickleable.
-    #
     def __getstate__(self):
+        """Get the Message state for pickle()."""
         return self.encode()
 
     def __setstate__(self, state):
+        """Set the Message when unpickling."""
         self.__dict__.clear()
         self.__dict__ = _decode(state)
+
 
 # -----------------------------------------------------------------------------
 #
@@ -216,14 +214,12 @@ class Message(object):
 
 
 def _is_valid_version(version):
-    """Check version.
-    """
+    """Check version."""
     return version == _VERSION
 
 
 def datetime_decoder(dct):
-    """Decode datetimes to python objects.
-    """
+    """Decode datetimes to python objects."""
     if isinstance(dct, list):
         pairs = enumerate(dct)
     elif isinstance(dct, dict):
@@ -245,8 +241,7 @@ def datetime_decoder(dct):
 
 
 def _decode(rawstr):
-    """Convert a raw string to a Message.
-    """
+    """Convert a raw string to a Message."""
     # Check for the magick word.
     try:
         rawstr = rawstr.decode('utf-8')
@@ -307,8 +302,7 @@ def _decode(rawstr):
 
 
 def datetime_encoder(obj):
-    """Encodes datetimes into iso format.
-    """
+    """Encode datetimes into iso format."""
     try:
         return obj.isoformat()
     except AttributeError:
@@ -316,8 +310,7 @@ def datetime_encoder(obj):
 
 
 def _encode(msg, head=False, binary=False):
-    """Convert a Message to a raw string.
-    """
+    """Convert a Message to a raw string."""
     rawstr = str(_MAGICK) + u"{0:s} {1:s} {2:s} {3:s} {4:s}".format(
         msg.subject, msg.type, msg.sender, msg.time.isoformat(), msg.version)
 
@@ -334,6 +327,7 @@ def _encode(msg, head=False, binary=False):
                     'binary/octet-stream' + ' ' + msg.data)
     return rawstr
 
+
 # -----------------------------------------------------------------------------
 #
 # Small internal helpers.
@@ -343,8 +337,8 @@ def _encode(msg, head=False, binary=False):
 
 def _getsender():
     """Return local sender.
-    Don't use the getpass module, it looks at various environment variables
-    and is unreliable.
+
+    Don't use the getpass module, it looks at various environment variables and is unreliable.
     """
     import os
     import pwd

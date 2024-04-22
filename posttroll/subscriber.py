@@ -176,7 +176,6 @@ class Subscriber:
         self._hooks.append(socket)
         self._hooks_cb[socket] = callback
 
-
     @property
     def addresses(self):
         """Get the addresses."""
@@ -365,6 +364,7 @@ class Subscribe:
     information how the selection is done.
 
     Example::
+            del tmp
 
         from posttroll.subscriber import Subscribe
 
