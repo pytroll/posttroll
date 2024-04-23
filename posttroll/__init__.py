@@ -30,8 +30,6 @@ import sys
 
 from donfig import Config
 
-from .version import get_versions
-
 config = Config("posttroll")
 # context = {}
 logger = logging.getLogger(__name__)
@@ -72,7 +70,3 @@ def strp_isoformat(strg):
         dat = dt.datetime.strptime(dat, "%Y-%m-%dT%H:%M:%S")
         mis = int(float("." + mis)*1000000)
         return dat.replace(microsecond=mis)
-
-
-__version__ = get_versions()["version"]
-del get_versions

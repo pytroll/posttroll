@@ -1,0 +1,73 @@
+[project]
+name = "posttroll"
+dynamic = ["version"]
+description = "Messaging system for pytroll"
+authors = [
+    { name = "The Pytroll Team", email = "pytroll@googlegroups.com" }
+]
+dependencies = ["pyzmq", "netifaces", "donfig"]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPLv3" }
+classifiers = [
+          "Development Status :: 5 - Production/Stable",
+          "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+          "Programming Language :: Python",
+          "Operating System :: OS Independent",
+          "Intended Audience :: Science/Research",
+          "Topic :: Scientific/Engineering",
+          "Topic :: Communications"
+]
+
+[project.scripts]
+pytroll-logger = "posttroll.logger:run"
+
+[project.urls]
+Homepage = "https://github.com/pytroll/posttroll"
+"Bug Tracker" = "https://github.com/pytroll/posttroll/issues"
+Documentation = "https://posttroll.readthedocs.io/"
+"Source Code" = "https://github.com/pytroll/posttroll"
+Organization = "https://pytroll.github.io/"
+Slack = "https://pytroll.slack.com/"
+"Release Notes" = "https://github.com/pytroll/posttroll/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["posttroll"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "posttroll/version.py"
+
+[tool.isort]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+profile = "black"
+skip_gitignore = true
+default_section = "THIRDPARTY"
+known_first_party = "posttroll"
+line_length = 120
+
+
+[tool.ruff]
+# See https://docs.astral.sh/ruff/rules/
+# In the future, add "B", "S", "N"
+select = ["A", "D", "E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20"]
+line-length = 120
+exclude = ["versioneer.py",
+           "posttroll/version.py",
+           "doc"]
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
