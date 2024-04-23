@@ -49,7 +49,6 @@ version-file = "posttroll/version.py"
 
 [tool.isort]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-profile = "black"
 skip_gitignore = true
 default_section = "THIRDPARTY"
 known_first_party = "posttroll"
@@ -59,15 +58,15 @@ line_length = 120
 [tool.ruff]
 # See https://docs.astral.sh/ruff/rules/
 # In the future, add "B", "S", "N"
-select = ["A", "D", "E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20"]
+lint.select = ["A", "D", "E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20"]
 line-length = 120
 exclude = ["versioneer.py",
            "posttroll/version.py",
            "doc"]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
