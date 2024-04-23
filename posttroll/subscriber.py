@@ -24,10 +24,9 @@
 
 """Simple library to subscribe to messages."""
 
-
+import datetime as dt
 import logging
 import time
-from datetime import datetime, timedelta
 
 from posttroll import config
 from posttroll.message import _MAGICK
@@ -199,8 +198,8 @@ class NSSubscriber:
         """Start the subscriber."""
         def _get_addr_loop(service, timeout):
             """Try to get the address of *service* until for *timeout* seconds."""
-            then = datetime.now() + timedelta(seconds=timeout)
-            while datetime.now() < then:
+            then = dt.datetime.now() + dt.timedelta(seconds=timeout)
+            while dt.datetime.now() < then:
                 addrs = get_pub_address(service, nameserver=self._nameserver)
                 if addrs:
                     return [addr["URI"] for addr in addrs]
@@ -252,6 +251,7 @@ class Subscribe:
     information how the selection is done.
 
     Example::
+            del tmp
 
         from posttroll.subscriber import Subscribe
 

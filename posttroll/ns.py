@@ -25,10 +25,10 @@
 
 Default port is 5557, if $NAMESERVER_PORT is not defined.
 """
+import datetime as dt
 import logging
 import os
 import time
-from datetime import datetime, timedelta
 
 from posttroll import config
 from posttroll.address_receiver import AddressReceiver
@@ -45,17 +45,18 @@ logger = logging.getLogger(__name__)
 
 
 def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
-    """Get the address of the publisher.
+    """Get the addresses of the publishers.
 
-    For a given list of publisher *names*
-    from the nameserver on *nameserver* (localhost by default).
+    Kwargs:
+    - names: names of the publishers
+    - nameserver: nameserver address to query the publishers from (default: localhost).
     """
     addrs = []
     if names is None:
         names = ["", ]
     for name in names:
-        then = datetime.now() + timedelta(seconds=timeout)
-        while datetime.now() < then:
+        then = dt.datetime.now() + dt.timedelta(seconds=timeout)
+        while dt.datetime.now() < then:
             addrs += get_pub_address(name, nameserver=nameserver, timeout=timeout)
             if addrs:
                 break
@@ -66,9 +67,11 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
 
 
 def get_pub_address(name, timeout=10, nameserver="localhost"):
-    """Get the address of the publisher.
+    """Get the address of the named publisher
 
-    For a given publisher *name* from the nameserver on *nameserver* (localhost by default).
+    Args:
+        name: name of the publishers
+        nameserver: nameserver address to query the publishers from (default: localhost).
     """
     backend = config.get("backend", "unsecure_zmq")
     if backend == "unsecure_zmq":
@@ -91,9 +94,11 @@ def get_active_address(name, arec):
 class NameServer:
     """The name server."""
 
-    def __init__(self, max_age=timedelta(minutes=10), multicast_enabled=True, restrict_to_localhost=False):
-        """Set up the nameserver."""
-        self._max_age = max_age
+    def __init__(self, max_age=None, multicast_enabled=True, restrict_to_localhost=False):
+        """Initialize nameserver."""
+        self.loop = True
+        self.listener = None
+        self._max_age = max_age or dt.timedelta(minutes=10)
         self._multicast_enabled = multicast_enabled
         self._restrict_to_localhost = restrict_to_localhost
         backend = config.get("backend", "unsecure_zmq")
@@ -102,7 +107,7 @@ class NameServer:
             self._ns = UnsecureZMQNameServer()
 
     def run(self, *args):
-        """Run the nameserver."""
+        """Run the listener and answer to requests."""
         del args
 
         arec = AddressReceiver(max_age=self._max_age,

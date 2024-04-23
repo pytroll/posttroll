@@ -24,9 +24,9 @@
 
 """Posttroll packages."""
 
+import datetime as dt
 import logging
 import sys
-from datetime import datetime
 
 from donfig import Config
 
@@ -57,7 +57,7 @@ def strp_isoformat(strg):
 
     We handle input like: 2011-11-14T12:51:25.123456
     """
-    if isinstance(strg, datetime):
+    if isinstance(strg, dt.datetime):
         return strg
     if len(strg) < 19 or len(strg) > 26:
         if len(strg) > 30:
@@ -66,10 +66,10 @@ def strp_isoformat(strg):
     if strg.find(".") == -1:
         strg += ".000000"
     if sys.version[0:3] >= "2.6":
-        return datetime.strptime(strg, "%Y-%m-%dT%H:%M:%S.%f")
+        return dt.datetime.strptime(strg, "%Y-%m-%dT%H:%M:%S.%f")
     else:
         dat, mis = strg.split(".")
-        dat = datetime.strptime(dat, "%Y-%m-%dT%H:%M:%S")
+        dat = dt.datetime.strptime(dat, "%Y-%m-%dT%H:%M:%S")
         mis = int(float("." + mis)*1000000)
         return dat.replace(microsecond=mis)
 

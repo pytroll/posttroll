@@ -86,7 +86,7 @@ class MulticastSender:
         logger.debug("Started multicast group %s", self.group)
 
     def __call__(self, data):
-        """Send data."""
+        """Send data to a socket."""
         self.socket.sendto(data.encode(), (self.group, self.port))
 
     def close(self):
@@ -141,6 +141,7 @@ def get_mc_group():
 
 class MulticastReceiver(object):
     """Multicast receiver on *port* for an *mcgroup*."""
+
     BUFSIZE = 1024
 
     def __init__(self, port, mcgroup=None):
@@ -150,12 +151,15 @@ class MulticastReceiver(object):
         self.socket, self.group = mcast_receiver(port, mcgroup)
 
     def settimeout(self, tout=None):
-        """A timeout will throw a 'socket.timeout'."""
+        """Set timeout.
+
+        A timeout will throw a 'socket.timeout'.
+        """
         self.socket.settimeout(tout)
         return self
 
     def __call__(self):
-        """Receive data."""
+        """Receive data from a socket."""
         data, sender = self.socket.recvfrom(self.BUFSIZE)
         return data.decode(), sender
 

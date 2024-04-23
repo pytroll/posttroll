@@ -827,3 +827,28 @@ def test_switch_to_unsecure_zmq_backend():
     with config.set(backend="unsecure_zmq"):
         Publisher("ipc://bla.ipc")
         Subscriber("ipc://bla.ipc")
+
+
+def test_noisypublisher_heartbeat():
+    """Test that the heartbeat in the NoisyPublisher works."""
+    from posttroll.ns import NameServer
+    from posttroll.publisher import NoisyPublisher
+    from posttroll.subscriber import Subscribe
+
+    ns_ = NameServer()
+    thr = Thread(target=ns_.run)
+    thr.start()
+
+    pub = NoisyPublisher("test")
+    pub.start()
+    time.sleep(0.2)
+
+    with Subscribe("test", topics="/heartbeat/test", nameserver="localhost") as sub:
+        time.sleep(0.2)
+        pub.heartbeat(min_interval=10)
+        msg = next(sub.recv(1))
+    assert msg.type == "beat"
+    assert msg.data == {'min_interval': 10}
+    pub.stop()
+    ns_.stop()
+    thr.join()

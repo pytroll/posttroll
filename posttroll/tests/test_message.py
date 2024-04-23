@@ -98,7 +98,8 @@ class Test(unittest.TestCase):
 
     def test_iso(self):
         """Test handling of iso-8859-1."""
-        msg = 'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}'  # noqa: E501
+        msg = ('pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN '
+               '2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}')
         try:
             iso_msg = msg.decode("utf-8").encode("iso-8859-1")
         except AttributeError:
@@ -156,7 +157,7 @@ class Test(unittest.TestCase):
 
 
 def suite():
-    """The suite for test_message."""
+    """Create the suite for test_message."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(Test))

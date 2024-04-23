@@ -1,25 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010-2012, 2014, 2015.
-
+#
 # Author(s):
-
+#
 #   Lars Ø. Rasmussen <ras@dmi.dk>
 #   Martin Raspaud    <martin.raspaud@smhi.se>
-
+#
 # This file is part of pytroll.
-
+#
 # Pytroll is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # Pytroll is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # pytroll.  If not, see <http://www.gnu.org/licenses/>.
+
+"""Message broadcast module."""
 
 import errno
 import logging
@@ -38,13 +40,14 @@ broadcast_port = 21200
 class DesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
     def __init__(self, default_port, receivers):
+        """Set settings."""
         backend = config.get("backend", "unsecure_zmq")
         if backend == "unsecure_zmq":
             from posttroll.backends.zmq.message_broadcaster import UnsecureZMQDesignatedReceiversSender
             self._sender = UnsecureZMQDesignatedReceiversSender(default_port, receivers)
 
     def __call__(self, data):
-        """Send data."""
+        """Send messages from all receivers."""
         return self._sender(data)
 
     def close(self):
@@ -55,7 +58,7 @@ class DesignatedReceiversSender:
 #
 # General thread to broadcast messages.
 #
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 class MessageBroadcaster(object):
@@ -117,11 +120,12 @@ class MessageBroadcaster(object):
         finally:
             self._sender.close()
 
-#-----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 #
 # General thread to broadcast addresses.
 #
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 class AddressBroadcaster(MessageBroadcaster):
@@ -150,6 +154,7 @@ class AddressServiceBroadcaster(MessageBroadcaster):
     """Class to broadcast stuff."""
 
     def __init__(self, name, address, data_type, interval=2, nameservers=None):
+        """Initialize broadcaster."""
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
                                "service": data_type}).encode()
