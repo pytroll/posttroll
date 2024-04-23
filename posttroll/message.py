@@ -117,7 +117,7 @@ class Message(object):
       - It will make a Message pickleable.
     """
 
-    def __init__(self, subject='', atype='', data='', binary=False, rawstr=None):
+    def __init__(self, subject="", atype="", data="", binary=False, rawstr=None):
         """Initialize a Message from a subject, type and data, or from a raw string."""
         if rawstr:
             self.__dict__ = _decode(rawstr)

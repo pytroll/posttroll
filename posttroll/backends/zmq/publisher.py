@@ -89,7 +89,7 @@ class SecureZMQPublisher:
         auth.start()
         auth.allow(*self._authorized_sub_addresses)
         # Tell authenticator to use the certificate in a directory
-        auth.configure_curve(domain='*', location=self._pub_keys_dir)
+        auth.configure_curve(domain="*", location=self._pub_keys_dir)
         self._authenticator = auth
 
         self.publish_socket = ctx.socket(zmq.PUB)
