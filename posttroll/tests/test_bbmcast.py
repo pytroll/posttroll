@@ -22,10 +22,10 @@
 
 """Test multicasting and broadcasting."""
 
+import os
 import random
 from socket import SO_BROADCAST, SOL_SOCKET, error
 from threading import Thread
-import os
 
 import pytest
 
@@ -127,6 +127,7 @@ def test_multicast_roundtrip(reraise):
     mcgroup = bbmcast.DEFAULT_MC_GROUP
     mcport = 5555
     rec_socket, rec_group = bbmcast.mcast_receiver(mcport, mcgroup)
+    rec_socket.settimeout(.1)
 
     message = "Ho Ho Ho!"
 
