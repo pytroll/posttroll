@@ -245,7 +245,7 @@ class Publish:
 
     See :class:`Publisher` and :class:`NoisyPublisher` for more information on the arguments.
 
-    The publisher is selected based on the arguments, see :function:`create_publisher_from_dict_config` for
+    The publisher is selected based on the arguments, see :func:`create_publisher_from_dict_config` for
     information how the selection is done.
 
     Example on how to use the :class:`Publish` context::

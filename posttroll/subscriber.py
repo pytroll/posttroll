@@ -247,7 +247,7 @@ class Subscribe:
 
     See :class:`NSSubscriber` and :class:`Subscriber` for initialization parameters.
 
-    The subscriber is selected based on the arguments, see :function:`create_subscriber_from_dict_config` for
+    The subscriber is selected based on the arguments, see :func:`create_subscriber_from_dict_config` for
     information how the selection is done.
 
     Example::

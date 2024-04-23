@@ -240,15 +240,6 @@ Multicast code
    :members:
    :undoc-members:
 
-
-Connections
-~~~~~~~~~~~
-
-.. automodule:: posttroll.connections
-   :members:
-   :undoc-members:
-
-
 Misc
 ~~~~
 
