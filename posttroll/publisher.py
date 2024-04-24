@@ -85,7 +85,7 @@ class Publisher:
 
     """
 
-    def __init__(self, address, name="", min_port=None, max_port=None, **kwargs):
+    def __init__(self, address, *args, name="", min_port=None, max_port=None, **kwargs):
         """Bind the publisher class to a port."""
         # Limit port range or use the defaults when no port is defined
         # by the user
@@ -97,10 +97,10 @@ class Publisher:
         backend = config.get("backend", "unsecure_zmq")
         if backend == "unsecure_zmq":
             from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
-            self._publisher = UnsecureZMQPublisher(address, name, min_port, max_port)
+            self._publisher = UnsecureZMQPublisher(address, name=name, min_port=min_port, max_port=max_port, **kwargs)
         elif backend == "secure_zmq":
             from posttroll.backends.zmq.publisher import SecureZMQPublisher
-            self._publisher = SecureZMQPublisher(address, name, min_port, max_port, **kwargs)
+            self._publisher = SecureZMQPublisher(address, *args, name=name, min_port=min_port, max_port=max_port, **kwargs)
         else:
             raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
@@ -305,18 +305,19 @@ def create_publisher_from_dict_config(settings):
     described in the docstrings of the respective classes, namely :class:`~posttroll.publisher.Publisher` and
     :class:`~posttroll.publisher.NoisyPublisher`.
     """
-    if settings.get("port") and settings.get("nameservers") is False:
+    if (settings.get("port") or settings.get("address")) and settings.get("nameservers") is False:
         return _get_publisher_instance(settings)
     return _get_noisypublisher_instance(settings)
 
 
 def _get_publisher_instance(settings):
-    publisher_address = _create_tcp_publish_address(settings["port"])
-    publisher_name = settings.get("name", "")
-    min_port = settings.get("min_port")
-    max_port = settings.get("max_port")
-
-    return Publisher(publisher_address, name=publisher_name, min_port=min_port, max_port=max_port)
+    settings = settings.copy()
+    publisher_address = settings.pop("address", None)
+    port = settings.pop("port", None)
+    if not publisher_address:
+        publisher_address = _create_tcp_publish_address(port)
+    settings.pop("nameservers", None)
+    return Publisher(publisher_address, **settings)
 
 
 def _get_noisypublisher_instance(settings):

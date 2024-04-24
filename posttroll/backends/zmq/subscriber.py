@@ -210,7 +210,7 @@ class UnsecureZMQSubscriber:
 class SecureZMQSubscriber:
     """Secure ZMQ implementation of the subscriber, using Curve."""
 
-    def __init__(self, addresses, topics="", message_filter=None, translate=False, client_secret_key_file=None, server_public_key_file=None):
+    def __init__(self, addresses, client_secret_key_file, server_public_key_file, topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
         self._topics = topics
         self._filter = message_filter

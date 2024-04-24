@@ -34,8 +34,9 @@ import pytest
 from donfig import Config
 
 import posttroll
+from posttroll import config
 from posttroll.ns import NameServer
-from posttroll.publisher import create_publisher_from_dict_config
+from posttroll.publisher import Publisher, create_publisher_from_dict_config
 from posttroll.subscriber import Subscribe, Subscriber, create_subscriber_from_dict_config
 
 test_lock = Lock()
@@ -243,7 +244,7 @@ class TestPubSub(unittest.TestCase):
     def test_pub_suber(self):
         """Test publisher and subscriber."""
         from posttroll.message import Message
-        from posttroll.publisher import Publisher, get_own_ip
+        from posttroll.publisher import get_own_ip
         from posttroll.subscriber import Subscriber
         pub_address = "tcp://" + str(get_own_ip()) + ":0"
         pub = Publisher(pub_address).start()
@@ -410,7 +411,6 @@ class TestListenerContainerNoNameserver(unittest.TestCase):
         """Test listener container."""
         from posttroll.listener import ListenerContainer
         from posttroll.message import Message
-        from posttroll.publisher import Publisher
 
         pub_addr = "tcp://127.0.0.1:55000"
         pub = Publisher(pub_addr, name="test")
@@ -451,91 +451,97 @@ class TestAddressReceiver(unittest.TestCase):
         adr.stop()
 
 
-class TestPublisherDictConfig(unittest.TestCase):
-    """Test configuring publishers with a dictionary."""
 
-    def test_publisher_is_selected(self):
-        """Test that Publisher is selected as publisher class."""
-        from posttroll.publisher import Publisher
 
-        settings = {"port": 12345, "nameservers": False}
+## Test create_publisher_from_config
 
-        pub = create_publisher_from_dict_config(settings)
+def test_publisher_with_invalid_arguments_crashes():
+    """Test that only valid arguments are passed to Publisher."""
+    settings = {"address": "ipc:///tmp/test.ipc", "nameservers": False, "invalid_arg": "bar"}
+    with pytest.raises(TypeError):
+        _ = create_publisher_from_dict_config(settings)
+
+
+def test_publisher_is_selected():
+    """Test that Publisher is selected as publisher class."""
+    settings = {"port": 12345, "nameservers": False}
+
+    pub = create_publisher_from_dict_config(settings)
+    assert isinstance(pub, Publisher)
+    assert pub is not None
+
+@mock.patch("posttroll.publisher.Publisher")
+def test_publisher_all_arguments(Publisher):
+    """Test that only valid arguments are passed to Publisher."""
+    settings = {"port": 12345, "nameservers": False, "name": "foo",
+                "min_port": 40000, "max_port": 41000}
+    _ = create_publisher_from_dict_config(settings)
+    _check_valid_settings_in_call(settings, Publisher, ignore=["port", "nameservers"])
+    assert Publisher.call_args[0][0].startswith("tcp://*:")
+    assert Publisher.call_args[0][0].endswith(str(settings["port"]))
+
+def test_no_name_raises_keyerror():
+    """Trying to create a NoisyPublisher without a given name will raise KeyError."""
+    with pytest.raises(KeyError):
+        _ = create_publisher_from_dict_config(dict())
+
+def test_noisypublisher_is_selected_only_name():
+    """Test that NoisyPublisher is selected as publisher class."""
+    from posttroll.publisher import NoisyPublisher
+
+    settings = {"name": "publisher_name"}
+
+    pub = create_publisher_from_dict_config(settings)
+    assert isinstance(pub, NoisyPublisher)
+
+def test_noisypublisher_is_selected_name_and_port():
+    """Test that NoisyPublisher is selected as publisher class."""
+    from posttroll.publisher import NoisyPublisher
+
+    settings = {"name": "publisher_name", "port": 40000}
+
+    pub = create_publisher_from_dict_config(settings)
+    assert isinstance(pub, NoisyPublisher)
+
+@mock.patch("posttroll.publisher.NoisyPublisher")
+def test_noisypublisher_all_arguments(NoisyPublisher):
+    """Test that only valid arguments are passed to NoisyPublisher."""
+    from posttroll.publisher import create_publisher_from_dict_config
+
+    settings = {"port": 12345, "nameservers": ["foo"], "name": "foo",
+                "min_port": 40000, "max_port": 41000, "invalid_arg": "bar",
+                "aliases": ["alias1", "alias2"], "broadcast_interval": 42}
+    _ = create_publisher_from_dict_config(settings)
+    _check_valid_settings_in_call(settings, NoisyPublisher, ignore=["name"])
+    assert NoisyPublisher.call_args[0][0] == settings["name"]
+
+def test_publish_is_not_noisy():
+    """Test that Publisher is selected with the context manager when it should be."""
+    from posttroll.publisher import Publish
+
+    with Publish("service_name", port=40000, nameservers=False) as pub:
         assert isinstance(pub, Publisher)
-        assert pub is not None
 
-    @mock.patch("posttroll.publisher.Publisher")
-    def test_publisher_all_arguments(self, Publisher):
-        """Test that only valid arguments are passed to Publisher."""
-        settings = {"port": 12345, "nameservers": False, "name": "foo",
-                    "min_port": 40000, "max_port": 41000, "invalid_arg": "bar"}
-        _ = create_publisher_from_dict_config(settings)
-        _check_valid_settings_in_call(settings, Publisher, ignore=["port", "nameservers"])
-        assert Publisher.call_args[0][0].startswith("tcp://*:")
-        assert Publisher.call_args[0][0].endswith(str(settings["port"]))
+def test_publish_is_noisy_only_name():
+    """Test that NoisyPublisher is selected with the context manager when only name is given."""
+    from posttroll.publisher import NoisyPublisher, Publish
 
-    def test_no_name_raises_keyerror(self):
-        """Trying to create a NoisyPublisher without a given name will raise KeyError."""
-        with pytest.raises(KeyError):
-            _ = create_publisher_from_dict_config(dict())
-
-    def test_noisypublisher_is_selected_only_name(self):
-        """Test that NoisyPublisher is selected as publisher class."""
-        from posttroll.publisher import NoisyPublisher
-
-        settings = {"name": "publisher_name"}
-
-        pub = create_publisher_from_dict_config(settings)
+    with Publish("service_name") as pub:
         assert isinstance(pub, NoisyPublisher)
 
-    def test_noisypublisher_is_selected_name_and_port(self):
-        """Test that NoisyPublisher is selected as publisher class."""
-        from posttroll.publisher import NoisyPublisher
+def test_publish_is_noisy_with_port():
+    """Test that NoisyPublisher is selected with the context manager when port is given."""
+    from posttroll.publisher import NoisyPublisher, Publish
 
-        settings = {"name": "publisher_name", "port": 40000}
-
-        pub = create_publisher_from_dict_config(settings)
+    with Publish("service_name", port=40001) as pub:
         assert isinstance(pub, NoisyPublisher)
 
-    @mock.patch("posttroll.publisher.NoisyPublisher")
-    def test_noisypublisher_all_arguments(self, NoisyPublisher):
-        """Test that only valid arguments are passed to NoisyPublisher."""
-        from posttroll.publisher import create_publisher_from_dict_config
+def test_publish_is_noisy_with_nameservers():
+    """Test that NoisyPublisher is selected with the context manager when nameservers are given."""
+    from posttroll.publisher import NoisyPublisher, Publish
 
-        settings = {"port": 12345, "nameservers": ["foo"], "name": "foo",
-                    "min_port": 40000, "max_port": 41000, "invalid_arg": "bar",
-                    "aliases": ["alias1", "alias2"], "broadcast_interval": 42}
-        _ = create_publisher_from_dict_config(settings)
-        _check_valid_settings_in_call(settings, NoisyPublisher, ignore=["name"])
-        assert NoisyPublisher.call_args[0][0] == settings["name"]
-
-    def test_publish_is_not_noisy(self):
-        """Test that Publisher is selected with the context manager when it should be."""
-        from posttroll.publisher import Publish, Publisher
-
-        with Publish("service_name", port=40000, nameservers=False) as pub:
-            assert isinstance(pub, Publisher)
-
-    def test_publish_is_noisy_only_name(self):
-        """Test that NoisyPublisher is selected with the context manager when only name is given."""
-        from posttroll.publisher import NoisyPublisher, Publish
-
-        with Publish("service_name") as pub:
-            assert isinstance(pub, NoisyPublisher)
-
-    def test_publish_is_noisy_with_port(self):
-        """Test that NoisyPublisher is selected with the context manager when port is given."""
-        from posttroll.publisher import NoisyPublisher, Publish
-
-        with Publish("service_name", port=40001) as pub:
-            assert isinstance(pub, NoisyPublisher)
-
-    def test_publish_is_noisy_with_nameservers(self):
-        """Test that NoisyPublisher is selected with the context manager when nameservers are given."""
-        from posttroll.publisher import NoisyPublisher, Publish
-
-        with Publish("service_name", nameservers=["a", "b"]) as pub:
-            assert isinstance(pub, NoisyPublisher)
+    with Publish("service_name", nameservers=["a", "b"]) as pub:
+        assert isinstance(pub, NoisyPublisher)
 
 
 def _check_valid_settings_in_call(settings, pub_class, ignore=None):
@@ -625,7 +631,6 @@ def test_dict_config_full_subscriber():
 @pytest.fixture()
 def _tcp_keepalive_settings(monkeypatch):
     """Set TCP Keepalive settings."""
-    from posttroll import config
     with config.set(tcp_keepalive=1, tcp_keepalive_cnt=10, tcp_keepalive_idle=1, tcp_keepalive_intvl=1):
         yield
 
@@ -641,7 +646,6 @@ def reset_config_for_tests():
 @pytest.fixture()
 def _tcp_keepalive_no_settings():
     """Set TCP Keepalive settings."""
-    from posttroll import config
     with config.set(tcp_keepalive=None, tcp_keepalive_cnt=None, tcp_keepalive_idle=None, tcp_keepalive_intvl=None):
         yield
 
@@ -702,133 +706,6 @@ def _assert_no_tcp_keepalive(socket):
     assert socket.getsockopt(zmq.TCP_KEEPALIVE_INTVL) == -1
 
 
-def test_ipc_pubsub():
-    """Test pub-sub on an ipc socket."""
-    from posttroll import config
-    with config.set(backend="unsecure_zmq"):
-        subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
-        sub = create_subscriber_from_dict_config(subscriber_settings)
-        from posttroll.publisher import Publisher
-        pub = Publisher("ipc://bla.ipc")
-        pub.start()
-        def delayed_send(msg):
-            time.sleep(.2)
-            from posttroll.message import Message
-            msg = Message(subject="/hi", atype="string", data=msg)
-            pub.send(str(msg))
-            pub.stop()
-        from threading import Thread
-        Thread(target=delayed_send, args=["hi"]).start()
-        for msg in sub.recv():
-            assert msg.data == "hi"
-            break
-        sub.stop()
-
-
-def create_keys(tmp_path):
-    """Test pub-sub on a secure ipc socket."""
-    base_dir = tmp_path
-    keys_dir = base_dir / "certificates"
-    public_keys_dir = base_dir / "public_keys"
-    secret_keys_dir = base_dir / "private_keys"
-
-    keys_dir.mkdir()
-    public_keys_dir.mkdir()
-    secret_keys_dir.mkdir()
-
-    import zmq.auth
-    import os
-    import shutil
-
-    # create new keys in certificates dir
-    server_public_file, server_secret_file = zmq.auth.create_certificates(
-        keys_dir, "server"
-    )
-    client_public_file, client_secret_file = zmq.auth.create_certificates(
-        keys_dir, "client"
-    )
-
-    # move public keys to appropriate directory
-    for key_file in os.listdir(keys_dir):
-        if key_file.endswith(".key"):
-            shutil.move(
-                os.path.join(keys_dir, key_file), os.path.join(public_keys_dir, '.')
-            )
-
-    # move secret keys to appropriate directory
-    for key_file in os.listdir(keys_dir):
-        if key_file.endswith(".key_secret"):
-            shutil.move(
-                os.path.join(keys_dir, key_file), os.path.join(secret_keys_dir, '.')
-            )
-
-
-def test_ipc_pubsub_with_sec(tmp_path):
-    """Test pub-sub on a secure ipc socket."""
-    base_dir = tmp_path
-    public_keys_dir = base_dir / "public_keys"
-    secret_keys_dir = base_dir / "private_keys"
-
-    create_keys(tmp_path)
-
-    from posttroll import config
-    with config.set(backend="secure_zmq"):
-        subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202,
-                                   client_secret_key_file=secret_keys_dir / "client.key_secret",
-                                   server_public_key_file=public_keys_dir / "server.key")
-        sub = create_subscriber_from_dict_config(subscriber_settings)
-        from posttroll.publisher import Publisher
-        pub = Publisher("ipc://bla.ipc", server_secret_key=secret_keys_dir / "server.key_secret", public_keys_directory=public_keys_dir)
-        pub.start()
-        def delayed_send(msg):
-            time.sleep(.2)
-            from posttroll.message import Message
-            msg = Message(subject="/hi", atype="string", data=msg)
-            pub.send(str(msg))
-        from threading import Thread
-        thr = Thread(target=delayed_send, args=["very sensitive message"])
-        thr.start()
-        try:
-            for msg in sub.recv():
-                assert msg.data == "very sensitive message"
-                break
-        finally:
-            sub.stop()
-            thr.join()
-            pub.stop()
-
-def test_switch_to_unknown_backend():
-    """Test switching to unknown backend."""
-    from posttroll import config
-    from posttroll.publisher import Publisher
-    from posttroll.subscriber import Subscriber
-    with config.set(backend="unsecure_and_deprecated"):
-        with pytest.raises(NotImplementedError):
-            Publisher("ipc://bla.ipc")
-        with pytest.raises(NotImplementedError):
-            Subscriber("ipc://bla.ipc")
-
-def test_switch_to_secure_zmq_backend():
-    """Test switching to the secure_zmq backend."""
-    from posttroll import config
-    from posttroll.publisher import Publisher
-    from posttroll.subscriber import Subscriber
-
-    with config.set(backend="secure_zmq"):
-        Publisher("ipc://bla.ipc")
-        Subscriber("ipc://bla.ipc")
-
-def test_switch_to_unsecure_zmq_backend():
-    """Test switching to the secure_zmq backend."""
-    from posttroll import config
-    from posttroll.publisher import Publisher
-    from posttroll.subscriber import Subscriber
-
-    with config.set(backend="unsecure_zmq"):
-        Publisher("ipc://bla.ipc")
-        Subscriber("ipc://bla.ipc")
-
-
 def test_noisypublisher_heartbeat():
     """Test that the heartbeat in the NoisyPublisher works."""
     from posttroll.ns import NameServer
@@ -848,7 +725,48 @@ def test_noisypublisher_heartbeat():
         pub.heartbeat(min_interval=10)
         msg = next(sub.recv(1))
     assert msg.type == "beat"
-    assert msg.data == {'min_interval': 10}
+    assert msg.data == {"min_interval": 10}
     pub.stop()
     ns_.stop()
     thr.join()
+
+
+def test_ipc_pubsub():
+    """Test pub-sub on an ipc socket."""
+    with config.set(backend="unsecure_zmq"):
+        subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
+        sub = create_subscriber_from_dict_config(subscriber_settings)
+        pub = Publisher("ipc://bla.ipc")
+        pub.start()
+        def delayed_send(msg):
+            time.sleep(.2)
+            from posttroll.message import Message
+            msg = Message(subject="/hi", atype="string", data=msg)
+            pub.send(str(msg))
+            pub.stop()
+        from threading import Thread
+        Thread(target=delayed_send, args=["hi"]).start()
+        for msg in sub.recv():
+            assert msg.data == "hi"
+            break
+        sub.stop()
+
+
+def test_switch_to_unknown_backend():
+    """Test switching to unknown backend."""
+    from posttroll.publisher import Publisher
+    from posttroll.subscriber import Subscriber
+    with config.set(backend="unsecure_and_deprecated"):
+        with pytest.raises(NotImplementedError):
+            Publisher("ipc://bla.ipc")
+        with pytest.raises(NotImplementedError):
+            Subscriber("ipc://bla.ipc")
+
+def test_switch_to_unsecure_zmq_backend():
+    """Test switching to the secure_zmq backend."""
+    from posttroll.publisher import Publisher
+    from posttroll.subscriber import Subscriber
+
+    with config.set(backend="unsecure_zmq"):
+        Publisher("ipc://bla.ipc")
+        Subscriber("ipc://bla.ipc")

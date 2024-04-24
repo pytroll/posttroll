@@ -64,8 +64,22 @@ class UnsecureZMQPublisher:
 class SecureZMQPublisher:
     """Secure ZMQ implementation of the publisher class."""
 
-    def __init__(self, address, name="", min_port=None, max_port=None, server_secret_key=None, public_keys_directory=None, authorized_sub_addresses=None):
-        """Bind the publisher class to a port."""
+    def __init__(self, address, server_secret_key, public_keys_directory, name="", min_port=None, max_port=None,
+                 authorized_sub_addresses=None):
+        """Set up the secure ZMQ publisher.
+
+        Args:
+            address: the address to connect to.
+            server_secret_key: the secret key for this publisher.
+            public_keys_directory: the directory containing the public keys of the subscribers that are allowed to
+                connect.
+            name: the name of this publishing service.
+            min_port: the minimal port number to use.
+            max_port: the maximal port number to use.
+            authorized_sub_addresses: the list of addresse allowed to subscibe to this publisher. By default, all are
+                allowed.
+
+        """
         self.name = name
         self.destination = address
         self.publish_socket = None
