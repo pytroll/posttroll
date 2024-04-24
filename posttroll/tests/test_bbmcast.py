@@ -119,7 +119,7 @@ def test_mcast_receiver_works_with_valid_addresses():
 
 
 @pytest.mark.skipif(
-    os.getenv("DISABLED_MULTICAST") != None,
+    os.getenv("DISABLED_MULTICAST"),
     reason="Multicast tests disabled.",
 )
 def test_multicast_roundtrip(reraise):
