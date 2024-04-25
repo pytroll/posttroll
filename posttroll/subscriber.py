@@ -356,6 +356,9 @@ def create_subscriber_from_dict_config(settings):
 def _get_subscriber_instance(settings):
     _ = settings.pop("nameserver", None)
     _ = settings.pop("port", None)
+    _ = settings.pop("services", None)
+    _ = settings.pop("addr_listener", None),
+    _ = settings.pop("timeout", None)
 
     return Subscriber(**settings)
 

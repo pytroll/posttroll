@@ -224,7 +224,7 @@ class TestPubSub(unittest.TestCase):
         pub_address = "tcp://" + str(get_own_ip()) + ":0"
         pub = Publisher(pub_address).start()
         addr = pub_address[:-1] + str(pub.port_number)
-        sub = Subscriber([addr], "/counter")
+        sub = Subscriber([addr], topics="/counter")
         # wait a bit before sending the first message so that the subscriber is ready
         time.sleep(.002)
 
