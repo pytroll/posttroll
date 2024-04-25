@@ -29,6 +29,7 @@ import datetime as dt
 import logging
 import os
 import time
+import warnings
 
 from posttroll import config
 from posttroll.address_receiver import AddressReceiver
@@ -41,7 +42,9 @@ DEFAULT_NAMESERVER_PORT = 5557
 
 logger = logging.getLogger(__name__)
 
+
 def get_configured_nameserver_port():
+    """Get the configured nameserver port."""
     try:
         port = int(os.environ["NAMESERVER_PORT"])
         warnings.warn("NAMESERVER_PORT is pending deprecation, please use POSTTROLL_NAMESERVER_PORT instead.",
@@ -78,10 +81,11 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
 
 
 def get_pub_address(name, timeout=10, nameserver="localhost"):
-    """Get the address of the named publisher
+    """Get the address of the named publisher.
 
     Args:
         name: name of the publishers
+        timeout: how long to wait for an address, in seconds.
         nameserver: nameserver address to query the publishers from (default: localhost).
     """
     backend = config.get("backend", "unsecure_zmq")

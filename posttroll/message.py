@@ -243,29 +243,10 @@ def datetime_decoder(dct):
 
 def _decode(rawstr):
     """Convert a raw string to a Message."""
-    # Check for the magick word.
-    try:
-        rawstr = rawstr.decode("utf-8")
-    except (AttributeError, UnicodeEncodeError):
-        pass
-    except (UnicodeDecodeError):
-        try:
-            rawstr = rawstr.decode("iso-8859-1")
-        except (UnicodeDecodeError):
-            rawstr = rawstr.decode("utf-8", "ignore")
-    if not rawstr.startswith(_MAGICK):
-        raise MessageError("This is not a '%s' message (wrong magick word)"
-                           % _MAGICK)
-    rawstr = rawstr[len(_MAGICK):]
+    rawstr = _check_for_magic_word(rawstr)
 
-    # Check for element count and version
-    raw = re.split(r"\s+", rawstr, maxsplit=6)
-    if len(raw) < 5:
-        raise MessageError("Could node decode raw string: '%s ...'"
-                           % str(rawstr[:36]))
-    version = raw[4][:len(_VERSION)]
-    if not _is_valid_version(version):
-        raise MessageError("Invalid Message version: '%s'" % str(version))
+    raw = _check_for_element_count(rawstr)
+    version = _check_for_version(raw)
 
     # Start to build message
     msg = dict((("subject", raw[0].strip()),
@@ -300,6 +281,36 @@ def _decode(rawstr):
         raise MessageError("Unknown mime-type '%s'" % mimetype)
 
     return msg
+
+def _check_for_version(raw):
+    version = raw[4][:len(_VERSION)]
+    if not _is_valid_version(version):
+        raise MessageError("Invalid Message version: '%s'" % str(version))
+    return version
+
+def _check_for_element_count(rawstr):
+    raw = re.split(r"\s+", rawstr, maxsplit=6)
+    if len(raw) < 5:
+        raise MessageError("Could node decode raw string: '%s ...'"
+                           % str(rawstr[:36]))
+
+    return raw
+
+def _check_for_magic_word(rawstr):
+    """Check for the magick word."""
+    try:
+        rawstr = rawstr.decode("utf-8")
+    except (AttributeError, UnicodeEncodeError):
+        pass
+    except (UnicodeDecodeError):
+        try:
+            rawstr = rawstr.decode("iso-8859-1")
+        except (UnicodeDecodeError):
+            rawstr = rawstr.decode("utf-8", "ignore")
+    if not rawstr.startswith(_MAGICK):
+        raise MessageError("This is not a '%s' message (wrong magick word)"
+                           % _MAGICK)
+    return rawstr[len(_MAGICK):]
 
 
 def datetime_encoder(obj):

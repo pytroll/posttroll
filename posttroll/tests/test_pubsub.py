@@ -72,6 +72,7 @@ def free_port():
 
 @contextmanager
 def create_nameserver_instance(max_age=3, multicast_enabled=True):
+    """Create a nameserver instance."""
     config.set(nameserver_port=free_port())
     config.set(address_publish_port=free_port())
     ns = NameServer(max_age=timedelta(seconds=max_age), multicast_enabled=multicast_enabled)

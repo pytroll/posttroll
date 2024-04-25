@@ -201,7 +201,7 @@ def run():
             time.sleep(1)
     except KeyboardInterrupt:
         tlogger.stop()
-        print("Thanks for using pytroll/logger. See you soon on www.pytroll.org!")
+        print("Thanks for using pytroll/logger. See you soon on www.pytroll.org!")  # noqa
 
 
 if __name__ == "__main__":

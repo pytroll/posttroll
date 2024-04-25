@@ -1,3 +1,4 @@
+"""Main module for the zmq backend."""
 import logging
 import os
 
@@ -21,6 +22,7 @@ def get_context():
     return context[pid]
 
 def _set_tcp_keepalive(socket):
+    """Set the tcp keepalive parameters on *socket*."""
     _set_int_sockopt(socket, zmq.TCP_KEEPALIVE, config.get("tcp_keepalive", None))
     _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_CNT, config.get("tcp_keepalive_cnt", None))
     _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_IDLE, config.get("tcp_keepalive_idle", None))

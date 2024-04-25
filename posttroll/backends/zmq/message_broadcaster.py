@@ -1,3 +1,5 @@
+"""Message broadcaster implementation using zmq."""
+
 import logging
 import threading
 
@@ -12,6 +14,7 @@ class UnsecureZMQDesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
 
     def __init__(self, default_port, receivers):
+        """Set up the sender."""
         self.default_port = default_port
 
         self.receivers = receivers

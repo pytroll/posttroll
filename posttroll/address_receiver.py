@@ -151,30 +151,7 @@ class AddressReceiver:
     def _run(self):
         """Run the receiver."""
         port = broadcast_port
-        nameservers = False
-        if self._multicast_enabled:
-            while True:
-                try:
-                    recv = MulticastReceiver(port)
-                except IOError as err:
-                    if err.errno == errno.ENODEV:
-                        LOGGER.error("Receiver initialization failed "
-                                     "(no such device). "
-                                     "Trying again in %d s",
-                                     10)
-                        time.sleep(10)
-                    else:
-                        raise
-                else:
-                    recv.settimeout(tout=2.0)
-                    LOGGER.info("Receiver initialized.")
-                    break
-
-        else:
-            if config.get("backend", "unsecure_zmq") == "unsecure_zmq":
-                from posttroll.backends.zmq.address_receiver import SimpleReceiver
-            recv = SimpleReceiver(port)
-            nameservers = ["localhost"]
+        nameservers, recv = self.set_up_address_receiver(port)
 
         self._is_running = True
         with Publish("address_receiver", self._port, ["addresses"],
@@ -216,6 +193,34 @@ class AddressReceiver:
             finally:
                 self._is_running = False
                 recv.close()
+
+    def set_up_address_receiver(self, port):
+        """Set up the address receiver depending on if it is multicast or not."""
+        nameservers = False
+        if self._multicast_enabled:
+            while True:
+                try:
+                    recv = MulticastReceiver(port)
+                except IOError as err:
+                    if err.errno == errno.ENODEV:
+                        LOGGER.error("Receiver initialization failed "
+                                     "(no such device). "
+                                     "Trying again in %d s",
+                                     10)
+                        time.sleep(10)
+                    else:
+                        raise
+                else:
+                    recv.settimeout(tout=2.0)
+                    LOGGER.info("Receiver initialized.")
+                    break
+
+        else:
+            if config.get("backend", "unsecure_zmq") == "unsecure_zmq":
+                from posttroll.backends.zmq.address_receiver import SimpleReceiver
+            recv = SimpleReceiver(port)
+            nameservers = ["localhost"]
+        return nameservers,recv
 
     def _add(self, adr, metadata):
         """Add an address."""

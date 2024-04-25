@@ -1,4 +1,6 @@
 
+"""Test the curve-based zmq backend."""
+
 import os
 import shutil
 import time
