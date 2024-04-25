@@ -29,9 +29,9 @@ import logging
 import time
 
 from posttroll import config
+from posttroll.address_receiver import get_configured_address_port
 from posttroll.message import _MAGICK
 from posttroll.ns import get_pub_address
-from posttroll.address_receiver import get_configured_address_port
 
 LOGGER = logging.getLogger(__name__)
 

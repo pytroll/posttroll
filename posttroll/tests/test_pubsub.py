@@ -23,6 +23,7 @@
 
 """Test the publishing and subscribing facilities."""
 
+import os
 import time
 import unittest
 from contextlib import contextmanager
@@ -83,7 +84,10 @@ def create_nameserver_instance(max_age=3, multicast_enabled=True):
         ns.stop()
         thr.join()
 
-
+@pytest.mark.skipif(
+    os.getenv("DISABLED_MULTICAST"),
+    reason="Multicast tests disabled.",
+)
 @pytest.mark.parametrize(
     "multicast_enabled",
     [True, False]
@@ -93,12 +97,13 @@ def test_pub_addresses(multicast_enabled):
     from posttroll.ns import get_pub_addresses
     from posttroll.publisher import Publish
 
+    if multicast_enabled:
+        nameservers = None
+    else:
+        nameservers = ["localhost"]
+
 
     with create_nameserver_instance(multicast_enabled=multicast_enabled):
-        if multicast_enabled:
-            nameservers = None
-        else:
-            nameservers = ["localhost"]
         with Publish(str("data_provider"), 0, ["this_data"], nameservers=nameservers, broadcast_interval=0.1):
             time.sleep(.3)
             res = get_pub_addresses(["this_data"], timeout=.5)
@@ -120,6 +125,10 @@ def test_pub_addresses(multicast_enabled):
             assert "receive_time" in res[0]
             assert "URI" in res[0]
 
+@pytest.mark.skipif(
+    os.getenv("DISABLED_MULTICAST"),
+    reason="Multicast tests disabled.",
+)
 @pytest.mark.parametrize(
     "multicast_enabled",
     [True, False]
@@ -148,6 +157,11 @@ def test_pub_sub_ctx(multicast_enabled):
                 sub.close()
         assert tested
 
+
+@pytest.mark.skipif(
+    os.getenv("DISABLED_MULTICAST"),
+    reason="Multicast tests disabled.",
+)
 @pytest.mark.parametrize(
     "multicast_enabled",
     [True, False]
@@ -159,11 +173,12 @@ def test_pub_sub_add_rm(multicast_enabled):
 
     max_age = 0.5
 
+    if multicast_enabled:
+        nameservers = None
+    else:
+        nameservers = ["localhost"]
+
     with create_nameserver_instance(max_age=max_age, multicast_enabled=multicast_enabled):
-        if multicast_enabled:
-            nameservers = None
-        else:
-            nameservers = ["localhost"]
         with Subscribe("this_data", "counter", True, timeout=.2) as sub:
             assert len(sub.addresses) == 0
             with Publish("data_provider", 0, ["this_data"], nameservers=nameservers):
@@ -315,6 +330,10 @@ def _get_port_from_publish_instance(min_port=None, max_port=None):
         return False
 
 
+@pytest.mark.skipif(
+    os.getenv("DISABLED_MULTICAST"),
+    reason="Multicast tests disabled.",
+)
 def test_listener_container():
     """Test listener container."""
     from posttroll.listener import ListenerContainer
@@ -650,6 +669,10 @@ def _assert_no_tcp_keepalive(socket):
     assert socket.getsockopt(zmq.TCP_KEEPALIVE_INTVL) == -1
 
 
+@pytest.mark.skipif(
+    os.getenv("DISABLED_MULTICAST"),
+    reason="Multicast tests disabled.",
+)
 def test_noisypublisher_heartbeat():
     """Test that the heartbeat in the NoisyPublisher works."""
     from posttroll.ns import NameServer

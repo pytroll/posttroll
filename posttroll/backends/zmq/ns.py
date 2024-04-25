@@ -7,7 +7,7 @@ from zmq import LINGER, NOBLOCK, POLLIN, REP, REQ, Poller
 
 from posttroll.backends.zmq import get_context
 from posttroll.message import Message
-from posttroll.ns import get_configured_nameserver_port, get_active_address
+from posttroll.ns import get_active_address, get_configured_nameserver_port
 
 logger = logging.getLogger("__name__")
 
