@@ -74,7 +74,7 @@ class UnsecureZMQPublisher:
 class SecureZMQPublisher(UnsecureZMQPublisher):
     """Secure ZMQ implementation of the publisher class."""
 
-    def __init__(self, address, server_secret_key, public_keys_directory, authorized_sub_addresses=None, **kwargs):  # noqa
+    def __init__(self, *args, server_secret_key=None, public_keys_directory=None, authorized_sub_addresses=None, **kwargs):  # noqa
         """Set up the secure ZMQ publisher.
 
         Args:
@@ -87,12 +87,16 @@ class SecureZMQPublisher(UnsecureZMQPublisher):
             kwargs: passed to the underlying UnsecureZMQPublisher instance.
 
         """
+        if server_secret_key is None:
+            raise TypeError("Missing server_secret_key argument.")
+        if public_keys_directory is None:
+            raise TypeError("Missing public_keys_directory argument.")
         self._server_secret_key = server_secret_key
         self._authorized_sub_addresses = authorized_sub_addresses or []
         self._pub_keys_dir = public_keys_directory
         self._authenticator = None
 
-        super().__init__(address=address, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def start(self):
         """Start the publisher."""

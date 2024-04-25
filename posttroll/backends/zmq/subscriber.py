@@ -220,12 +220,16 @@ class UnsecureZMQSubscriber(_ZMQSubscriber):
 class SecureZMQSubscriber(_ZMQSubscriber):
     """Secure ZMQ implementation of the subscriber, using Curve."""
 
-    def __init__(self, addresses, client_secret_key_file, server_public_key_file, **kwargs):
+    def __init__(self, *args, client_secret_key_file=None, server_public_key_file=None, **kwargs):
         """Initialize the subscriber."""
+        if client_secret_key_file is None:
+            raise TypeError("Missing client_secret_key_file argument.")
+        if server_public_key_file is None:
+            raise TypeError("Missing server_public_key_file argument.")
         self._client_secret_file = client_secret_key_file
         self._server_public_key_file = server_public_key_file
 
-        super().__init__(addresses, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _add_sub_socket(self, address, topics):
         import zmq.auth

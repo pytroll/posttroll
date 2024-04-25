@@ -126,10 +126,10 @@ def test_pub_addresses(multicast_enabled):
             assert "receive_time" in res[0]
             assert "URI" in res[0]
 
-@pytest.mark.skipif(
-    os.getenv("DISABLED_MULTICAST"),
-    reason="Multicast tests disabled.",
-)
+# @pytest.mark.skipif(
+#     os.getenv("DISABLED_MULTICAST"),
+#     reason="Multicast tests disabled.",
+# )
 @pytest.mark.parametrize(
     "multicast_enabled",
     [True, False]
@@ -146,7 +146,7 @@ def test_pub_sub_ctx(multicast_enabled):
         else:
             nameservers = ["localhost"]
         with Publish("data_provider", 0, ["this_data"], nameservers=nameservers, broadcast_interval=0.1) as pub:
-            with Subscribe("this_data", topics="counter") as sub:
+            with Subscribe("this_data", "counter") as sub:
                 for counter in range(5):
                     message = Message("/counter", "info", str(counter))
                     pub.send(str(message))
@@ -180,7 +180,7 @@ def test_pub_sub_add_rm(multicast_enabled):
         nameservers = ["localhost"]
 
     with create_nameserver_instance(max_age=max_age, multicast_enabled=multicast_enabled):
-        with Subscribe("this_data", topics="counter", addr_listener=True, timeout=.2) as sub:
+        with Subscribe("this_data", "counter", addr_listener=True, timeout=.2) as sub:
             assert len(sub.addresses) == 0
             with Publish("data_provider", 0, ["this_data"], nameservers=nameservers):
                 time.sleep(.1)

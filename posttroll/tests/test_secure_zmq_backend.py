@@ -94,15 +94,17 @@ def test_switch_to_secure_zmq_backend(tmp_path):
 
     server_secret_key = secret_keys_dir / "server.key_secret"
     public_keys_directory = public_keys_dir
-    publisher_key_args = (server_secret_key, public_keys_directory)
+    publisher_key_args = dict(server_secret_key=server_secret_key,
+                              public_keys_directory=public_keys_directory)
 
     client_secret_key = secret_keys_dir / "client.key_secret"
     server_public_key = public_keys_dir / "server.key"
-    subscriber_key_args = (client_secret_key, server_public_key)
+    subscriber_key_args = dict(client_secret_key_file=client_secret_key,
+                               server_public_key_file=server_public_key)
 
     with config.set(backend="secure_zmq"):
-        Publisher("ipc://bla.ipc", *publisher_key_args)
-        Subscriber("ipc://bla.ipc", *subscriber_key_args)
+        Publisher("ipc://bla.ipc", **publisher_key_args)
+        Subscriber("ipc://bla.ipc", **subscriber_key_args)
 
 
 def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):

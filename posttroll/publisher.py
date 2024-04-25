@@ -85,7 +85,7 @@ class Publisher:
 
     """
 
-    def __init__(self, address, *args, name="", min_port=None, max_port=None, **kwargs):
+    def __init__(self, address, name="", min_port=None, max_port=None, **kwargs):
         """Bind the publisher class to a port."""
         # Limit port range or use the defaults when no port is defined
         # by the user
@@ -96,15 +96,13 @@ class Publisher:
 
         backend = config.get("backend", "unsecure_zmq")
         if backend == "unsecure_zmq":
-            if args:
-                raise TypeError(f"Unexpected arguments: {args}")
             if kwargs:
                 raise TypeError(f"Unexpected keyword arguments: {kwargs}")
             from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
             self._publisher = UnsecureZMQPublisher(address, name=name, min_port=min_port, max_port=max_port)
         elif backend == "secure_zmq":
             from posttroll.backends.zmq.publisher import SecureZMQPublisher
-            self._publisher = SecureZMQPublisher(address, *args, name=name, min_port=min_port, max_port=max_port,
+            self._publisher = SecureZMQPublisher(address, name=name, min_port=min_port, max_port=max_port,
                                                  **kwargs)
         else:
             raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
