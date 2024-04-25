@@ -48,11 +48,14 @@ LOGGER = logging.getLogger(__name__)
 debug = os.environ.get("DEBUG", False)
 broadcast_port = 21200
 
-default_publish_port = 16543
+DEFAULT_ADDRESS_PUBLISH_PORT = 16543
 
 ten_minutes = dt.timedelta(minutes=10)
 zero_seconds = dt.timedelta(seconds=0)
 
+
+def get_configured_address_port():
+    return config.get("address_publish_port", DEFAULT_ADDRESS_PUBLISH_PORT)
 
 def get_local_ips():
     """Get local IP addresses."""
@@ -72,14 +75,14 @@ def get_local_ips():
 # -----------------------------------------------------------------------------
 
 
-class AddressReceiver(object):
+class AddressReceiver:
     """General thread to receive broadcast addresses."""
 
     def __init__(self, max_age=ten_minutes, port=None,
                  do_heartbeat=True, multicast_enabled=True, restrict_to_localhost=False):
         """Set up the address receiver."""
         self._max_age = max_age
-        self._port = port or default_publish_port
+        self._port = port or get_configured_address_port()
         self._address_lock = threading.Lock()
         self._addresses = {}
         self._subject = "/address"

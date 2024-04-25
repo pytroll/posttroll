@@ -7,7 +7,7 @@ from zmq import LINGER, NOBLOCK, POLLIN, REP, REQ, Poller
 
 from posttroll.backends.zmq import get_context
 from posttroll.message import Message
-from posttroll.ns import PORT, get_active_address
+from posttroll.ns import get_configured_nameserver_port, get_active_address
 
 logger = logging.getLogger("__name__")
 
@@ -22,10 +22,11 @@ def unsecure_zmq_get_pub_address(name, timeout=10, nameserver="localhost"):
     # Socket to talk to server
     socket = get_context().socket(REQ)
     try:
+        port = get_configured_nameserver_port()
         socket.setsockopt(LINGER, int(timeout * 1000))
-        socket.connect("tcp://" + nameserver + ":" + str(PORT))
+        socket.connect("tcp://" + nameserver + ":" + str(port))
         logger.debug("Connecting to %s",
-                     "tcp://" + nameserver + ":" + str(PORT))
+                     "tcp://" + nameserver + ":" + str(port))
         poller = Poller()
         poller.register(socket, POLLIN)
 
@@ -55,7 +56,7 @@ class UnsecureZMQNameServer:
 
     def run(self, arec):
         """Run the listener and answer to requests."""
-        port = PORT
+        port = get_configured_nameserver_port()
 
         try:
             with nslock:

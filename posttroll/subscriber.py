@@ -31,6 +31,7 @@ import time
 from posttroll import config
 from posttroll.message import _MAGICK
 from posttroll.ns import get_pub_address
+from posttroll.address_receiver import get_configured_address_port
 
 LOGGER = logging.getLogger(__name__)
 
@@ -200,7 +201,7 @@ class NSSubscriber:
             """Try to get the address of *service* until for *timeout* seconds."""
             then = dt.datetime.now() + dt.timedelta(seconds=timeout)
             while dt.datetime.now() < then:
-                addrs = get_pub_address(service, nameserver=self._nameserver)
+                addrs = get_pub_address(service, self._timeout, nameserver=self._nameserver)
                 if addrs:
                     return [addr["URI"] for addr in addrs]
                 time.sleep(1)
@@ -304,7 +305,8 @@ class _AddressListener:
             services = [services, ]
         self.services = services
         self.subscriber = subscriber
-        self.subscriber.add_hook_sub("tcp://" + nameserver + ":16543",
+        address_publish_port = get_configured_address_port()
+        self.subscriber.add_hook_sub("tcp://" + nameserver + ":" + str(address_publish_port),
                                      ["pytroll://address", ],
                                      self.handle_msg)
 

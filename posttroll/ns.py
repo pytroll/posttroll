@@ -37,9 +37,20 @@ from posttroll.message import Message
 # pylint: enable=E0611
 
 
-PORT = int(os.environ.get("NAMESERVER_PORT", 5557))
+DEFAULT_NAMESERVER_PORT = 5557
 
 logger = logging.getLogger(__name__)
+
+def get_configured_nameserver_port():
+    try:
+        port = int(os.environ["NAMESERVER_PORT"])
+        warnings.warn("NAMESERVER_PORT is pending deprecation, please use POSTTROLL_NAMESERVER_PORT instead.",
+                    PendingDeprecationWarning)
+    except KeyError:
+        port = DEFAULT_NAMESERVER_PORT
+    return config.get("nameserver_port", port)
+
+
 
 # Client functions.
 

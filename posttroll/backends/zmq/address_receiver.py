@@ -2,7 +2,7 @@
 
 from zmq import LINGER, REP
 
-from posttroll.address_receiver import default_publish_port
+from posttroll.address_receiver import get_configured_address_port
 from posttroll.backends.zmq import get_context
 
 
@@ -11,7 +11,7 @@ class SimpleReceiver(object):
 
     def __init__(self, port=None):
         """Set up the receiver."""
-        self._port = port or default_publish_port
+        self._port = port or get_configured_address_port()
         self._socket = get_context().socket(REP)
         self._socket.bind("tcp://*:" + str(port))
 

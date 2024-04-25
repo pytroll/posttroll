@@ -196,7 +196,7 @@ class NoisyPublisher:
     def start(self):
         """Start the publisher."""
         pub_addr = _create_tcp_publish_address(self._port)
-        self._publisher = self._publisher_class(pub_addr, self._name,
+        self._publisher = self._publisher_class(pub_addr, name=self._name,
                                                 min_port=self.min_port,
                                                 max_port=self.max_port)
         self._publisher.start()
@@ -317,6 +317,8 @@ def _get_publisher_instance(settings):
     if not publisher_address:
         publisher_address = _create_tcp_publish_address(port)
     settings.pop("nameservers", None)
+    settings.pop("aliases", None)
+    settings.pop("broadcast_interval", None)
     return Publisher(publisher_address, **settings)
 
 

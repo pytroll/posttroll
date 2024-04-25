@@ -5,7 +5,11 @@ description = "Messaging system for pytroll"
 authors = [
     { name = "The Pytroll Team", email = "pytroll@googlegroups.com" }
 ]
-dependencies = ["pyzmq", "netifaces", "donfig"]
+dependencies = [
+    "pyzmq",
+    "netifaces-plus",
+    "donfig",
+]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "GPLv3" }
