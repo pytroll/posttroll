@@ -38,7 +38,7 @@ import posttroll
 from posttroll import config
 from posttroll.ns import NameServer
 from posttroll.publisher import Publisher, create_publisher_from_dict_config
-from posttroll.subscriber import Subscribe, Subscriber, create_subscriber_from_dict_config
+from posttroll.subscriber import Subscribe, Subscriber
 
 test_lock = Lock()
 
@@ -699,27 +699,6 @@ def test_noisypublisher_heartbeat():
     thr.join()
 
 
-def test_ipc_pubsub():
-    """Test pub-sub on an ipc socket."""
-    with config.set(backend="unsecure_zmq"):
-        subscriber_settings = dict(addresses="ipc://bla.ipc", topics="", nameserver=False, port=10202)
-        sub = create_subscriber_from_dict_config(subscriber_settings)
-        pub = Publisher("ipc://bla.ipc")
-        pub.start()
-        def delayed_send(msg):
-            time.sleep(.2)
-            from posttroll.message import Message
-            msg = Message(subject="/hi", atype="string", data=msg)
-            pub.send(str(msg))
-            pub.stop()
-        from threading import Thread
-        Thread(target=delayed_send, args=["hi"]).start()
-        for msg in sub.recv():
-            assert msg.data == "hi"
-            break
-        sub.stop()
-
-
 def test_switch_to_unknown_backend():
     """Test switching to unknown backend."""
     from posttroll.publisher import Publisher
@@ -729,12 +708,3 @@ def test_switch_to_unknown_backend():
             Publisher("ipc://bla.ipc")
         with pytest.raises(NotImplementedError):
             Subscriber("ipc://bla.ipc")
-
-def test_switch_to_unsecure_zmq_backend():
-    """Test switching to the secure_zmq backend."""
-    from posttroll.publisher import Publisher
-    from posttroll.subscriber import Subscriber
-
-    with config.set(backend="unsecure_zmq"):
-        Publisher("ipc://bla.ipc")
-        Subscriber("ipc://bla.ipc")

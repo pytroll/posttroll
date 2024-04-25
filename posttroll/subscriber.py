@@ -65,6 +65,10 @@ class Subscriber:
         topics = self._magickfy_topics(topics)
         backend = config.get("backend", "unsecure_zmq")
         if backend == "unsecure_zmq":
+            if args:
+                raise TypeError(f"Unexpected arguments: {args}")
+            if kwargs:
+                raise TypeError(f"Unexpected keyword arguments: {kwargs}")
             from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
             self._subscriber = UnsecureZMQSubscriber(addresses, topics=topics,
                                                      message_filter=message_filter, translate=translate)
@@ -350,14 +354,10 @@ def create_subscriber_from_dict_config(settings):
 
 
 def _get_subscriber_instance(settings):
-    addresses = settings.pop("addresses")
-    topics = settings.pop("topics", "")
-    message_filter = settings.pop("message_filter", None)
-    translate = settings.pop("translate", False)
     _ = settings.pop("nameserver", None)
     _ = settings.pop("port", None)
 
-    return Subscriber(addresses, topics=topics, message_filter=message_filter, translate=translate, **settings)
+    return Subscriber(**settings)
 
 
 def _get_nssubscriber_instance(settings):

@@ -96,8 +96,12 @@ class Publisher:
 
         backend = config.get("backend", "unsecure_zmq")
         if backend == "unsecure_zmq":
+            if args:
+                raise TypeError(f"Unexpected arguments: {args}")
+            if kwargs:
+                raise TypeError(f"Unexpected keyword arguments: {kwargs}")
             from posttroll.backends.zmq.publisher import UnsecureZMQPublisher
-            self._publisher = UnsecureZMQPublisher(address, name=name, min_port=min_port, max_port=max_port, **kwargs)
+            self._publisher = UnsecureZMQPublisher(address, name=name, min_port=min_port, max_port=max_port)
         elif backend == "secure_zmq":
             from posttroll.backends.zmq.publisher import SecureZMQPublisher
             self._publisher = SecureZMQPublisher(address, *args, name=name, min_port=min_port, max_port=max_port,
