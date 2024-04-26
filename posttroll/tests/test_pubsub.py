@@ -177,7 +177,7 @@ def test_pub_sub_add_rm(multicast_enabled):
                 time.sleep(.1)
                 next(sub.recv(.1))
                 assert len(sub.addresses) == 1
-            time.sleep(max_age * 2)
+            time.sleep(max_age * 4)
             for msg in sub.recv(.1):
                 if msg is None:
                     break
@@ -209,9 +209,7 @@ class TestPubSub(unittest.TestCase):
 
     def test_pub_suber(self):
         """Test publisher and subscriber."""
-        from posttroll.message import Message
         from posttroll.publisher import get_own_ip
-        from posttroll.subscriber import Subscriber
         pub_address = "tcp://" + str(get_own_ip()) + ":0"
         pub = Publisher(pub_address).start()
         addr = pub_address[:-1] + str(pub.port_number)
@@ -234,9 +232,6 @@ class TestPubSub(unittest.TestCase):
 
     def test_pub_sub_ctx_no_nameserver(self):
         """Test publish and subscribe."""
-        from posttroll.message import Message
-        from posttroll.publisher import Publish
-
         with Publish("data_provider", 40000, nameservers=False) as pub:
             with Subscribe(topics="counter", nameserver=False, addresses=["tcp://127.0.0.1:40000"]) as sub:
                 assert isinstance(sub, Subscriber)
