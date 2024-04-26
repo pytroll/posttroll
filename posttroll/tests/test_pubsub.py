@@ -36,8 +36,9 @@ from donfig import Config
 
 import posttroll
 from posttroll import config
+from posttroll.message import Message
 from posttroll.ns import NameServer
-from posttroll.publisher import Publisher, create_publisher_from_dict_config
+from posttroll.publisher import Publish, Publisher, create_publisher_from_dict_config
 from posttroll.subscriber import Subscribe, Subscriber
 
 test_lock = Lock()
@@ -85,10 +86,7 @@ def create_nameserver_instance(max_age=3, multicast_enabled=True):
         ns.stop()
         thr.join()
 
-@pytest.mark.skipif(
-    os.getenv("DISABLED_MULTICAST"),
-    reason="Multicast tests disabled.",
-)
+
 @pytest.mark.parametrize(
     "multicast_enabled",
     [True, False]
@@ -99,6 +97,8 @@ def test_pub_addresses(multicast_enabled):
     from posttroll.publisher import Publish
 
     if multicast_enabled:
+        if os.getenv("DISABLED_MULTICAST"):
+            pytest.skip("Multicast tests disabled.")
         nameservers = None
     else:
         nameservers = ["localhost"]
@@ -126,25 +126,21 @@ def test_pub_addresses(multicast_enabled):
             assert "receive_time" in res[0]
             assert "URI" in res[0]
 
-# @pytest.mark.skipif(
-#     os.getenv("DISABLED_MULTICAST"),
-#     reason="Multicast tests disabled.",
-# )
+
 @pytest.mark.parametrize(
     "multicast_enabled",
     [True, False]
 )
 def test_pub_sub_ctx(multicast_enabled):
     """Test publish and subscribe."""
-    from posttroll.message import Message
-    from posttroll.publisher import Publish
-    from posttroll.subscriber import Subscribe
+    if multicast_enabled:
+        if os.getenv("DISABLED_MULTICAST"):
+            pytest.skip("Multicast tests disabled.")
+        nameservers = None
+    else:
+        nameservers = ["localhost"]
 
     with create_nameserver_instance(multicast_enabled=multicast_enabled):
-        if multicast_enabled:
-            nameservers = None
-        else:
-            nameservers = ["localhost"]
         with Publish("data_provider", 0, ["this_data"], nameservers=nameservers, broadcast_interval=0.1) as pub:
             with Subscribe("this_data", "counter") as sub:
                 for counter in range(5):
@@ -159,25 +155,20 @@ def test_pub_sub_ctx(multicast_enabled):
         assert tested
 
 
-@pytest.mark.skipif(
-    os.getenv("DISABLED_MULTICAST"),
-    reason="Multicast tests disabled.",
-)
 @pytest.mark.parametrize(
     "multicast_enabled",
     [True, False]
 )
 def test_pub_sub_add_rm(multicast_enabled):
     """Test adding and removing publishers."""
-    from posttroll.publisher import Publish
-    from posttroll.subscriber import Subscribe
-
-    max_age = 0.5
-
     if multicast_enabled:
+        if os.getenv("DISABLED_MULTICAST"):
+            pytest.skip("Multicast tests disabled.")
         nameservers = None
     else:
         nameservers = ["localhost"]
+
+    max_age = 0.5
 
     with create_nameserver_instance(max_age=max_age, multicast_enabled=multicast_enabled):
         with Subscribe("this_data", "counter", addr_listener=True, timeout=.2) as sub:
@@ -190,7 +181,7 @@ def test_pub_sub_add_rm(multicast_enabled):
             for msg in sub.recv(.1):
                 if msg is None:
                     break
-            time.sleep(.1)
+            time.sleep(.3)
             assert len(sub.addresses) == 0
             with Publish("data_provider_2", 0, ["another_data"], nameservers=nameservers):
                 time.sleep(.1)
