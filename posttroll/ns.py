@@ -88,10 +88,10 @@ def get_pub_address(name, timeout=10, nameserver="localhost"):
         timeout: how long to wait for an address, in seconds.
         nameserver: nameserver address to query the publishers from (default: localhost).
     """
-    backend = config.get("backend", "unsecure_zmq")
-    if backend == "unsecure_zmq":
-        from posttroll.backends.zmq.ns import unsecure_zmq_get_pub_address
-        return unsecure_zmq_get_pub_address(name, timeout, nameserver)
+    if config["backend"] not in ["unsecure_zmq", "secure_zmq"]:
+        raise NotImplementedError(f"Did not recognize backend: {config['backend']}")
+    from posttroll.backends.zmq.ns import zmq_get_pub_address
+    return zmq_get_pub_address(name, timeout, nameserver)
 
 # Server part.
 
@@ -116,10 +116,11 @@ class NameServer:
         self._max_age = max_age or dt.timedelta(minutes=10)
         self._multicast_enabled = multicast_enabled
         self._restrict_to_localhost = restrict_to_localhost
-        backend = config.get("backend", "unsecure_zmq")
-        if backend == "unsecure_zmq":
-            from posttroll.backends.zmq.ns import UnsecureZMQNameServer
-            self._ns = UnsecureZMQNameServer()
+        backend = config["backend"]
+        if backend not in ["unsecure_zmq", "secure_zmq"]:
+            raise NotImplementedError(f"Did not recognize backend: {backend}")
+        from posttroll.backends.zmq.ns import ZMQNameServer
+        self._ns = ZMQNameServer()
 
     def run(self, *args):
         """Run the listener and answer to requests."""

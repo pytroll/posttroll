@@ -68,6 +68,14 @@ logger = logging.getLogger(__name__)
 
 SocketTimeout = timeout  # for easy access to socket.timeout
 
+DEFAULT_BROADCAST_PORT = 21200
+
+def get_configured_broadcast_port():
+    """Get the configured nameserver port."""
+    return config.get("broadcast_port", DEFAULT_BROADCAST_PORT)
+
+
+
 # -----------------------------------------------------------------------------
 #
 # Sender.
@@ -139,7 +147,7 @@ def get_mc_group():
 # -----------------------------------------------------------------------------
 
 
-class MulticastReceiver(object):
+class MulticastReceiver:
     """Multicast receiver on *port* for an *mcgroup*."""
 
     BUFSIZE = 1024

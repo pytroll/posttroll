@@ -5,15 +5,15 @@ from threading import Lock
 from time import sleep
 from urllib.parse import urlsplit
 
-from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
+from zmq import LINGER, PULL, SUB, SUBSCRIBE, ZMQError
+from posttroll.backends.zmq.socket import set_up_client_socket
 
-from posttroll.backends.zmq import _set_tcp_keepalive, get_context
-from posttroll.message import Message
+from posttroll.backends.zmq import SocketReceiver, get_tcp_keepalive_options
 
 LOGGER = logging.getLogger(__name__)
 
 
-class _ZMQSubscriber:
+class ZMQSubscriber:
 
     def __init__(self, addresses, topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
@@ -27,7 +27,8 @@ class _ZMQSubscriber:
         self._hooks = []
         self._hooks_cb = {}
 
-        self.poller = Poller()
+        #self.poller = Poller()
+        self._sock_receiver = SocketReceiver()
         self._lock = Lock()
 
         self.update(addresses)
@@ -68,8 +69,8 @@ class _ZMQSubscriber:
             self._remove_sub_socket(subscriber)
 
     def _remove_sub_socket(self, subscriber):
-        if self.poller:
-            self.poller.unregister(subscriber)
+        if self._sock_receiver:
+            self._sock_receiver.unregister(subscriber)
         subscriber.close()
 
     def update(self, addresses):
@@ -107,10 +108,9 @@ class _ZMQSubscriber:
         specified subscription. Good for pushed 'inproc' messages from another thread.
         """
         LOGGER.info("Subscriber adding PULL hook %s", str(address))
-        socket = get_context().socket(PULL)
-        socket.connect(address)
-        if self.poller:
-            self.poller.register(socket, POLLIN)
+        socket = self._create_socket(PULL, address)
+        if self._sock_receiver:
+            self._sock_receiver.register(socket)
         self._add_hook(socket, callback)
 
     def _add_hook(self, socket, callback):
@@ -131,11 +131,9 @@ class _ZMQSubscriber:
 
     def recv(self, timeout=None):
         """Receive, optionally with *timeout* in seconds."""
-        if timeout:
-            timeout *= 1000.
 
         for sub in list(self.subscribers) + self._hooks:
-            self.poller.register(sub, POLLIN)
+            self._sock_receiver.register(sub)
         self._loop = True
         try:
             while self._loop:
@@ -143,35 +141,30 @@ class _ZMQSubscriber:
                 yield from self._new_messages(timeout)
         finally:
             for sub in list(self.subscribers) + self._hooks:
-                self.poller.unregister(sub)
+                self._sock_receiver.unregister(sub)
+                # self.poller.unregister(sub)
 
     def _new_messages(self, timeout):
         """Check for new messages to yield and pass to the callbacks."""
+        all_subs = list(self.subscribers) + self._hooks
         try:
-            socks = dict(self.poller.poll(timeout=timeout))
-            if socks:
-                for sub in self.subscribers:
-                    if sub in socks and socks[sub] == POLLIN:
-                        received = sub.recv_string(NOBLOCK)
-                        m__ = Message.decode(received)
-                        if not self._filter or self._filter(m__):
-                            if self._translate:
-                                url = urlsplit(self.sub_addr[sub])
-                                host = url[1].split(":")[0]
-                                m__.sender = (m__.sender.split("@")[0]
-                                                + "@" + host)
-                            yield m__
-
-                for sub in self._hooks:
-                    if sub in socks and socks[sub] == POLLIN:
-                        m__ = Message.decode(sub.recv_string(NOBLOCK))
-                        self._hooks_cb[sub](m__)
-            else:
-                # timeout
-                yield None
+            for m__, sock in self._sock_receiver.receive(*all_subs, timeout=timeout):
+                if sock in self.subscribers:
+                    if not self._filter or self._filter(m__):
+                        if self._translate:
+                            url = urlsplit(self.sub_addr[sock])
+                            host = url[1].split(":")[0]
+                            m__.sender = (m__.sender.split("@")[0]
+                                            + "@" + host)
+                        yield m__
+                elif sock in self._hooks:
+                    self._hooks_cb[sock](m__)
+        except TimeoutError:
+            yield None
         except ZMQError as err:
             if self._loop:
                 LOGGER.exception("Receive failed: %s", str(err))
+
 
 
 
@@ -201,54 +194,21 @@ class _ZMQSubscriber:
             except Exception:  # noqa: E722
                 pass
 
-
-class UnsecureZMQSubscriber(_ZMQSubscriber):
-    """Unsecure ZMQ implementation of the subscriber."""
-
     def _add_sub_socket(self, address, topics):
-        subscriber = get_context().socket(SUB)
-        _set_tcp_keepalive(subscriber)
-        for t__ in topics:
-            subscriber.setsockopt_string(SUBSCRIBE, str(t__))
-        subscriber.connect(address)
 
-        if self.poller:
-            self.poller.register(subscriber, POLLIN)
+        options = get_tcp_keepalive_options()
+
+        subscriber = self._create_socket(SUB, address, options)
+        add_subscriptions(subscriber, topics)
+
+        if self._sock_receiver:
+            self._sock_receiver.register(subscriber)
         return subscriber
 
-
-class SecureZMQSubscriber(_ZMQSubscriber):
-    """Secure ZMQ implementation of the subscriber, using Curve."""
-
-    def __init__(self, *args, client_secret_key_file=None, server_public_key_file=None, **kwargs):
-        """Initialize the subscriber."""
-        if client_secret_key_file is None:
-            raise TypeError("Missing client_secret_key_file argument.")
-        if server_public_key_file is None:
-            raise TypeError("Missing server_public_key_file argument.")
-        self._client_secret_file = client_secret_key_file
-        self._server_public_key_file = server_public_key_file
-
-        super().__init__(*args, **kwargs)
-
-    def _add_sub_socket(self, address, topics):
-        import zmq.auth
-        subscriber = get_context().socket(SUB)
-
-        client_public, client_secret = zmq.auth.load_certificate(self._client_secret_file)
-        subscriber.curve_secretkey = client_secret
-        subscriber.curve_publickey = client_public
-
-        server_public, _ = zmq.auth.load_certificate(self._server_public_key_file)
-        # The client must know the server's public key to make a CURVE connection.
-        subscriber.curve_serverkey = server_public
+    def _create_socket(self, socket_type, address, options):
+        return set_up_client_socket(socket_type, address, options)
 
 
-        _set_tcp_keepalive(subscriber)
-        for t__ in topics:
-            subscriber.setsockopt_string(SUBSCRIBE, str(t__))
-        subscriber.connect(address)
-
-        if self.poller:
-            self.poller.register(subscriber, POLLIN)
-        return subscriber
+def add_subscriptions(socket, topics):
+    for t__ in topics:
+        socket.setsockopt_string(SUBSCRIBE, str(t__))

@@ -10,6 +10,8 @@ import zmq.auth
 from posttroll import config
 from posttroll.publisher import Publisher
 from posttroll.subscriber import Subscriber, create_subscriber_from_dict_config
+from posttroll.tests.test_nameserver import create_nameserver_instance
+from posttroll.ns import get_pub_address
 
 
 def create_keys(tmp_path):
@@ -48,21 +50,21 @@ def create_keys(tmp_path):
 
 def test_ipc_pubsub_with_sec(tmp_path):
     """Test pub-sub on a secure ipc socket."""
-    server_public_key, server_secret_key = zmq.auth.create_certificates(tmp_path, "server")
-    client_public_key, client_secret_key = zmq.auth.create_certificates(tmp_path, "client")
+    server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
+    client_public_key_file, client_secret_key_file = zmq.auth.create_certificates(tmp_path, "client")
 
     ipc_address = f"ipc://{str(tmp_path)}/bla.ipc"
 
-    with config.set(backend="secure_zmq"):
-        subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10202,
-                                   client_secret_key_file=client_secret_key,
-                                   server_public_key_file=server_public_key)
+    with config.set(backend="secure_zmq",
+                    client_secret_key_file=client_secret_key_file,
+                    clients_public_keys_directory=os.path.dirname(client_public_key_file),
+                    server_public_key_file=server_public_key_file,
+                    server_secret_key_file=server_secret_key_file):
+        subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10202)
         sub = create_subscriber_from_dict_config(subscriber_settings)
         from posttroll.publisher import Publisher
 
-        pub = Publisher(ipc_address,
-                        server_secret_key=server_secret_key,
-                        public_keys_directory=os.path.dirname(client_public_key))
+        pub = Publisher(ipc_address)
 
 
         pub.start()
@@ -94,38 +96,37 @@ def test_switch_to_secure_zmq_backend(tmp_path):
 
     server_secret_key = secret_keys_dir / "server.key_secret"
     public_keys_directory = public_keys_dir
-    publisher_key_args = dict(server_secret_key=server_secret_key,
-                              public_keys_directory=public_keys_directory)
 
     client_secret_key = secret_keys_dir / "client.key_secret"
     server_public_key = public_keys_dir / "server.key"
-    subscriber_key_args = dict(client_secret_key_file=client_secret_key,
-                               server_public_key_file=server_public_key)
 
-    with config.set(backend="secure_zmq"):
-        Publisher("ipc://bla.ipc", **publisher_key_args)
-        Subscriber("ipc://bla.ipc", **subscriber_key_args)
+    with config.set(backend="secure_zmq",
+                    client_secret_key_file=client_secret_key,
+                    clients_public_keys_directory=public_keys_directory,
+                    server_public_key_file=server_public_key,
+                    server_secret_key_file=server_secret_key):
+        Publisher("ipc://bla.ipc")
+        Subscriber("ipc://bla.ipc")
 
 
 def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
     """Test pub-sub on a secure ipc socket."""
-    base_dir = tmp_path
-    public_keys_dir = base_dir / "public_keys"
-    secret_keys_dir = base_dir / "private_keys"
+    #create_keys(tmp_path)
 
-    create_keys(tmp_path)
+    server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
+    client_public_key_file, client_secret_key_file = zmq.auth.create_certificates(tmp_path, "client")
 
     ipc_address = f"ipc://{str(tmp_path)}/bla.ipc"
 
-    with config.set(backend="secure_zmq"):
-        subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10202,
-                                   client_secret_key_file=secret_keys_dir / "client.key_secret",
-                                   server_public_key_file=public_keys_dir / "server.key")
+    with config.set(backend="secure_zmq",
+                    client_secret_key_file=client_secret_key_file,
+                    clients_public_keys_directory=os.path.dirname(client_public_key_file),
+                    server_public_key_file=server_public_key_file,
+                    server_secret_key_file=server_secret_key_file):
+        subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10202)
         sub = create_subscriber_from_dict_config(subscriber_settings)
         from posttroll.publisher import create_publisher_from_dict_config
         pub_settings = dict(address=ipc_address,
-                            server_secret_key=secret_keys_dir / "server.key_secret",
-                            public_keys_directory=public_keys_dir,
                             nameservers=False, port=1789)
         pub = create_publisher_from_dict_config(pub_settings)
 
@@ -146,3 +147,17 @@ def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
             sub.stop()
             thr.join()
             pub.stop()
+
+def test_switch_to_secure_backend_for_nameserver(tmp_path):
+    """Test switching backend for nameserver."""
+    server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
+    client_public_key_file, client_secret_key_file = zmq.auth.create_certificates(tmp_path, "client")
+    with config.set(backend="secure_zmq",
+                client_secret_key_file=client_secret_key_file,
+                clients_public_keys_directory=os.path.dirname(client_public_key_file),
+                server_public_key_file=server_public_key_file,
+                server_secret_key_file=server_secret_key_file):
+
+        with create_nameserver_instance():
+            res = get_pub_address("some_name")
+            assert res == ""

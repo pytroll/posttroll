@@ -30,7 +30,7 @@ import sys
 
 from donfig import Config
 
-config = Config("posttroll")
+config = Config("posttroll", defaults=[dict(backend="unsecure_zmq")])
 # context = {}
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def get_context():
 
     This function takes care of creating new contexts in case of forks.
     """
-    backend = config.get("backend", "unsecure_zmq")
+    backend = config["backend"]
     if "zmq" in backend:
         from posttroll.backends.zmq import get_context
         return get_context()

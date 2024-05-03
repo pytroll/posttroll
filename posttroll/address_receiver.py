@@ -37,16 +37,16 @@ import time
 import netifaces
 
 from posttroll import config
-from posttroll.bbmcast import MulticastReceiver, SocketTimeout
+from posttroll.bbmcast import MulticastReceiver, SocketTimeout, get_configured_broadcast_port
 from posttroll.message import Message
 from posttroll.publisher import Publish
+from zmq import ZMQError
 
 __all__ = ("AddressReceiver", "getaddress")
 
 LOGGER = logging.getLogger(__name__)
 
 debug = os.environ.get("DEBUG", False)
-broadcast_port = 21200
 
 DEFAULT_ADDRESS_PUBLISH_PORT = 16543
 
@@ -144,13 +144,13 @@ class AddressReceiver:
                     msg = Message("/address/" + metadata["name"], "info", mda)
                     to_del.append(addr)
                     LOGGER.info(f"publish remove '{msg}'")
-                    pub.send(msg.encode())
+                    pub.send(str(msg.encode()))
             for addr in to_del:
                 del self._addresses[addr]
 
     def _run(self):
         """Run the receiver."""
-        port = broadcast_port
+        port = get_configured_broadcast_port()
         nameservers, recv = self.set_up_address_receiver(port)
 
         self._is_running = True
@@ -159,7 +159,16 @@ class AddressReceiver:
             try:
                 while self._do_run:
                     try:
-                        data, fromaddr = recv()
+                        rerun = True
+                        while rerun:
+                            try:
+                                data, fromaddr = recv()
+                                rerun = False
+                            except TimeoutError:
+                                if self._do_run:
+                                    continue
+                                else:
+                                    raise
                         if self._multicast_enabled:
                             ip_, port = fromaddr
                             if self._restrict_to_localhost and ip_ not in self._local_ips:
@@ -171,6 +180,8 @@ class AddressReceiver:
                         if self._multicast_enabled:
                             LOGGER.debug("Multicast socket timed out on recv!")
                             continue
+                    except ZMQError:
+                        return
                     finally:
                         self._check_age(pub, min_interval=self._max_age / 20)
                         if self._do_heartbeat:
@@ -216,9 +227,10 @@ class AddressReceiver:
                     break
 
         else:
-            if config.get("backend", "unsecure_zmq") == "unsecure_zmq":
-                from posttroll.backends.zmq.address_receiver import SimpleReceiver
-            recv = SimpleReceiver(port)
+            if config["backend"] not in ["unsecure_zmq", "secure_zmq"]:
+                raise NotImplementedError
+            from posttroll.backends.zmq.address_receiver import SimpleReceiver
+            recv = SimpleReceiver(port, timeout=2)
             nameservers = ["localhost"]
         return nameservers,recv
 

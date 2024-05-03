@@ -3,20 +3,19 @@
 import logging
 import threading
 
+from posttroll.backends.zmq.socket import set_up_client_socket
 from zmq import LINGER, NOBLOCK, REQ, ZMQError
 
-from posttroll.backends.zmq import get_context
 
 logger = logging.getLogger(__name__)
 
 
-class UnsecureZMQDesignatedReceiversSender:
+class ZMQDesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
 
     def __init__(self, default_port, receivers):
         """Set up the sender."""
         self.default_port = default_port
-
         self.receivers = receivers
         self._shutdown_event = threading.Event()
 
@@ -28,13 +27,14 @@ class UnsecureZMQDesignatedReceiversSender:
     def _send_to_address(self, address, data, timeout=10):
         """Send data to *address* and *port* without verification of response."""
         # Socket to talk to server
-        socket = get_context().socket(REQ)
+        if address.find(":") == -1:
+            full_address = "tcp://%s:%d" % (address, self.default_port)
+        else:
+            full_address = "tcp://%s" % address
+        options = {LINGER: int(timeout * 1000)}
+        socket = set_up_client_socket(REQ, full_address, options)
         try:
-            socket.setsockopt(LINGER, timeout * 1000)
-            if address.find(":") == -1:
-                socket.connect("tcp://%s:%d" % (address, self.default_port))
-            else:
-                socket.connect("tcp://%s" % address)
+
             socket.send_string(data)
             while not self._shutdown_event.is_set():
                 try:
@@ -43,10 +43,11 @@ class UnsecureZMQDesignatedReceiversSender:
                     self._shutdown_event.wait(.1)
                     continue
                 if message != "ok":
-                    logger.warn("invalid acknowledge received: %s" % message)
+                    logger.warning("invalid acknowledge received: %s" % message)
                 break
 
         finally:
+            socket.setsockopt(LINGER, 1)
             socket.close()
 
     def close(self):

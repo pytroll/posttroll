@@ -28,14 +28,11 @@ import logging
 import threading
 
 from posttroll import config, message
-from posttroll.bbmcast import MulticastSender
+from posttroll.bbmcast import MulticastSender, get_configured_broadcast_port
 
 __all__ = ("MessageBroadcaster", "AddressBroadcaster", "sendaddress")
 
 LOGGER = logging.getLogger(__name__)
-
-broadcast_port = 21200
-
 
 class DesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
@@ -43,8 +40,8 @@ class DesignatedReceiversSender:
         """Set settings."""
         backend = config.get("backend", "unsecure_zmq")
         if backend == "unsecure_zmq":
-            from posttroll.backends.zmq.message_broadcaster import UnsecureZMQDesignatedReceiversSender
-            self._sender = UnsecureZMQDesignatedReceiversSender(default_port, receivers)
+            from posttroll.backends.zmq.message_broadcaster import ZMQDesignatedReceiversSender
+            self._sender = ZMQDesignatedReceiversSender(default_port, receivers)
 
     def __call__(self, data):
         """Send messages from all receivers."""
@@ -61,7 +58,7 @@ class DesignatedReceiversSender:
 # ----------------------------------------------------------------------------
 
 
-class MessageBroadcaster(object):
+class MessageBroadcaster:
     """Class to broadcast stuff.
 
     If *interval* is 0 or negative, no broadcasting is done.
@@ -135,7 +132,7 @@ class AddressBroadcaster(MessageBroadcaster):
         """Set up the Address broadcaster."""
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": "%s:%d" % address}).encode()
-        MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
+        MessageBroadcaster.__init__(self, msg, get_configured_broadcast_port(), interval,
                                     nameservers)
 
 
@@ -158,7 +155,7 @@ class AddressServiceBroadcaster(MessageBroadcaster):
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
                                "service": data_type}).encode()
-        MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
+        MessageBroadcaster.__init__(self, msg, get_configured_broadcast_port(), interval,
                                     nameservers)
 
 

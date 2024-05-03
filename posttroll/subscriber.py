@@ -60,22 +60,16 @@ class Subscriber:
 
     """
 
-    def __init__(self, addresses, topics="", message_filter=None, translate=False, **kwargs):
+    def __init__(self, addresses, topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
         topics = self._magickfy_topics(topics)
         backend = config.get("backend", "unsecure_zmq")
-        if backend == "unsecure_zmq":
-            if kwargs:
-                raise TypeError(f"Unexpected keyword arguments: {kwargs}")
-            from posttroll.backends.zmq.subscriber import UnsecureZMQSubscriber
-            self._subscriber = UnsecureZMQSubscriber(addresses, topics=topics,
-                                                     message_filter=message_filter, translate=translate)
-        elif backend == "secure_zmq":
-            from posttroll.backends.zmq.subscriber import SecureZMQSubscriber
-            self._subscriber = SecureZMQSubscriber(addresses, topics=topics,
-                                                   message_filter=message_filter, translate=translate, **kwargs)
-        else:
+        if backend not in ["unsecure_zmq", "secure_zmq"]:
             raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
+
+        from posttroll.backends.zmq.subscriber import ZMQSubscriber
+        self._subscriber = ZMQSubscriber(addresses, topics=topics,
+                                         message_filter=message_filter, translate=translate)
 
     def add(self, address, topics=None):
         """Add *address* to the subscribing list for *topics*.
