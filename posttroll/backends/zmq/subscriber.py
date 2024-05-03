@@ -5,15 +5,16 @@ from threading import Lock
 from time import sleep
 from urllib.parse import urlsplit
 
-from zmq import LINGER, PULL, SUB, SUBSCRIBE, ZMQError
-from posttroll.backends.zmq.socket import set_up_client_socket
+from zmq import PULL, SUB, SUBSCRIBE, ZMQError
 
-from posttroll.backends.zmq import SocketReceiver, get_tcp_keepalive_options
+from posttroll.backends.zmq import get_tcp_keepalive_options
+from posttroll.backends.zmq.socket import SocketReceiver, close_socket, set_up_client_socket
 
 LOGGER = logging.getLogger(__name__)
 
 
 class ZMQSubscriber:
+    """A ZMQ subscriber class."""
 
     def __init__(self, addresses, topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
@@ -131,7 +132,6 @@ class ZMQSubscriber:
 
     def recv(self, timeout=None):
         """Receive, optionally with *timeout* in seconds."""
-
         for sub in list(self.subscribers) + self._hooks:
             self._sock_receiver.register(sub)
         self._loop = True
@@ -181,8 +181,7 @@ class ZMQSubscriber:
         self.stop()
         for sub in list(self.subscribers) + self._hooks:
             try:
-                sub.setsockopt(LINGER, 1)
-                sub.close()
+                close_socket(sub)
             except ZMQError:
                 pass
 
@@ -190,7 +189,7 @@ class ZMQSubscriber:
         """Clean up after the instance is deleted."""
         for sub in list(self.subscribers) + self._hooks:
             try:
-                sub.close()
+                close_socket(sub)
             except Exception:  # noqa: E722
                 pass
 
@@ -210,5 +209,6 @@ class ZMQSubscriber:
 
 
 def add_subscriptions(socket, topics):
+    """Add subscriptions to a socket."""
     for t__ in topics:
         socket.setsockopt_string(SUBSCRIBE, str(t__))

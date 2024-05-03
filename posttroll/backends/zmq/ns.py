@@ -4,10 +4,9 @@ import logging
 from contextlib import suppress
 from threading import Lock
 
-from posttroll.backends.zmq.socket import set_up_client_socket, set_up_server_socket
 from zmq import LINGER, REP, REQ
-from posttroll.backends.zmq import SocketReceiver
 
+from posttroll.backends.zmq.socket import SocketReceiver, close_socket, set_up_client_socket, set_up_server_socket
 from posttroll.message import Message
 from posttroll.ns import get_active_address, get_configured_nameserver_port
 
@@ -29,6 +28,7 @@ def zmq_get_pub_address(name, timeout=10, nameserver="localhost"):
 
 
 def create_nameserver_address(nameserver):
+    """Create the nameserver address."""
     port = get_configured_nameserver_port()
     nameserver_address = "tcp://" + nameserver + ":" + str(port)
     return nameserver_address
@@ -52,10 +52,11 @@ def _fetch_address_using_socket(socket, name, timeout):
                             % timeout)
     finally:
         socket_receiver.unregister(socket)
-        socket.setsockopt(LINGER, 1)
-        socket.close()
+        close_socket(socket)
+
 
 def create_req_socket(timeout, nameserver_address):
+    """Create a REQ socket."""
     options = {LINGER: int(timeout * 1000)}
     socket = set_up_client_socket(REQ, nameserver_address, options)
     return socket
@@ -97,9 +98,9 @@ class ZMQNameServer:
             self.close_sockets_and_threads()
 
     def close_sockets_and_threads(self):
+        """Close all sockets and threads."""
         with suppress(AttributeError):
-            self.listener.setsockopt(LINGER, 1)
-            self.listener.close()
+            close_socket(self.listener)
         with suppress(AttributeError):
             self._authenticator.stop()
 

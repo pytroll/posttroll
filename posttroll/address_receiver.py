@@ -35,12 +35,12 @@ import threading
 import time
 
 import netifaces
+from zmq import ZMQError
 
 from posttroll import config
 from posttroll.bbmcast import MulticastReceiver, SocketTimeout, get_configured_broadcast_port
 from posttroll.message import Message
 from posttroll.publisher import Publish
-from zmq import ZMQError
 
 __all__ = ("AddressReceiver", "getaddress")
 

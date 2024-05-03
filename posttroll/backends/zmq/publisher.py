@@ -1,13 +1,13 @@
 """ZMQ implementation of the publisher."""
 
-from contextlib import suppress
 import logging
+from contextlib import suppress
 from threading import Lock
 
-from posttroll.backends.zmq.socket import set_up_server_socket
 import zmq
 
 from posttroll.backends.zmq import get_tcp_keepalive_options
+from posttroll.backends.zmq.socket import close_socket, set_up_server_socket
 
 LOGGER = logging.getLogger(__name__)
 
@@ -54,7 +54,6 @@ class ZMQPublisher:
 
     def stop(self):
         """Stop the publisher."""
-        self.publish_socket.setsockopt(zmq.LINGER, 1)
-        self.publish_socket.close()
+        close_socket(self.publish_socket)
         with suppress(AttributeError):
             self._authenticator.stop()

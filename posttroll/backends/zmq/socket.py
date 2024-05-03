@@ -1,11 +1,22 @@
-from posttroll import get_context, config
-import zmq
-from zmq.auth.thread import ThreadAuthenticator
+"""ZMQ socket handling functions."""
+
 from urllib.parse import urlsplit, urlunsplit
 
+import zmq
+from zmq.auth.thread import ThreadAuthenticator
+
+from posttroll import config, get_context
+from posttroll.message import Message
+
+
+def close_socket(sock):
+    """Close a zmq socket."""
+    sock.setsockopt(zmq.LINGER, 1)
+    sock.close()
 
 
 def set_up_client_socket(socket_type, address, options=None):
+    """Set up a client (connecting) zmq socket."""
     backend = config["backend"]
     if backend == "unsecure_zmq":
         sock = create_unsecure_client_socket(socket_type)
@@ -17,10 +28,12 @@ def set_up_client_socket(socket_type, address, options=None):
 
 
 def create_unsecure_client_socket(socket_type):
+    """Create an unsecure client socket."""
     return get_context().socket(socket_type)
 
 
 def add_options(sock, options=None):
+    """Add options to a socket."""
     if not options:
         return
     for param, val in options.items():
@@ -28,6 +41,7 @@ def add_options(sock, options=None):
 
 
 def create_secure_client_socket(socket_type):
+    """Create a secure client socket."""
     subscriber = get_context().socket(socket_type)
 
     client_secret_key_file = config["client_secret_key_file"]
@@ -43,6 +57,7 @@ def create_secure_client_socket(socket_type):
 
 
 def set_up_server_socket(socket_type, destination, options=None, port_interval=(None, None)):
+    """Set up a server (binding) socket."""
     if options is None:
         options = {}
     backend = config["backend"]
@@ -59,10 +74,15 @@ def set_up_server_socket(socket_type, destination, options=None, port_interval=(
 
 
 def create_unsecure_server_socket(socket_type):
+    """Create an unsecure server socket."""
     return get_context().socket(socket_type)
 
 
 def bind(sock, destination, port_interval):
+    """Bind the socket to a destination.
+
+    If a random port is to be chosen, the port_interval is used.
+    """
     # Check for port 0 (random port)
     min_port, max_port = port_interval
     u__ = urlsplit(destination)
@@ -83,6 +103,7 @@ def bind(sock, destination, port_interval):
 
 
 def create_secure_server_socket(socket_type):
+    """Create a secure server socket."""
     server_secret_key = config["server_secret_key_file"]
     clients_public_keys_directory = config["clients_public_keys_directory"]
     authorized_sub_addresses = config.get("authorized_client_addresses", [])
@@ -104,3 +125,32 @@ def create_secure_server_socket(socket_type):
     server_socket.curve_publickey = server_public
     server_socket.curve_server = True
     return server_socket, authenticator_thread
+
+
+class SocketReceiver:
+    """A receiver for mulitple sockets."""
+
+    def __init__(self):
+        """Set up the receiver."""
+        self._poller = zmq.Poller()
+
+    def register(self, socket):
+        """Register the socket."""
+        self._poller.register(socket, zmq.POLLIN)
+
+    def unregister(self, socket):
+        """Unregister the socket."""
+        self._poller.unregister(socket)
+
+    def receive(self, *sockets, timeout=None):
+        """Timeout is in seconds."""
+        if timeout:
+            timeout *= 1000
+        socks = dict(self._poller.poll(timeout=timeout))
+        if socks:
+            for sock in sockets:
+                if socks.get(sock) == zmq.POLLIN:
+                    received = sock.recv_string(zmq.NOBLOCK)
+                    yield Message.decode(received), sock
+        else:
+            raise TimeoutError("Did not receive anything on sockets.")

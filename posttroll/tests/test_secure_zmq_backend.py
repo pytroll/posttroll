@@ -8,10 +8,10 @@ import time
 import zmq.auth
 
 from posttroll import config
+from posttroll.ns import get_pub_address
 from posttroll.publisher import Publisher
 from posttroll.subscriber import Subscriber, create_subscriber_from_dict_config
 from posttroll.tests.test_nameserver import create_nameserver_instance
-from posttroll.ns import get_pub_address
 
 
 def create_keys(tmp_path):

@@ -3,9 +3,9 @@
 import logging
 import threading
 
-from posttroll.backends.zmq.socket import set_up_client_socket
 from zmq import LINGER, NOBLOCK, REQ, ZMQError
 
+from posttroll.backends.zmq.socket import close_socket, set_up_client_socket
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +47,7 @@ class ZMQDesignatedReceiversSender:
                 break
 
         finally:
-            socket.setsockopt(LINGER, 1)
-            socket.close()
+            close_socket(socket)
 
     def close(self):
         """Close the sender."""

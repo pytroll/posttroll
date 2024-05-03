@@ -1,9 +1,9 @@
 """ZMQ implementation of the the simple receiver."""
 
-from zmq import LINGER, REP
+from zmq import REP
 
 from posttroll.address_receiver import get_configured_address_port
-from posttroll.backends.zmq.socket import set_up_server_socket
+from posttroll.backends.zmq.socket import close_socket, set_up_server_socket
 
 
 class SimpleReceiver(object):
@@ -31,7 +31,6 @@ class SimpleReceiver(object):
     def close(self):
         """Close the receiver."""
         self._running = False
-        self._socket.setsockopt(LINGER, 1)
-        self._socket.close()
+        close_socket(self._socket)
         if self._authenticator:
             self._authenticator.stop()

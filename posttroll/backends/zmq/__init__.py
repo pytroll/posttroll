@@ -5,7 +5,6 @@ import os
 import zmq
 
 from posttroll import config
-from posttroll.message import Message
 
 logger = logging.getLogger(__name__)
 context = {}
@@ -23,6 +22,7 @@ def get_context():
     return context[pid]
 
 def destroy_context(linger=None):
+    """Destroy the context."""
     pid = os.getpid()
     context.pop(pid).destroy(linger)
 
@@ -46,30 +46,3 @@ def get_tcp_keepalive_options():
         param = getattr(zmq, opt.upper())
         keepalive_options[param] = value
     return keepalive_options
-
-
-class SocketReceiver:
-
-    def __init__(self):
-        self._poller = zmq.Poller()
-
-    def register(self, socket):
-        """Register the socket."""
-        self._poller.register(socket, zmq.POLLIN)
-
-    def unregister(self, socket):
-        """Unregister the socket."""
-        self._poller.unregister(socket)
-
-    def receive(self, *sockets, timeout=None):
-        """Timeout is in seconds."""
-        if timeout:
-            timeout *= 1000
-        socks = dict(self._poller.poll(timeout=timeout))
-        if socks:
-            for sock in sockets:
-                if socks.get(sock) == zmq.POLLIN:
-                    received = sock.recv_string(zmq.NOBLOCK)
-                    yield Message.decode(received), sock
-        else:
-            raise TimeoutError("Did not receive anything on sockets.")
