@@ -23,7 +23,7 @@
 
 """Manage other's subscriptions.
 
-Default port is 5557, if $NAMESERVER_PORT is not defined.
+Default port is 5557, if $POSTTROLL_NAMESERVER_PORT is not defined.
 """
 import datetime as dt
 import logging
@@ -54,7 +54,6 @@ def get_configured_nameserver_port():
     return config.get("nameserver_port", port)
 
 
-
 # Client functions.
 
 
@@ -78,8 +77,6 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     return addrs
 
 
-
-
 def get_pub_address(name, timeout=10, nameserver="localhost"):
     """Get the address of the named publisher.
 
@@ -93,6 +90,7 @@ def get_pub_address(name, timeout=10, nameserver="localhost"):
     from posttroll.backends.zmq.ns import zmq_get_pub_address
     return zmq_get_pub_address(name, timeout, nameserver)
 
+
 # Server part.
 
 
@@ -103,7 +101,6 @@ def get_active_address(name, arec):
         return Message("/oper/ns", "info", addrs)
     else:
         return Message("/oper/ns", "info", "")
-
 
 
 class NameServer:
