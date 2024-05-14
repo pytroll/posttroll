@@ -180,9 +180,9 @@ class NSSubscriber:
 
         Default is to listen to all available services.
         """
-        self._services = _to_array(services)
-        self._topics = _to_array(topics)
-        self._addresses = _to_array(addresses)
+        self._services = _to_list(services)
+        self._topics = _to_list(topics)
+        self._addresses = _to_list(addresses)
 
         self._timeout = timeout
         self._translate = translate
@@ -283,7 +283,7 @@ class Subscribe:
         return self.subscriber.stop()
 
 
-def _to_array(obj):
+def _to_list(obj):
     """Convert *obj* to list if not already one."""
     if isinstance(obj, str):
         return [obj, ]
