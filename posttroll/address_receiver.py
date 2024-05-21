@@ -159,23 +159,13 @@ class AddressReceiver:
             try:
                 while self._do_run:
                     try:
-                        rerun = True
-                        while rerun:
-                            try:
-                                data, fromaddr = recv()
-                                rerun = False
-                            except TimeoutError:
-                                if self._do_run:
-                                    continue
-                                else:
-                                    raise
-                        if self._multicast_enabled:
-                            ip_, port = fromaddr
-                            if self._restrict_to_localhost and ip_ not in self._local_ips:
-                                # discard external message
-                                LOGGER.debug("Discard external message")
-                                continue
-                        LOGGER.debug("data %s", data)
+                        data, fromaddr = recv()
+                    except TimeoutError:
+                        if self._do_run:
+                            continue
+                        else:
+                            raise
+
                     except SocketTimeout:
                         if self._multicast_enabled:
                             LOGGER.debug("Multicast socket timed out on recv!")
@@ -186,6 +176,13 @@ class AddressReceiver:
                         self._check_age(pub, min_interval=self._max_age / 20)
                         if self._do_heartbeat:
                             pub.heartbeat(min_interval=29)
+                    if self._multicast_enabled:
+                        ip_, port = fromaddr
+                        if self._restrict_to_localhost and ip_ not in self._local_ips:
+                            # discard external message
+                            LOGGER.debug("Discard external message")
+                            continue
+                    LOGGER.debug("data %s", data)
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
                     if msg.type == "info" and msg.subject.lower().startswith(self._subject):

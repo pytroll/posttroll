@@ -153,10 +153,10 @@ def test_switch_to_secure_backend_for_nameserver(tmp_path):
     server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
     client_public_key_file, client_secret_key_file = zmq.auth.create_certificates(tmp_path, "client")
     with config.set(backend="secure_zmq",
-                client_secret_key_file=client_secret_key_file,
-                clients_public_keys_directory=os.path.dirname(client_public_key_file),
-                server_public_key_file=server_public_key_file,
-                server_secret_key_file=server_secret_key_file):
+                    client_secret_key_file=client_secret_key_file,
+                    clients_public_keys_directory=os.path.dirname(client_public_key_file),
+                    server_public_key_file=server_public_key_file,
+                    server_secret_key_file=server_secret_key_file):
 
         with create_nameserver_instance():
             res = get_pub_address("some_name")

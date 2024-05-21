@@ -179,7 +179,7 @@ def test_pub_sub_add_rm(multicast_enabled):
                 for msg in sub.recv(.1):
                     if msg is None:
                         break
-                time.sleep(.3)
+                time.sleep(0.3)
                 assert len(sub.addresses) == 0
                 with Publish("data_provider_2", 0, ["another_data"], nameservers=nameservers):
                     time.sleep(.1)
@@ -225,23 +225,28 @@ def test_noisypublisher_heartbeat():
     from posttroll.publisher import NoisyPublisher
     from posttroll.subscriber import Subscribe
 
-    ns_ = NameServer()
-    thr = Thread(target=ns_.run)
-    thr.start()
+    min_interval = 10
 
-    pub = NoisyPublisher("test")
-    pub.start()
-    time.sleep(0.2)
+    try:
+        with config.set(address_publish_port=free_port(), nameserver_port=free_port()):
+            ns_ = NameServer()
+            thr = Thread(target=ns_.run)
+            thr.start()
 
-    with Subscribe("test", topics="/heartbeat/test", nameserver="localhost") as sub:
-        time.sleep(0.2)
-        pub.heartbeat(min_interval=10)
-        msg = next(sub.recv(1))
-    assert msg.type == "beat"
-    assert msg.data == {"min_interval": 10}
-    pub.stop()
-    ns_.stop()
-    thr.join()
+            pub = NoisyPublisher("test")
+            pub.start()
+            time.sleep(0.2)
+
+            with Subscribe("test", topics="/heartbeat/test", nameserver="localhost") as sub:
+                time.sleep(0.2)
+                pub.heartbeat(min_interval=min_interval)
+                msg = next(sub.recv(1))
+            assert msg.type == "beat"
+            assert msg.data == {"min_interval": min_interval}
+    finally:
+        pub.stop()
+        ns_.stop()
+        thr.join()
 
 
 def test_switch_backend_for_nameserver():
