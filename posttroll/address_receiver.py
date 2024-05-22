@@ -38,7 +38,7 @@ import netifaces
 from zmq import ZMQError
 
 from posttroll import config
-from posttroll.bbmcast import MulticastReceiver, SocketTimeout, get_configured_broadcast_port
+from posttroll.bbmcast import MulticastReceiver, get_configured_broadcast_port
 from posttroll.message import Message
 from posttroll.publisher import Publish
 
@@ -56,6 +56,7 @@ zero_seconds = dt.timedelta(seconds=0)
 
 def get_configured_address_port():
     return config.get("address_publish_port", DEFAULT_ADDRESS_PUBLISH_PORT)
+
 
 def get_local_ips():
     """Get local IP addresses."""
@@ -162,14 +163,11 @@ class AddressReceiver:
                         data, fromaddr = recv()
                     except TimeoutError:
                         if self._do_run:
+                            if self._multicast_enabled:
+                                LOGGER.debug("Multicast socket timed out on recv!")
                             continue
                         else:
                             raise
-
-                    except SocketTimeout:
-                        if self._multicast_enabled:
-                            LOGGER.debug("Multicast socket timed out on recv!")
-                            continue
                     except ZMQError:
                         return
                     finally:
@@ -229,7 +227,7 @@ class AddressReceiver:
             from posttroll.backends.zmq.address_receiver import SimpleReceiver
             recv = SimpleReceiver(port, timeout=2)
             nameservers = ["localhost"]
-        return nameservers,recv
+        return nameservers, recv
 
     def _add(self, adr, metadata):
         """Add an address."""

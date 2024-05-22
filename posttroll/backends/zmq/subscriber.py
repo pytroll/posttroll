@@ -28,7 +28,6 @@ class ZMQSubscriber:
         self._hooks = []
         self._hooks_cb = {}
 
-        #self.poller = Poller()
         self._sock_receiver = SocketReceiver()
         self._lock = Lock()
 
@@ -119,7 +118,6 @@ class ZMQSubscriber:
         self._hooks.append(socket)
         self._hooks_cb[socket] = callback
 
-
     @property
     def addresses(self):
         """Get the addresses."""
@@ -164,9 +162,6 @@ class ZMQSubscriber:
         except ZMQError as err:
             if self._loop:
                 LOGGER.exception("Receive failed: %s", str(err))
-
-
-
 
     def __call__(self, **kwargs):
         """Handle calls with class instance."""

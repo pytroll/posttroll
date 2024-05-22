@@ -155,6 +155,7 @@ class Subscriber:
             ts_.append(t__)
         return ts_
 
+
 class NSSubscriber:
     """Automatically subscribe to *services*.
 

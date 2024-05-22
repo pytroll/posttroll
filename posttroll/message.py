@@ -282,11 +282,13 @@ def _decode(rawstr):
 
     return msg
 
+
 def _check_for_version(raw):
     version = raw[4][:len(_VERSION)]
     if not _is_valid_version(version):
         raise MessageError("Invalid Message version: '%s'" % str(version))
     return version
+
 
 def _check_for_element_count(rawstr):
     raw = re.split(r"\s+", rawstr, maxsplit=6)
@@ -295,6 +297,7 @@ def _check_for_element_count(rawstr):
                            % str(rawstr[:36]))
 
     return raw
+
 
 def _check_for_magic_word(rawstr):
     """Check for the magick word."""

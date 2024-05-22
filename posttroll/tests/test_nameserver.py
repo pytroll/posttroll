@@ -60,7 +60,6 @@ def create_nameserver_instance(max_age=3, multicast_enabled=True):
         thr.join()
 
 
-
 class TestAddressReceiver(unittest.TestCase):
     """Test the AddressReceiver."""
 

@@ -48,6 +48,7 @@ def test_mcast_sender_works_with_valid_addresses():
 
     socket.close()
 
+
 def test_mcast_sender_uses_broadcast_for_0s():
     """Test mcast_sender uses broadcast for 0.0.0.0."""
     mcgroup = "0.0.0.0"
@@ -56,6 +57,7 @@ def test_mcast_sender_uses_broadcast_for_0s():
     assert socket.getsockopt(SOL_SOCKET, SO_BROADCAST) == 1
     socket.close()
 
+
 def test_mcast_sender_uses_broadcast_for_255s():
     """Test mcast_sender uses broadcast for 255.255.255.255."""
     mcgroup = "255.255.255.255"
@@ -63,6 +65,7 @@ def test_mcast_sender_uses_broadcast_for_255s():
     assert group == "<broadcast>"
     assert socket.getsockopt(SOL_SOCKET, SO_BROADCAST) == 1
     socket.close()
+
 
 def test_mcast_sender_raises_for_invalit_adresses():
     """Test mcast_sender uses broadcast for 0.0.0.0."""
@@ -78,7 +81,7 @@ def test_mcast_sender_raises_for_invalit_adresses():
                 str(random.randint(0, 255)) + "." +
                 str(random.randint(0, 255)))
     with pytest.raises(OSError, match="Invalid multicast address .*"):
-            bbmcast.mcast_sender(mcgroup)
+        bbmcast.mcast_sender(mcgroup)
 
 
 def test_mcast_receiver_works_with_valid_addresses():
@@ -126,7 +129,7 @@ def test_multicast_roundtrip(reraise):
     """Test sending and receiving a multicast message."""
     mcgroup = bbmcast.DEFAULT_MC_GROUP
     mcport = 5555
-    rec_socket, rec_group = bbmcast.mcast_receiver(mcport, mcgroup)
+    rec_socket, _rec_group = bbmcast.mcast_receiver(mcport, mcgroup)
     rec_socket.settimeout(.1)
 
     message = "Ho Ho Ho!"
@@ -136,7 +139,7 @@ def test_multicast_roundtrip(reraise):
             data, _ = sock.recvfrom(1024)
             assert data.decode() == message
 
-    snd_socket, snd_group = bbmcast.mcast_sender(mcgroup)
+    snd_socket, _snd_group = bbmcast.mcast_sender(mcgroup)
 
     thr = Thread(target=check_message, args=(rec_socket, message))
     thr.start()
@@ -152,7 +155,7 @@ def test_broadcast_roundtrip(reraise):
     """Test sending and receiving a broadcast message."""
     mcgroup = "0.0.0.0"
     mcport = 5555
-    rec_socket, rec_group = bbmcast.mcast_receiver(mcport, mcgroup)
+    rec_socket, _rec_group = bbmcast.mcast_receiver(mcport, mcgroup)
 
     message = "Ho Ho Ho!"
 
@@ -161,7 +164,7 @@ def test_broadcast_roundtrip(reraise):
             data, _ = sock.recvfrom(1024)
             assert data.decode() == message
 
-    snd_socket, snd_group = bbmcast.mcast_sender(mcgroup)
+    snd_socket, _snd_group = bbmcast.mcast_sender(mcgroup)
 
     thr = Thread(target=check_message, args=(rec_socket, message))
     thr.start()

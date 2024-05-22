@@ -117,10 +117,9 @@ def create_secure_server_socket(socket_type):
     # Tell authenticator to use the certificate in a directory
     authenticator_thread.configure_curve(domain="*", location=clients_public_keys_directory)
 
-
     server_socket = ctx.socket(socket_type)
 
-    server_public, server_secret =zmq.auth.load_certificate(server_secret_key)
+    server_public, server_secret = zmq.auth.load_certificate(server_secret_key)
     server_socket.curve_secretkey = server_secret
     server_socket.curve_publickey = server_public
     server_socket.curve_server = True

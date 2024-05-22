@@ -26,10 +26,10 @@ def create_keys(tmp_path):
     secret_keys_dir.mkdir()
 
     # create new keys in certificates dir
-    server_public_file, server_secret_file = zmq.auth.create_certificates(
+    _server_public_file, _server_secret_file = zmq.auth.create_certificates(
         keys_dir, "server"
     )
-    client_public_file, client_secret_file = zmq.auth.create_certificates(
+    _client_public_file, _client_secret_file = zmq.auth.create_certificates(
         keys_dir, "client"
     )
 
@@ -66,8 +66,8 @@ def test_ipc_pubsub_with_sec(tmp_path):
 
         pub = Publisher(ipc_address)
 
-
         pub.start()
+
         def delayed_send(msg):
             time.sleep(.2)
             from posttroll.message import Message
@@ -111,7 +111,7 @@ def test_switch_to_secure_zmq_backend(tmp_path):
 
 def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
     """Test pub-sub on a secure ipc socket."""
-    #create_keys(tmp_path)
+    # create_keys(tmp_path)
 
     server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
     client_public_key_file, client_secret_key_file = zmq.auth.create_certificates(tmp_path, "client")
@@ -131,6 +131,7 @@ def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
         pub = create_publisher_from_dict_config(pub_settings)
 
         pub.start()
+
         def delayed_send(msg):
             time.sleep(.2)
             from posttroll.message import Message
@@ -148,6 +149,7 @@ def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
             thr.join()
             pub.stop()
 
+
 def test_switch_to_secure_backend_for_nameserver(tmp_path):
     """Test switching backend for nameserver."""
     server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
@@ -161,7 +163,6 @@ def test_switch_to_secure_backend_for_nameserver(tmp_path):
         with create_nameserver_instance():
             res = get_pub_address("some_name")
             assert res == ""
-
 
 
 def test_create_certificates_cli(tmp_path):

@@ -43,10 +43,8 @@ def _fetch_address_using_socket(socket, name, timeout):
         socket.send_string(str(message))
 
         # Get the reply.
-        #socket.poll(timeout)
-        #message = socket.recv(timeout)
         for message, _ in socket_receiver.receive(socket, timeout=timeout):
-           return message.data
+            return message.data
     except TimeoutError:
         raise TimeoutError("Didn't get an address after %d seconds."
                             % timeout)
@@ -60,6 +58,7 @@ def create_req_socket(timeout, nameserver_address):
     options = {LINGER: int(timeout * 1000)}
     socket = set_up_client_socket(REQ, nameserver_address, options)
     return socket
+
 
 class ZMQNameServer:
     """The name server."""
@@ -103,7 +102,6 @@ class ZMQNameServer:
             close_socket(self.listener)
         with suppress(AttributeError):
             self._authenticator.stop()
-
 
     def stop(self):
         """Stop the name server."""

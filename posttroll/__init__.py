@@ -68,5 +68,5 @@ def strp_isoformat(strg):
     else:
         dat, mis = strg.split(".")
         dat = dt.datetime.strptime(dat, "%Y-%m-%dT%H:%M:%S")
-        mis = int(float("." + mis)*1000000)
+        mis = int(float("." + mis) * 1000000)
         return dat.replace(microsecond=mis)

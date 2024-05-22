@@ -18,6 +18,7 @@ def test_ipc_pubsub(tmp_path):
         sub = create_subscriber_from_dict_config(subscriber_settings)
         pub = Publisher(ipc_address)
         pub.start()
+
         def delayed_send(msg):
             time.sleep(.2)
             from posttroll.message import Message

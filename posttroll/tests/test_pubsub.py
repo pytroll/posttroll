@@ -170,7 +170,7 @@ class TestPub(unittest.TestCase):
         # Using range of ports defined at instantation time, this
         # should override environment variables
         for port in range(50000, 60000):
-            res = _get_port_from_publish_instance(min_port=port, max_port=port+1)
+            res = _get_port_from_publish_instance(min_port=port, max_port=port + 1)
             if res is False:
                 # The port wasn't free, try again
                 continue
@@ -231,7 +231,7 @@ class TestListenerContainerNoNameserver(unittest.TestCase):
         sub.stop()
 
 
-## Test create_publisher_from_config
+# Test create_publisher_from_config
 
 def test_publisher_with_invalid_arguments_crashes():
     """Test that only valid arguments are passed to Publisher."""
@@ -248,6 +248,7 @@ def test_publisher_is_selected():
     assert isinstance(pub, Publisher)
     assert pub is not None
 
+
 @mock.patch("posttroll.publisher.Publisher")
 def test_publisher_all_arguments(Publisher):
     """Test that only valid arguments are passed to Publisher."""
@@ -258,10 +259,12 @@ def test_publisher_all_arguments(Publisher):
     assert Publisher.call_args[0][0].startswith("tcp://*:")
     assert Publisher.call_args[0][0].endswith(str(settings["port"]))
 
+
 def test_no_name_raises_keyerror():
     """Trying to create a NoisyPublisher without a given name will raise KeyError."""
     with pytest.raises(KeyError):
         _ = create_publisher_from_dict_config(dict())
+
 
 def test_noisypublisher_is_selected_only_name():
     """Test that NoisyPublisher is selected as publisher class."""
@@ -272,6 +275,7 @@ def test_noisypublisher_is_selected_only_name():
     pub = create_publisher_from_dict_config(settings)
     assert isinstance(pub, NoisyPublisher)
 
+
 def test_noisypublisher_is_selected_name_and_port():
     """Test that NoisyPublisher is selected as publisher class."""
     from posttroll.publisher import NoisyPublisher
@@ -280,6 +284,7 @@ def test_noisypublisher_is_selected_name_and_port():
 
     pub = create_publisher_from_dict_config(settings)
     assert isinstance(pub, NoisyPublisher)
+
 
 @mock.patch("posttroll.publisher.NoisyPublisher")
 def test_noisypublisher_all_arguments(NoisyPublisher):
@@ -293,12 +298,14 @@ def test_noisypublisher_all_arguments(NoisyPublisher):
     _check_valid_settings_in_call(settings, NoisyPublisher, ignore=["name"])
     assert NoisyPublisher.call_args[0][0] == settings["name"]
 
+
 def test_publish_is_not_noisy():
     """Test that Publisher is selected with the context manager when it should be."""
     from posttroll.publisher import Publish
 
     with Publish("service_name", port=40000, nameservers=False) as pub:
         assert isinstance(pub, Publisher)
+
 
 def test_publish_is_noisy_only_name():
     """Test that NoisyPublisher is selected with the context manager when only name is given."""
@@ -307,12 +314,14 @@ def test_publish_is_noisy_only_name():
     with Publish("service_name") as pub:
         assert isinstance(pub, NoisyPublisher)
 
+
 def test_publish_is_noisy_with_port():
     """Test that NoisyPublisher is selected with the context manager when port is given."""
     from posttroll.publisher import NoisyPublisher, Publish
 
     with Publish("service_name", port=40001) as pub:
         assert isinstance(pub, NoisyPublisher)
+
 
 def test_publish_is_noisy_with_nameservers():
     """Test that NoisyPublisher is selected with the context manager when nameservers are given."""
@@ -411,6 +420,7 @@ def _tcp_keepalive_settings(monkeypatch):
     """Set TCP Keepalive settings."""
     with config.set(tcp_keepalive=1, tcp_keepalive_cnt=10, tcp_keepalive_idle=1, tcp_keepalive_intvl=1):
         yield
+
 
 @contextmanager
 def reset_config_for_tests():

@@ -34,6 +34,7 @@ __all__ = ("MessageBroadcaster", "AddressBroadcaster", "sendaddress")
 
 LOGGER = logging.getLogger(__name__)
 
+
 class DesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
     def __init__(self, default_port, receivers):
@@ -51,7 +52,7 @@ class DesignatedReceiversSender:
         """Close the sender."""
         return self._sender.close()
 
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 #
 # General thread to broadcast messages.
 #

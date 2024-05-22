@@ -154,15 +154,3 @@ class Test(unittest.TestCase):
         msg = json.loads(local_dump)
         for key, val in msg.items():
             assert val == metadata.get(key)
-
-
-def suite():
-    """Create the suite for test_message."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(Test))
-
-    return mysuite
-
-if __name__ == "__main__":
-    unittest.main()

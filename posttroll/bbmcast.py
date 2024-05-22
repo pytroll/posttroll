@@ -70,10 +70,10 @@ SocketTimeout = timeout  # for easy access to socket.timeout
 
 DEFAULT_BROADCAST_PORT = 21200
 
+
 def get_configured_broadcast_port():
     """Get the configured nameserver port."""
     return config.get("broadcast_port", DEFAULT_BROADCAST_PORT)
-
 
 
 # -----------------------------------------------------------------------------
@@ -114,8 +114,8 @@ def mcast_sender(mcgroup=None):
         if _is_broadcast_group(mcgroup):
             group = "<broadcast>"
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        elif((int(mcgroup.split(".")[0]) > 239) or
-             (int(mcgroup.split(".")[0]) < 224)):
+        elif ((int(mcgroup.split(".")[0]) > 239) or
+              (int(mcgroup.split(".")[0]) < 224)):
             raise IOError(f"Invalid multicast address {mcgroup}")
         else:
             group = mcgroup
@@ -129,6 +129,7 @@ def mcast_sender(mcgroup=None):
         sock.close()
         raise
     return sock, group
+
 
 def get_mc_group():
     try:
