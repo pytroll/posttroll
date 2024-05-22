@@ -4,12 +4,15 @@
 import os
 import shutil
 import time
+from threading import Thread
 
 import zmq.auth
 
 from posttroll import config
+from posttroll.backends.zmq import generate_keys
+from posttroll.message import Message
 from posttroll.ns import get_pub_address
-from posttroll.publisher import Publisher
+from posttroll.publisher import Publisher, create_publisher_from_dict_config
 from posttroll.subscriber import Subscriber, create_subscriber_from_dict_config
 from posttroll.tests.test_nameserver import create_nameserver_instance
 
@@ -62,7 +65,6 @@ def test_ipc_pubsub_with_sec(tmp_path):
                     server_secret_key_file=server_secret_key_file):
         subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10202)
         sub = create_subscriber_from_dict_config(subscriber_settings)
-        from posttroll.publisher import Publisher
 
         pub = Publisher(ipc_address)
 
@@ -70,10 +72,8 @@ def test_ipc_pubsub_with_sec(tmp_path):
 
         def delayed_send(msg):
             time.sleep(.2)
-            from posttroll.message import Message
             msg = Message(subject="/hi", atype="string", data=msg)
             pub.send(str(msg))
-        from threading import Thread
         thr = Thread(target=delayed_send, args=["very sensitive message"])
         thr.start()
         try:
@@ -125,7 +125,6 @@ def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
                     server_secret_key_file=server_secret_key_file):
         subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10202)
         sub = create_subscriber_from_dict_config(subscriber_settings)
-        from posttroll.publisher import create_publisher_from_dict_config
         pub_settings = dict(address=ipc_address,
                             nameservers=False, port=1789)
         pub = create_publisher_from_dict_config(pub_settings)
@@ -133,11 +132,8 @@ def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
         pub.start()
 
         def delayed_send(msg):
-            time.sleep(.2)
-            from posttroll.message import Message
             msg = Message(subject="/hi", atype="string", data=msg)
             pub.send(str(msg))
-        from threading import Thread
         thr = Thread(target=delayed_send, args=["very sensitive message"])
         thr.start()
         try:
@@ -167,7 +163,6 @@ def test_switch_to_secure_backend_for_nameserver(tmp_path):
 
 def test_create_certificates_cli(tmp_path):
     """Test the certificate creation cli."""
-    from posttroll.backends.zmq import generate_keys
     name = "server"
     args = [name, "-d", str(tmp_path)]
     generate_keys(args)
