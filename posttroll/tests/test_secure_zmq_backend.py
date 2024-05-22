@@ -161,3 +161,14 @@ def test_switch_to_secure_backend_for_nameserver(tmp_path):
         with create_nameserver_instance():
             res = get_pub_address("some_name")
             assert res == ""
+
+
+
+def test_create_certificates_cli(tmp_path):
+    """Test the certificate creation cli."""
+    from posttroll.backends.zmq import generate_keys
+    name = "server"
+    args = [name, "-d", str(tmp_path)]
+    generate_keys(args)
+    assert (tmp_path / (name + ".key")).exists()
+    assert (tmp_path / (name + ".key_secret")).exists()

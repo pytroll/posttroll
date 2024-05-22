@@ -150,6 +150,55 @@ relevant socket options.
 .. _zmq_setsockopts: http://api.zeromq.org/master:zmq-setsockopt
 
 
+Using secure ZeroMQ backend
+---------------------------
+
+To use securely authenticated sockets with posttroll (uses ZMQ's curve authentication), the backend needs to be defined
+through posttroll config system, for example using an environment variable::
+
+   POSTTROLL_BACKEND=secure_zmq
+
+On the server side (for example a publisher), we need to define the server's secret key and the directory where the
+accepted client keys are provided::
+
+   POSTTROLL_SERVER_SECRET_KEY_FILE=/path/to/server.key_secret
+   POSTTROLL_PUBLIC_SECRET_KEYS_DIRECTORY=/path/to/client_public_keys/
+
+On the client side (for example a subscriber), we need to define the server's public key file and the client's secret
+key file::
+
+   POSTTROLL_CLIENT_SECRET_KEY_FILE=/path/to/client.key_secret
+   POSTTROLL_SERVER_PUBLIC_KEY_FILE=/path/to/server.key
+
+These settings can also be set using the posttroll config object, for example::
+
+   >>> from posttroll import config
+   >>> with config.set(backend="secure_zmq", server_pubic_key_file="..."):
+   ...
+
+The posttroll configuration uses donfig, for more information, check https://donfig.readthedocs.io/en/latest/.
+
+
+Generating the public and secret key pairs
+******************************************
+
+In order for the secure ZMQ backend to work, public/secret key pairs need to be generated, one for the client side and
+one for the server side. A command-line script is provided for this purpose::
+
+   > posttroll-generate-keys -h
+   usage: posttroll-generate-keys [-h] [-d DIRECTORY] name
+
+   Create a public/secret key pair for the secure zmq backend. This will create two files (in the current directory if not otherwise specified) with the suffixes '.key' and '.key_secret'. The name of the files will be the one provided.
+
+   positional arguments:
+     name                  Name of the file.
+
+   options:
+     -h, --help            show this help message and exit
+     -d DIRECTORY, --directory DIRECTORY
+                           Directory to place the keys in.
+
+
 Converting from older posttroll versions
 ----------------------------------------
 
