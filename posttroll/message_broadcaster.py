@@ -23,58 +23,34 @@
 
 """Message broadcast module."""
 
-import time
-import threading
-import logging
 import errno
+import logging
+import threading
 
-from posttroll import message
-from posttroll.bbmcast import MulticastSender, MC_GROUP
-from posttroll import get_context
-from zmq import REQ, LINGER
+from posttroll import config, message
+from posttroll.bbmcast import MulticastSender, get_configured_broadcast_port
 
-__all__ = ('MessageBroadcaster', 'AddressBroadcaster', 'sendaddress')
+__all__ = ("MessageBroadcaster", "AddressBroadcaster", "sendaddress")
 
 LOGGER = logging.getLogger(__name__)
 
-broadcast_port = 21200
 
-
-class DesignatedReceiversSender(object):
+class DesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
-
     def __init__(self, default_port, receivers):
         """Set settings."""
-        self.default_port = default_port
-        self.receivers = receivers
+        backend = config.get("backend", "unsecure_zmq")
+        if backend == "unsecure_zmq":
+            from posttroll.backends.zmq.message_broadcaster import ZMQDesignatedReceiversSender
+            self._sender = ZMQDesignatedReceiversSender(default_port, receivers)
 
     def __call__(self, data):
         """Send messages from all receivers."""
-        for receiver in self.receivers:
-            self._send_to_address(receiver, data)
-
-    def _send_to_address(self, address, data, timeout=10):
-        """Send data to *address* and *port* without verification of response."""
-        # Socket to talk to server
-        socket = get_context().socket(REQ)
-        try:
-            socket.setsockopt(LINGER, timeout * 1000)
-            if address.find(":") == -1:
-                socket.connect("tcp://%s:%d" % (address, self.default_port))
-            else:
-                socket.connect("tcp://%s" % address)
-            socket.send_string(data)
-            message = socket.recv_string()
-            if message != "ok":
-                LOGGER.warn("invalid acknowledge received: %s" % message)
-
-        finally:
-            socket.close()
+        return self._sender(data)
 
     def close(self):
         """Close the sender."""
-        pass
-
+        return self._sender.close()
 
 # ----------------------------------------------------------------------------
 #
@@ -83,51 +59,48 @@ class DesignatedReceiversSender(object):
 # ----------------------------------------------------------------------------
 
 
-class MessageBroadcaster(object):
+class MessageBroadcaster:
     """Class to broadcast stuff.
 
     If *interval* is 0 or negative, no broadcasting is done.
     """
 
     def __init__(self, msg, port, interval, designated_receivers=None):
-        """Initialize message broadcaster."""
+        """Set up the message broadcaster."""
         if designated_receivers:
             self._sender = DesignatedReceiversSender(port,
                                                      designated_receivers)
         else:
-            # mcgroup = None or '<broadcast>' is broadcast
-            # mcgroup = MC_GROUP is default multicast group
-            self._sender = MulticastSender(port, mcgroup=MC_GROUP)
+            self._sender = MulticastSender(port)
 
         self._interval = interval
         self._message = msg
-        self._do_run = False
-        self._is_running = False
+        self._shutdown_event = threading.Event()
         self._thread = threading.Thread(target=self._run)
 
     def start(self):
         """Start the broadcasting."""
         if self._interval > 0:
-            if not self._is_running:
-                self._do_run = True
+            if not self._thread.is_alive():
                 self._thread.start()
         return self
 
     def is_running(self):
         """Are we running."""
-        return self._is_running
+        return self._thread.is_alive()
 
     def stop(self):
         """Stop the broadcasting."""
-        self._do_run = False
+        self._shutdown_event.set()
+        self._sender.close()
+        self._thread.join()
         return self
 
     def _run(self):
         """Broadcasts forever."""
-        self._is_running = True
         network_fail = False
         try:
-            while self._do_run:
+            while not self._shutdown_event.is_set():
                 try:
                     if network_fail is True:
                         LOGGER.info("Network connection re-established!")
@@ -141,9 +114,8 @@ class MessageBroadcaster(object):
                         network_fail = True
                     else:
                         raise
-                time.sleep(self._interval)
+                self._shutdown_event.wait(self._interval)
         finally:
-            self._is_running = False
             self._sender.close()
 
 
@@ -155,13 +127,13 @@ class MessageBroadcaster(object):
 
 
 class AddressBroadcaster(MessageBroadcaster):
-    """Class to broadcast stuff."""
+    """Class to broadcast addresses."""
 
     def __init__(self, name, address, interval, nameservers):
-        """Initialize address broadcasting."""
+        """Set up the Address broadcaster."""
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": "%s:%d" % address}).encode()
-        MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
+        MessageBroadcaster.__init__(self, msg, get_configured_broadcast_port(), interval,
                                     nameservers)
 
 
@@ -184,7 +156,7 @@ class AddressServiceBroadcaster(MessageBroadcaster):
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
                                "service": data_type}).encode()
-        MessageBroadcaster.__init__(self, msg, broadcast_port, interval,
+        MessageBroadcaster.__init__(self, msg, get_configured_broadcast_port(), interval,
                                     nameservers)
 
 

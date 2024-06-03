@@ -35,25 +35,27 @@ import threading
 import time
 
 import netifaces
-from zmq import REP, LINGER
+from zmq import ZMQError
 
-from posttroll.bbmcast import MulticastReceiver, SocketTimeout
+from posttroll import config
+from posttroll.bbmcast import MulticastReceiver, get_configured_broadcast_port
 from posttroll.message import Message
 from posttroll.publisher import Publish
-from posttroll import get_context
 
-
-__all__ = ('AddressReceiver', 'getaddress')
+__all__ = ("AddressReceiver", "getaddress")
 
 LOGGER = logging.getLogger(__name__)
 
-debug = os.environ.get('DEBUG', False)
-broadcast_port = 21200
+debug = os.environ.get("DEBUG", False)
 
-default_publish_port = 16543
+DEFAULT_ADDRESS_PUBLISH_PORT = 16543
 
 ten_minutes = dt.timedelta(minutes=10)
 zero_seconds = dt.timedelta(seconds=0)
+
+
+def get_configured_address_port():
+    return config.get("address_publish_port", DEFAULT_ADDRESS_PUBLISH_PORT)
 
 
 def get_local_ips():
@@ -64,7 +66,7 @@ def get_local_ips():
     for addr in inet_addrs:
         if addr is not None:
             for add in addr:
-                ips.append(add['addr'])
+                ips.append(add["addr"])
     return ips
 
 # -----------------------------------------------------------------------------
@@ -74,17 +76,17 @@ def get_local_ips():
 # -----------------------------------------------------------------------------
 
 
-class AddressReceiver(object):
+class AddressReceiver:
     """General thread to receive broadcast addresses."""
 
     def __init__(self, max_age=ten_minutes, port=None,
                  do_heartbeat=True, multicast_enabled=True, restrict_to_localhost=False):
-        """Initialize addres receiver."""
+        """Set up the address receiver."""
         self._max_age = max_age
-        self._port = port or default_publish_port
+        self._port = port or get_configured_address_port()
         self._address_lock = threading.Lock()
         self._addresses = {}
-        self._subject = '/address'
+        self._subject = "/address"
         self._do_heartbeat = do_heartbeat
         self._multicast_enabled = multicast_enabled
         self._last_age_check = dt.datetime(1900, 1, 1)
@@ -121,7 +123,7 @@ class AddressReceiver(object):
                     mda = copy.copy(metadata)
                     mda["receive_time"] = mda["receive_time"].isoformat()
                     addrs.append(mda)
-        LOGGER.debug('return address %s', str(addrs))
+        LOGGER.debug("return address %s", str(addrs))
         return addrs
 
     def _check_age(self, pub, min_interval=zero_seconds):
@@ -137,20 +139,70 @@ class AddressReceiver(object):
             for addr, metadata in self._addresses.items():
                 atime = metadata["receive_time"]
                 if now - atime > self._max_age:
-                    mda = {'status': False,
-                           'URI': addr,
-                           'service': metadata['service']}
-                    msg = Message('/address/' + metadata['name'], 'info', mda)
+                    mda = {"status": False,
+                           "URI": addr,
+                           "service": metadata["service"]}
+                    msg = Message("/address/" + metadata["name"], "info", mda)
                     to_del.append(addr)
-                    LOGGER.info("publish remove '%s'", str(msg))
-                    pub.send(msg.encode())
+                    LOGGER.info(f"publish remove '{msg}'")
+                    pub.send(str(msg.encode()))
             for addr in to_del:
                 del self._addresses[addr]
 
     def _run(self):
         """Run the receiver."""
-        port = broadcast_port
-        nameservers = []
+        port = get_configured_broadcast_port()
+        nameservers, recv = self.set_up_address_receiver(port)
+
+        self._is_running = True
+        with Publish("address_receiver", self._port, ["addresses"],
+                     nameservers=nameservers) as pub:
+            try:
+                while self._do_run:
+                    try:
+                        data, fromaddr = recv()
+                    except TimeoutError:
+                        if self._do_run:
+                            if self._multicast_enabled:
+                                LOGGER.debug("Multicast socket timed out on recv!")
+                            continue
+                        else:
+                            raise
+                    except ZMQError:
+                        return
+                    finally:
+                        self._check_age(pub, min_interval=self._max_age / 20)
+                        if self._do_heartbeat:
+                            pub.heartbeat(min_interval=29)
+                    if self._multicast_enabled:
+                        ip_, port = fromaddr
+                        if self._restrict_to_localhost and ip_ not in self._local_ips:
+                            # discard external message
+                            LOGGER.debug("Discard external message")
+                            continue
+                    LOGGER.debug("data %s", data)
+                    msg = Message.decode(data)
+                    name = msg.subject.split("/")[1]
+                    if msg.type == "info" and msg.subject.lower().startswith(self._subject):
+                        addr = msg.data["URI"]
+                        msg.data["status"] = True
+                        metadata = copy.copy(msg.data)
+                        metadata["name"] = name
+
+                        LOGGER.debug("receiving address %s %s %s", str(addr),
+                                     str(name), str(metadata))
+                        if addr not in self._addresses:
+                            LOGGER.info("nameserver: publish add '%s'",
+                                        str(msg))
+                            pub.send(msg.encode())
+                        self._add(addr, metadata)
+            finally:
+                self._is_running = False
+                recv.close()
+
+    def set_up_address_receiver(self, port):
+        """Set up the address receiver depending on if it is multicast or not."""
+        nameservers = False
         if self._multicast_enabled:
             while True:
                 try:
@@ -170,76 +222,18 @@ class AddressReceiver(object):
                     break
 
         else:
-            recv = _SimpleReceiver(port)
+            if config["backend"] not in ["unsecure_zmq", "secure_zmq"]:
+                raise NotImplementedError
+            from posttroll.backends.zmq.address_receiver import SimpleReceiver
+            recv = SimpleReceiver(port, timeout=2)
             nameservers = ["localhost"]
-
-        self._is_running = True
-        with Publish("address_receiver", self._port, ["addresses"],
-                     nameservers=nameservers) as pub:
-            try:
-                while self._do_run:
-                    try:
-                        data, fromaddr = recv()
-                        if self._multicast_enabled:
-                            ip_, port = fromaddr
-                            if self._restrict_to_localhost and ip_ not in self._local_ips:
-                                # discard external message
-                                LOGGER.debug('Discard external message')
-                                continue
-                        LOGGER.debug("data %s", data)
-                    except SocketTimeout:
-                        if self._multicast_enabled:
-                            LOGGER.debug("Multicast socket timed out on recv!")
-                            continue
-                    finally:
-                        self._check_age(pub, min_interval=self._max_age / 20)
-                        if self._do_heartbeat:
-                            pub.heartbeat(min_interval=29)
-                    msg = Message.decode(data)
-                    name = msg.subject.split("/")[1]
-                    if msg.type == 'info' and msg.subject.lower().startswith(self._subject):
-                        addr = msg.data["URI"]
-                        msg.data['status'] = True
-                        metadata = copy.copy(msg.data)
-                        metadata["name"] = name
-
-                        LOGGER.debug('receiving address %s %s %s', str(addr),
-                                     str(name), str(metadata))
-                        if addr not in self._addresses:
-                            LOGGER.info("nameserver: publish add '%s'",
-                                        str(msg))
-                            pub.send(msg.encode())
-                        self._add(addr, metadata)
-            finally:
-                self._is_running = False
-                recv.close()
+        return nameservers, recv
 
     def _add(self, adr, metadata):
         """Add an address."""
         with self._address_lock:
             metadata["receive_time"] = dt.datetime.utcnow()
             self._addresses[adr] = metadata
-
-
-class _SimpleReceiver(object):
-    """Simple listing on port for address messages."""
-
-    def __init__(self, port=None):
-        """Initialize receiver."""
-        self._port = port or default_publish_port
-        self._socket = get_context().socket(REP)
-        self._socket.bind("tcp://*:" + str(port))
-
-    def __call__(self):
-        """Receive and return a message."""
-        message = self._socket.recv_string()
-        self._socket.send_string("ok")
-        return message, None
-
-    def close(self):
-        """Close the receiver."""
-        self._socket.setsockopt(LINGER, 1)
-        self._socket.close()
 
 
 # -----------------------------------------------------------------------------

@@ -25,14 +25,14 @@
 
 # TODO: remove old hanging subscriptions
 
-from posttroll.subscriber import Subscribe
-from posttroll.publisher import NoisyPublisher
-from posttroll.message import Message
-from threading import Thread
-
 import copy
 import logging
 import logging.handlers
+from threading import Thread
+
+from posttroll.message import Message
+from posttroll.publisher import NoisyPublisher
+from posttroll.subscriber import Subscribe
 
 LOGGER = logging.getLogger(__name__)
 
@@ -75,11 +75,11 @@ class PytrollHandler(logging.Handler):
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
 COLORS = {
-    'WARNING': YELLOW,
-    'INFO': GREEN,
-    'DEBUG': BLUE,
-    'CRITICAL': MAGENTA,
-    'ERROR': RED
+    "WARNING": YELLOW,
+    "INFO": GREEN,
+    "DEBUG": BLUE,
+    "CRITICAL": MAGENTA,
+    "ERROR": RED
 }
 
 COLOR_SEQ = "\033[1;%dm"
@@ -201,8 +201,8 @@ def run():
             time.sleep(1)
     except KeyboardInterrupt:
         tlogger.stop()
-        print("Thanks for using pytroll/logger. See you soon on www.pytroll.org!")
+        print("Thanks for using pytroll/logger. See you soon on www.pytroll.org!")  # noqa
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

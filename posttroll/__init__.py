@@ -26,16 +26,12 @@
 
 import datetime as dt
 import logging
-import os
 import sys
 
-import zmq
 from donfig import Config
 
-from .version import get_versions
-
-config = Config('posttroll')
-context = {}
+config = Config("posttroll", defaults=[dict(backend="unsecure_zmq")])
+# context = {}
 logger = logging.getLogger(__name__)
 
 
@@ -44,11 +40,12 @@ def get_context():
 
     This function takes care of creating new contexts in case of forks.
     """
-    pid = os.getpid()
-    if pid not in context:
-        context[pid] = zmq.Context()
-        logger.debug('renewed context for PID %d', pid)
-    return context[pid]
+    backend = config["backend"]
+    if "zmq" in backend:
+        from posttroll.backends.zmq import get_context
+        return get_context()
+    else:
+        raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
 
 def strp_isoformat(strg):
@@ -62,30 +59,14 @@ def strp_isoformat(strg):
         return strg
     if len(strg) < 19 or len(strg) > 26:
         if len(strg) > 30:
-            strg = strg[:30] + '...'
+            strg = strg[:30] + "..."
         raise ValueError("Invalid ISO formatted time string '%s'" % strg)
     if strg.find(".") == -1:
-        strg += '.000000'
-    if sys.version[0:3] >= '2.6':
+        strg += ".000000"
+    if sys.version[0:3] >= "2.6":
         return dt.datetime.strptime(strg, "%Y-%m-%dT%H:%M:%S.%f")
     else:
         dat, mis = strg.split(".")
         dat = dt.datetime.strptime(dat, "%Y-%m-%dT%H:%M:%S")
-        mis = int(float('.' + mis)*1000000)
+        mis = int(float("." + mis) * 1000000)
         return dat.replace(microsecond=mis)
-
-
-def _set_tcp_keepalive(socket):
-    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE, config.get("tcp_keepalive", None))
-    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_CNT, config.get("tcp_keepalive_cnt", None))
-    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_IDLE, config.get("tcp_keepalive_idle", None))
-    _set_int_sockopt(socket, zmq.TCP_KEEPALIVE_INTVL, config.get("tcp_keepalive_intvl", None))
-
-
-def _set_int_sockopt(socket, param, value):
-    if value is not None:
-        socket.setsockopt(param, int(value))
-
-
-__version__ = get_versions()['version']
-del get_versions

@@ -20,19 +20,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""The nameserver. Port 5555 (hardcoded) is used for communications.
-"""
+"""The nameserver. Port 5555 (hardcoded) is used for communications."""
 
 # TODO: make port configurable.
 
-from posttroll.ns import NameServer
-
 import logging
-import _strptime
+
+from posttroll.ns import NameServer
 
 logger = logging.getLogger(__name__)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     import argparse
 
@@ -58,14 +56,14 @@ if __name__ == '__main__':
         handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
                                            " %(name)s] %(message)s",
-                                           '%Y-%m-%d %H:%M:%S'))
+                                           "%Y-%m-%d %H:%M:%S"))
     if opts.verbose:
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
     handler.setLevel(loglevel)
-    logging.getLogger('').setLevel(loglevel)
-    logging.getLogger('').addHandler(handler)
+    logging.getLogger("").setLevel(loglevel)
+    logging.getLogger("").addHandler(handler)
     logger = logging.getLogger("nameserver")
 
     multicast_enabled = (opts.no_multicast == False)

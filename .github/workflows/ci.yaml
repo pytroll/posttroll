@@ -21,7 +21,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          pip install -U pytest pytest-cov pyzmq netifaces donfig
+          pip install -U pytest pytest-cov pyzmq netifaces-plus donfig pytest-reraise
       - name: Install posttroll
         run: |
           pip install --no-deps -e .

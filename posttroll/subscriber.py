@@ -27,17 +27,10 @@
 import datetime as dt
 import logging
 import time
-from time import sleep
-from threading import Lock
-from urllib.parse import urlsplit
 
-# pylint: disable=E0611
-from zmq import LINGER, NOBLOCK, POLLIN, PULL, SUB, SUBSCRIBE, Poller, ZMQError
-
-# pylint: enable=E0611
-from posttroll import get_context
-from posttroll import _set_tcp_keepalive
-from posttroll.message import _MAGICK, Message
+from posttroll import config
+from posttroll.address_receiver import get_configured_address_port
+from posttroll.message import _MAGICK
 from posttroll.ns import get_pub_address
 
 LOGGER = logging.getLogger(__name__)
@@ -67,81 +60,31 @@ class Subscriber:
 
     """
 
-    def __init__(self, addresses, topics='', message_filter=None, translate=False):
+    def __init__(self, addresses, topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
-        self._topics = self._magickfy_topics(topics)
-        self._filter = message_filter
-        self._translate = translate
+        topics = self._magickfy_topics(topics)
+        backend = config.get("backend", "unsecure_zmq")
+        if backend not in ["unsecure_zmq", "secure_zmq"]:
+            raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
-        self.sub_addr = {}
-        self.addr_sub = {}
-
-        self._hooks = []
-        self._hooks_cb = {}
-
-        self.poller = Poller()
-        self._lock = Lock()
-
-        self.update(addresses)
-
-        self._loop = None
+        from posttroll.backends.zmq.subscriber import ZMQSubscriber
+        self._subscriber = ZMQSubscriber(addresses, topics=topics,
+                                         message_filter=message_filter, translate=translate)
 
     def add(self, address, topics=None):
         """Add *address* to the subscribing list for *topics*.
 
-        It topics is None we will subscibe to already specified topics.
+        It topics is None we will subscribe to already specified topics.
         """
-        with self._lock:
-            if address in self.addresses:
-                return
-
-            topics = self._magickfy_topics(topics) or self._topics
-            LOGGER.info("Subscriber adding address %s with topics %s",
-                        str(address), str(topics))
-            subscriber = self._add_sub_socket(address, topics)
-            self.sub_addr[subscriber] = address
-            self.addr_sub[address] = subscriber
-
-    def _add_sub_socket(self, address, topics):
-        subscriber = get_context().socket(SUB)
-        _set_tcp_keepalive(subscriber)
-        for t__ in topics:
-            subscriber.setsockopt_string(SUBSCRIBE, str(t__))
-        subscriber.connect(address)
-
-        if self.poller:
-            self.poller.register(subscriber, POLLIN)
-        return subscriber
+        return self._subscriber.add(address, self._magickfy_topics(topics))
 
     def remove(self, address):
         """Remove *address* from the subscribing list for *topics*."""
-        with self._lock:
-            try:
-                subscriber = self.addr_sub[address]
-            except KeyError:
-                return
-            LOGGER.info("Subscriber removing address %s", str(address))
-            del self.addr_sub[address]
-            del self.sub_addr[subscriber]
-            self._remove_sub_socket(subscriber)
-
-    def _remove_sub_socket(self, subscriber):
-        if self.poller:
-            self.poller.unregister(subscriber)
-        subscriber.close()
+        return self._subscriber.remove(address)
 
     def update(self, addresses):
         """Update with a set of addresses."""
-        if isinstance(addresses, str):
-            addresses = [addresses, ]
-        current_addresses, new_addresses = set(self.addresses), set(addresses)
-        addresses_to_remove = current_addresses.difference(new_addresses)
-        addresses_to_add = new_addresses.difference(current_addresses)
-        for addr in addresses_to_remove:
-            self.remove(addr)
-        for addr in addresses_to_add:
-            self.add(addr)
-        return bool(addresses_to_remove or addresses_to_add)
+        return self._subscriber.update(addresses)
 
     def add_hook_sub(self, address, topics, callback):
         """Specify a SUB *callback* in the same stream (thread) as the main receive loop.
@@ -152,11 +95,7 @@ class Subscriber:
         Good for operations, which is required to be done in the same thread as
         the main recieve loop (e.q operations on the underlying sockets).
         """
-        topics = self._magickfy_topics(topics)
-        LOGGER.info("Subscriber adding SUB hook %s for topics %s",
-                    str(address), str(topics))
-        socket = self._add_sub_socket(address, topics)
-        self._add_hook(socket, callback)
+        return self._subscriber.add_hook_sub(address, self._magickfy_topics(topics), callback)
 
     def add_hook_pull(self, address, callback):
         """Specify a PULL *callback* in the same stream (thread) as the main receive loop.
@@ -164,84 +103,38 @@ class Subscriber:
         The callback will be called with the received messages from the
         specified subscription. Good for pushed 'inproc' messages from another thread.
         """
-        LOGGER.info("Subscriber adding PULL hook %s", str(address))
-        socket = get_context().socket(PULL)
-        socket.connect(address)
-        if self.poller:
-            self.poller.register(socket, POLLIN)
-        self._add_hook(socket, callback)
-
-    def _add_hook(self, socket, callback):
-        """Add a generic hook. The passed socket has to be "receive only"."""
-        self._hooks.append(socket)
-        self._hooks_cb[socket] = callback
+        return self._subscriber.add_hook_pull(address, callback)
 
     @property
     def addresses(self):
         """Get the addresses."""
-        return self.sub_addr.values()
+        return self._subscriber.addresses
 
     @property
     def subscribers(self):
         """Get the subscribers."""
-        return self.sub_addr.keys()
+        return self._subscriber.subscribers
 
     def recv(self, timeout=None):
         """Receive, optionally with *timeout* in seconds."""
-        if timeout:
-            timeout *= 1000.
-
-        for sub in list(self.subscribers) + self._hooks:
-            self.poller.register(sub, POLLIN)
-        self._loop = True
-        try:
-            while self._loop:
-                sleep(0)
-                try:
-                    socks = dict(self.poller.poll(timeout=timeout))
-                    if socks:
-                        for sub in self.subscribers:
-                            if sub in socks and socks[sub] == POLLIN:
-                                m__ = Message.decode(sub.recv_string(NOBLOCK))
-                                if not self._filter or self._filter(m__):
-                                    if self._translate:
-                                        url = urlsplit(self.sub_addr[sub])
-                                        host = url[1].split(":")[0]
-                                        m__.sender = (m__.sender.split("@")[0]
-                                                      + "@" + host)
-                                    yield m__
-
-                        for sub in self._hooks:
-                            if sub in socks and socks[sub] == POLLIN:
-                                m__ = Message.decode(sub.recv_string(NOBLOCK))
-                                self._hooks_cb[sub](m__)
-                    else:
-                        # timeout
-                        yield None
-                except ZMQError as err:
-                    if self._loop:
-                        LOGGER.exception("Receive failed: %s", str(err))
-        finally:
-            for sub in list(self.subscribers) + self._hooks:
-                self.poller.unregister(sub)
+        return self._subscriber.recv(timeout)
 
     def __call__(self, **kwargs):
         """Handle calls with class instance."""
-        return self.recv(**kwargs)
+        return self._subscriber(**kwargs)
 
     def stop(self):
         """Stop the subscriber."""
-        self._loop = False
+        return self._subscriber.stop()
 
     def close(self):
         """Close the subscriber: stop it and close the local subscribers."""
-        self.stop()
-        for sub in list(self.subscribers) + self._hooks:
-            try:
-                sub.setsockopt(LINGER, 1)
-                sub.close()
-            except ZMQError:
-                pass
+        return self._subscriber.close()
+
+    @property
+    def running(self):
+        """Check if suscriber is running."""
+        return self._subscriber.running
 
     @staticmethod
     def _magickfy_topics(topics):
@@ -255,20 +148,12 @@ class Subscriber:
         ts_ = []
         for t__ in topics:
             if not t__.startswith(_MAGICK):
-                if t__ and t__[0] == '/':
+                if t__ and t__[0] == "/":
                     t__ = _MAGICK + t__
                 else:
-                    t__ = _MAGICK + '/' + t__
+                    t__ = _MAGICK + "/" + t__
             ts_.append(t__)
         return ts_
-
-    def __del__(self):
-        """Clean up after the instance is deleted."""
-        for sub in list(self.subscribers) + self._hooks:
-            try:
-                sub.close()
-            except Exception:  # noqa: E722
-                pass
 
 
 class NSSubscriber:
@@ -296,9 +181,9 @@ class NSSubscriber:
 
         Default is to listen to all available services.
         """
-        self._services = _to_array(services)
-        self._topics = _to_array(topics)
-        self._addresses = _to_array(addresses)
+        self._services = _to_list(services)
+        self._topics = _to_list(topics)
+        self._addresses = _to_list(addresses)
 
         self._timeout = timeout
         self._translate = translate
@@ -313,7 +198,7 @@ class NSSubscriber:
             """Try to get the address of *service* until for *timeout* seconds."""
             then = dt.datetime.now() + dt.timedelta(seconds=timeout)
             while dt.datetime.now() < then:
-                addrs = get_pub_address(service, nameserver=self._nameserver)
+                addrs = get_pub_address(service, self._timeout, nameserver=self._nameserver)
                 if addrs:
                     return [addr["URI"] for addr in addrs]
                 time.sleep(1)
@@ -360,7 +245,7 @@ class Subscribe:
 
     See :class:`NSSubscriber` and :class:`Subscriber` for initialization parameters.
 
-    The subscriber is selected based on the arguments, see :function:`create_subscriber_from_dict_config` for
+    The subscriber is selected based on the arguments, see :func:`create_subscriber_from_dict_config` for
     information how the selection is done.
 
     Example::
@@ -379,14 +264,14 @@ class Subscribe:
                  message_filter=None):
         """Initialize the class."""
         settings = {
-            'services': services,
-            'topics': topics,
-            'message_filter': message_filter,
-            'translate': translate,
-            'addr_listener': addr_listener,
-            'addresses': addresses,
-            'timeout': timeout,
-            'nameserver': nameserver,
+            "services": services,
+            "topics": topics,
+            "message_filter": message_filter,
+            "translate": translate,
+            "addr_listener": addr_listener,
+            "addresses": addresses,
+            "timeout": timeout,
+            "nameserver": nameserver,
         }
         self.subscriber = create_subscriber_from_dict_config(settings)
 
@@ -399,7 +284,7 @@ class Subscribe:
         return self.subscriber.stop()
 
 
-def _to_array(obj):
+def _to_list(obj):
     """Convert *obj* to list if not already one."""
     if isinstance(obj, str):
         return [obj, ]
@@ -417,16 +302,17 @@ class _AddressListener:
             services = [services, ]
         self.services = services
         self.subscriber = subscriber
-        self.subscriber.add_hook_sub("tcp://" + nameserver + ":16543",
+        address_publish_port = get_configured_address_port()
+        self.subscriber.add_hook_sub("tcp://" + nameserver + ":" + str(address_publish_port),
                                      ["pytroll://address", ],
                                      self.handle_msg)
 
     def handle_msg(self, msg):
         """Handle the message *msg*."""
         addr_ = msg.data["URI"]
-        status = msg.data.get('status', True)
+        status = msg.data.get("status", True)
         if status:
-            msg_services = msg.data.get('service')
+            msg_services = msg.data.get("service")
             for service in self.services:
                 if not service or service in msg_services:
                     LOGGER.debug("Adding address %s %s", str(addr_),
@@ -455,28 +341,29 @@ def create_subscriber_from_dict_config(settings):
     :class:`~posttroll.subscriber.Subscriber` and :class:`~posttroll.subscriber.NSSubscriber`.
 
     """
-    if settings.get('addresses') and settings.get('nameserver') is False:
+    if settings.get("addresses") and settings.get("nameserver") is False:
         return _get_subscriber_instance(settings)
     return _get_nssubscriber_instance(settings).start()
 
 
 def _get_subscriber_instance(settings):
-    addresses = settings['addresses']
-    topics = settings.get('topics', '')
-    message_filter = settings.get('message_filter', None)
-    translate = settings.get('translate', False)
+    _ = settings.pop("nameserver", None)
+    _ = settings.pop("port", None)
+    _ = settings.pop("services", None)
+    _ = settings.pop("addr_listener", None),
+    _ = settings.pop("timeout", None)
 
-    return Subscriber(addresses, topics=topics, message_filter=message_filter, translate=translate)
+    return Subscriber(**settings)
 
 
 def _get_nssubscriber_instance(settings):
-    services = settings.get('services', '')
-    topics = settings.get('topics', _MAGICK)
-    addr_listener = settings.get('addr_listener', False)
-    addresses = settings.get('addresses', None)
-    timeout = settings.get('timeout', 10)
-    translate = settings.get('translate', False)
-    nameserver = settings.get('nameserver', 'localhost') or 'localhost'
+    services = settings.get("services", "")
+    topics = settings.get("topics", _MAGICK)
+    addr_listener = settings.get("addr_listener", False)
+    addresses = settings.get("addresses", None)
+    timeout = settings.get("timeout", 10)
+    translate = settings.get("translate", False)
+    nameserver = settings.get("nameserver", "localhost") or "localhost"
 
     return NSSubscriber(
         services=services,

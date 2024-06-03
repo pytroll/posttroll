@@ -10,7 +10,7 @@ def patched_subscriber_recv(messages):
     def interuptible_recv(self):
         """Yield message until the subscriber is closed."""
         for msg in messages:
-            if self._loop is False:
+            if self.running is False:
                 break
             yield msg
 
@@ -20,7 +20,7 @@ def patched_subscriber_recv(messages):
 
 @contextmanager
 def patched_publisher():
-    """Patch the Subscriber object to return given messages."""
+    """Patch the Publisher object to return given messages."""
     from unittest import mock
     published = []
 
