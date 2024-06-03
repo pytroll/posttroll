@@ -123,7 +123,7 @@ def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
                     clients_public_keys_directory=os.path.dirname(client_public_key_file),
                     server_public_key_file=server_public_key_file,
                     server_secret_key_file=server_secret_key_file):
-        subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10202)
+        subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10203)
         sub = create_subscriber_from_dict_config(subscriber_settings)
         pub_settings = dict(address=ipc_address,
                             nameservers=False, port=1789)
@@ -132,6 +132,7 @@ def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
         pub.start()
 
         def delayed_send(msg):
+            time.sleep(.2)
             msg = Message(subject="/hi", atype="string", data=msg)
             pub.send(str(msg))
         thr = Thread(target=delayed_send, args=["very sensitive message"])
