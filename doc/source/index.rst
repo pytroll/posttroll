@@ -162,7 +162,7 @@ On the server side (for example a publisher), we need to define the server's sec
 accepted client keys are provided::
 
    POSTTROLL_SERVER_SECRET_KEY_FILE=/path/to/server.key_secret
-   POSTTROLL_PUBLIC_SECRET_KEYS_DIRECTORY=/path/to/client_public_keys/
+   POSTTROLL_CLIENTS_PUBLIC_KEYS_DIRECTORY=/path/to/client_public_keys/
 
 On the client side (for example a subscriber), we need to define the server's public key file and the client's secret
 key file::
