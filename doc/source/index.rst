@@ -173,7 +173,7 @@ key file::
 These settings can also be set using the posttroll config object, for example::
 
    >>> from posttroll import config
-   >>> with config.set(backend="secure_zmq", server_pubic_key_file="..."):
+   >>> with config.set(backend="secure_zmq", server_public_key_file="..."):
    ...
 
 The posttroll configuration uses donfig, for more information, check https://donfig.readthedocs.io/en/latest/.
