@@ -89,7 +89,7 @@ class AddressReceiver:
         self._subject = "/address"
         self._do_heartbeat = do_heartbeat
         self._multicast_enabled = multicast_enabled
-        self._last_age_check = dt.datetime(1900, 1, 1)
+        self._last_age_check = dt.datetime(1900, 1, 1, tzinfo=dt.timezone.utc)
         self._do_run = False
         self._is_running = False
         self._thread = threading.Thread(target=self._run)
