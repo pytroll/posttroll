@@ -132,7 +132,7 @@ class Message(object):
                 self.type = atype
             self.type = atype
             self.sender = _getsender()
-            self.time = dt.datetime.utcnow()
+            self.time = dt.datetime.now(dt.timezone.utc)
             self.data = data
             self.binary = binary
         self.version = _VERSION
