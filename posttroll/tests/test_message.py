@@ -26,7 +26,6 @@
 import copy
 import os
 import sys
-import unittest
 import datetime as dt
 
 from posttroll.message import _MAGICK, Message
@@ -44,113 +43,109 @@ SOME_METADATA = {"timestamp": dt.datetime(2010, 12, 3, 16, 28, 39),
                  "afloat": 1.2345}
 
 
-class Test(unittest.TestCase):
-    """Test class."""
+def test_encode_decode():
+    """Test the encoding/decoding of the message class."""
+    msg1 = Message("/test/whatup/doc", "info", data="not much to say")
 
-    def test_encode_decode(self):
-        """Test the encoding/decoding of the message class."""
-        msg1 = Message("/test/whatup/doc", "info", data="not much to say")
+    sender = "%s@%s" % (msg1.user, msg1.host)
+    assert sender == msg1.sender, "Messaging, decoding user, host from sender failed"
+    msg2 = Message.decode(msg1.encode())
+    assert str(msg2) == str(msg1), "Messaging, encoding, decoding failed"
 
-        sender = "%s@%s" % (msg1.user, msg1.host)
-        assert sender == msg1.sender, "Messaging, decoding user, host from sender failed"
-        msg2 = Message.decode(msg1.encode())
-        assert str(msg2) == str(msg1), "Messaging, encoding, decoding failed"
 
-    def test_decode(self):
-        """Test the decoding of a message."""
-        rawstr = (_MAGICK +
-                  r"/test/1/2/3 info ras@hawaii 2008-04-11T22:13:22.123000 v1.01" +
-                  r' text/ascii "what' + r"'" + r's up doc"')
-        msg = Message.decode(rawstr)
+def test_decode():
+    """Test the decoding of a message."""
+    rawstr = (_MAGICK +
+              r"/test/1/2/3 info ras@hawaii 2008-04-11T22:13:22.123000 v1.01" +
+              r' text/ascii "what' + r"'" + r's up doc"')
+    msg = Message.decode(rawstr)
 
-        assert str(msg) == rawstr, "Messaging, decoding of message failed"
+    assert str(msg) == rawstr, "Messaging, decoding of message failed"
 
-    def test_encode(self):
-        """Test the encoding of a message."""
-        subject = "/test/whatup/doc"
-        atype = "info"
-        data = "not much to say"
-        msg1 = Message(subject, atype, data=data)
-        sender = "%s@%s" % (msg1.user, msg1.host)
-        full_message = (_MAGICK + subject + " " + atype + " " + sender + " " +
-                        str(msg1.time.isoformat()) + " " + msg1.version + " " + "text/ascii" + " " + data)
-        assert full_message == msg1.encode()
 
-    def test_unicode(self):
-        """Test handling of unicode."""
-        try:
-            msg = ('pytroll://PPS-monitorplot/3/norrköping/utv/polar/direct_readout/ file '
-                   'safusr.u@lxserv1096.smhi.se 2018-11-16T12:19:29.934025 v1.01 application/json'
-                   ' {"start_time": "2018-11-16T12:02:43.700000"}')
-            assert msg == str(Message(rawstr=msg))
-        except UnicodeDecodeError:
-            self.fail("Unexpected unicode decoding error")
+def test_encode():
+    """Test the encoding of a message."""
+    subject = "/test/whatup/doc"
+    atype = "info"
+    data = "not much to say"
+    msg1 = Message(subject, atype, data=data)
+    sender = "%s@%s" % (msg1.user, msg1.host)
+    full_message = (_MAGICK + subject + " " + atype + " " + sender + " " +
+                    str(msg1.time.isoformat()) + " " + msg1.version + " " + "text/ascii" + " " + data)
+    assert full_message == msg1.encode()
 
-        try:
-            msg = (u'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171'
-                   r' v1.01 application/json {"station": "norrk\u00f6ping"}')
-            try:
-                assert msg == str(Message(rawstr=msg)).decode("utf-8")
-            except AttributeError:
-                assert msg == str(Message(rawstr=msg))
-        except UnicodeDecodeError:
-            self.fail("Unexpected unicode decoding error")
 
-    def test_iso(self):
-        """Test handling of iso-8859-1."""
-        msg = ('pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN '
-               '2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}')
-        try:
-            iso_msg = msg.decode("utf-8").encode("iso-8859-1")
-        except AttributeError:
-            iso_msg = msg.encode("iso-8859-1")
-        try:
-            Message(rawstr=iso_msg)
-        except UnicodeDecodeError:
-            self.fail("Unexpected iso decoding error")
+def test_unicode():
+    """Test handling of unicode."""
+    msg = ('pytroll://PPS-monitorplot/3/norrköping/utv/polar/direct_readout/ file '
+           'safusr.u@lxserv1096.smhi.se 2018-11-16T12:19:29.934025 v1.01 application/json'
+           ' {"start_time": "2018-11-16T12:02:43.700000"}')
+    assert msg == str(Message(rawstr=msg))
 
-    def test_pickle(self):
-        """Test pickling."""
-        import pickle
-        msg1 = Message("/test/whatup/doc", "info", data="not much to say")
-        try:
-            fp_ = open("pickle.message", "wb")
-            pickle.dump(msg1, fp_)
-            fp_.close()
-            fp_ = open("pickle.message", "rb")
-            msg2 = pickle.load(fp_)
+    msg = (u'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171'
+           r' v1.01 application/json {"station": "norrk\u00f6ping"}')
+    try:
+        assert msg == str(Message(rawstr=msg)).decode("utf-8")
+    except AttributeError:
+        assert msg == str(Message(rawstr=msg))
 
-            fp_.close()
-            assert str(msg1) == str(msg2), "Messaging, pickle failed"
-        finally:
-            try:
-                os.remove("pickle.message")
-            except OSError:
-                pass
 
-    def test_metadata(self):
-        """Test metadata encoding/decoding."""
-        metadata = copy.copy(SOME_METADATA)
-        msg = Message.decode(Message("/sat/polar/smb/level1", "file",
-                                     data=metadata).encode())
+def test_iso():
+    """Test handling of iso-8859-1."""
+    msg = ('pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN '
+           '2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}')
+    try:
+        iso_msg = msg.decode("utf-8").encode("iso-8859-1")
+    except AttributeError:
+        iso_msg = msg.encode("iso-8859-1")
 
-        assert msg.data == metadata, "Messaging, metadata decoding / encoding failed"
+    Message(rawstr=iso_msg)
 
-    def test_serialization(self):
-        """Test json serialization."""
-        compare_file = "/message_metadata.dumps"
-        import json
-        metadata = copy.copy(SOME_METADATA)
-        metadata["timestamp"] = metadata["timestamp"].isoformat()
-        fp_ = open(DATADIR + compare_file)
-        dump = fp_.read()
+
+def test_pickle():
+    """Test pickling."""
+    import pickle
+    msg1 = Message("/test/whatup/doc", "info", data="not much to say")
+    try:
+        fp_ = open("pickle.message", "wb")
+        pickle.dump(msg1, fp_)
         fp_.close()
-        local_dump = json.dumps(metadata)
+        fp_ = open("pickle.message", "rb")
+        msg2 = pickle.load(fp_)
 
-        msg = json.loads(dump)
-        for key, val in msg.items():
-            assert val == metadata.get(key)
+        fp_.close()
+        assert str(msg1) == str(msg2), "Messaging, pickle failed"
+    finally:
+        try:
+            os.remove("pickle.message")
+        except OSError:
+            pass
 
-        msg = json.loads(local_dump)
-        for key, val in msg.items():
-            assert val == metadata.get(key)
+
+def test_metadata():
+    """Test metadata encoding/decoding."""
+    metadata = copy.copy(SOME_METADATA)
+    msg = Message.decode(Message("/sat/polar/smb/level1", "file",
+                                 data=metadata).encode())
+
+    assert msg.data == metadata, "Messaging, metadata decoding / encoding failed"
+
+
+def test_serialization():
+    """Test json serialization."""
+    compare_file = "/message_metadata.dumps"
+    import json
+    metadata = copy.copy(SOME_METADATA)
+    metadata["timestamp"] = metadata["timestamp"].isoformat()
+    fp_ = open(DATADIR + compare_file)
+    dump = fp_.read()
+    fp_.close()
+    local_dump = json.dumps(metadata)
+
+    msg = json.loads(dump)
+    for key, val in msg.items():
+        assert val == metadata.get(key)
+
+    msg = json.loads(local_dump)
+    for key, val in msg.items():
+        assert val == metadata.get(key)
