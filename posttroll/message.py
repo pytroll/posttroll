@@ -46,8 +46,6 @@ try:
 except ImportError:
     import simplejson as json
 
-from posttroll import strp_isoformat
-
 _MAGICK = "pytroll:/"
 _VERSION = "v1.01"
 
@@ -229,7 +227,7 @@ def datetime_decoder(dct):
     for key, val in pairs:
         if isinstance(val, str):
             try:
-                val = strp_isoformat(val)
+                val = dt.datetime.fromisoformat(val)
             except ValueError:
                 pass
         elif isinstance(val, (dict, list)):
@@ -252,7 +250,7 @@ def _decode(rawstr):
     msg = dict((("subject", raw[0].strip()),
                 ("type", raw[1].strip()),
                 ("sender", raw[2].strip()),
-                ("time", strp_isoformat(raw[3].strip())),
+                ("time", dt.datetime.fromisoformat(raw[3].strip())),
                 ("version", version)))
 
     # Data part
