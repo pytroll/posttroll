@@ -27,7 +27,7 @@ import copy
 import os
 import sys
 import unittest
-from datetime import datetime
+import datetime as dt
 
 from posttroll.message import _MAGICK, Message
 
@@ -36,7 +36,7 @@ sys.path = [os.path.abspath(HOME + "/../.."), ] + sys.path
 
 
 DATADIR = HOME + "/data"
-SOME_METADATA = {"timestamp": datetime(2010, 12, 3, 16, 28, 39),
+SOME_METADATA = {"timestamp": dt.datetime(2010, 12, 3, 16, 28, 39),
                  "satellite": "metop2",
                  "uri": "file://data/my/path/to/hrpt/files/myfile",
                  "orbit": 1222,
