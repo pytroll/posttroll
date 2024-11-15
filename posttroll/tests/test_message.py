@@ -143,16 +143,16 @@ def test_metadata(mda):
     assert msg.data == metadata, "Messaging, metadata decoding / encoding failed"
 
 
-@pytest.mark.parametrize("mda", (TZ_UNAWARE_METADATA, TZ_AWARE_METADATA))
-def test_serialization(mda):
+@pytest.mark.parametrize(("mda", "compare_file"),
+                         ((TZ_UNAWARE_METADATA, "/message_metadata_unaware.dumps"),
+                         ((TZ_AWARE_METADATA, "/message_metadata_aware.dumps"))))
+def test_serialization(mda, compare_file):
     """Test json serialization."""
-    compare_file = "/message_metadata.dumps"
     import json
     metadata = copy.copy(mda)
     metadata["timestamp"] = metadata["timestamp"].isoformat()
-    fp_ = open(DATADIR + compare_file)
-    dump = fp_.read()
-    fp_.close()
+    with open(DATADIR + compare_file) as fp_:
+        dump = fp_.read()
     local_dump = json.dumps(metadata)
 
     msg = json.loads(dump)
