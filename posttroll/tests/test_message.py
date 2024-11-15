@@ -28,6 +28,8 @@ import os
 import sys
 import datetime as dt
 
+import pytest
+
 from posttroll.message import _MAGICK, Message
 
 HOME = os.path.dirname(__file__) or "."
@@ -35,12 +37,18 @@ sys.path = [os.path.abspath(HOME + "/../.."), ] + sys.path
 
 
 DATADIR = HOME + "/data"
-SOME_METADATA = {"timestamp": dt.datetime(2010, 12, 3, 16, 28, 39),
-                 "satellite": "metop2",
-                 "uri": "file://data/my/path/to/hrpt/files/myfile",
-                 "orbit": 1222,
-                 "format": "hrpt",
-                 "afloat": 1.2345}
+TZ_UNAWARE_METADATA = {"timestamp": dt.datetime(2010, 12, 3, 16, 28, 39),
+                       "satellite": "metop2",
+                       "uri": "file://data/my/path/to/hrpt/files/myfile",
+                       "orbit": 1222,
+                       "format": "hrpt",
+                       "afloat": 1.2345}
+TZ_AWARE_METADATA = {"timestamp": dt.datetime(2010, 12, 3, 16, 28, 39, tzinfo=dt.timezone.utc),
+                     "satellite": "metop2",
+                     "uri": "file://data/my/path/to/hrpt/files/myfile",
+                     "orbit": 1222,
+                     "format": "hrpt",
+                     "afloat": 1.2345}
 
 
 def test_encode_decode():
@@ -53,10 +61,11 @@ def test_encode_decode():
     assert str(msg2) == str(msg1), "Messaging, encoding, decoding failed"
 
 
-def test_decode():
+@pytest.mark.parametrize("dstr", (r"2008-04-11T22:13:22.123000", r"2008-04-11T22:13:22.123000+00:00"))
+def test_decode(dstr):
     """Test the decoding of a message."""
     rawstr = (_MAGICK +
-              r"/test/1/2/3 info ras@hawaii 2008-04-11T22:13:22.123000 v1.01" +
+              r"/test/1/2/3 info ras@hawaii " + dstr + r" v1.01" +
               r' text/ascii "what' + r"'" + r's up doc"')
     msg = Message.decode(rawstr)
 
@@ -75,14 +84,15 @@ def test_encode():
     assert full_message == msg1.encode()
 
 
-def test_unicode():
+@pytest.mark.parametrize("dstr", (r"2008-04-11T22:13:22.123000", r"2008-04-11T22:13:22.123000+00:00"))
+def test_unicode(dstr):
     """Test handling of unicode."""
     msg = ('pytroll://PPS-monitorplot/3/norrköping/utv/polar/direct_readout/ file '
-           'safusr.u@lxserv1096.smhi.se 2018-11-16T12:19:29.934025 v1.01 application/json'
-           ' {"start_time": "2018-11-16T12:02:43.700000"}')
+           'safusr.u@lxserv1096.smhi.se ' + dstr + ' v1.01 application/json'
+           ' {"start_time": "' + dstr + '"}')
     assert msg == str(Message(rawstr=msg))
 
-    msg = (u'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN 2019-01-07T12:52:19.872171'
+    msg = (u'pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN ' + dstr +
            r' v1.01 application/json {"station": "norrk\u00f6ping"}')
     try:
         assert msg == str(Message(rawstr=msg)).decode("utf-8")
@@ -90,10 +100,11 @@ def test_unicode():
         assert msg == str(Message(rawstr=msg))
 
 
-def test_iso():
+@pytest.mark.parametrize("dstr", (r"2008-04-11T22:13:22.123000", r"2008-04-11T22:13:22.123000+00:00"))
+def test_iso(dstr):
     """Test handling of iso-8859-1."""
-    msg = ('pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN '
-           '2019-01-07T12:52:19.872171 v1.01 application/json {"station": "norrköping"}')
+    msg = ('pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN ' + dstr +
+           ' v1.01 application/json {"station": "norrköping"}')
     try:
         iso_msg = msg.decode("utf-8").encode("iso-8859-1")
     except AttributeError:
@@ -122,20 +133,22 @@ def test_pickle():
             pass
 
 
-def test_metadata():
+@pytest.mark.parametrize("mda", (TZ_UNAWARE_METADATA, TZ_AWARE_METADATA))
+def test_metadata(mda):
     """Test metadata encoding/decoding."""
-    metadata = copy.copy(SOME_METADATA)
+    metadata = copy.copy(mda)
     msg = Message.decode(Message("/sat/polar/smb/level1", "file",
                                  data=metadata).encode())
 
     assert msg.data == metadata, "Messaging, metadata decoding / encoding failed"
 
 
-def test_serialization():
+@pytest.mark.parametrize("mda", (TZ_UNAWARE_METADATA, TZ_AWARE_METADATA))
+def test_serialization(mda):
     """Test json serialization."""
     compare_file = "/message_metadata.dumps"
     import json
-    metadata = copy.copy(SOME_METADATA)
+    metadata = copy.copy(mda)
     metadata["timestamp"] = metadata["timestamp"].isoformat()
     fp_ = open(DATADIR + compare_file)
     dump = fp_.read()
