@@ -26,6 +26,7 @@ classifiers = [
 [project.scripts]
 pytroll-logger = "posttroll.logger:run"
 posttroll-generate-keys = "posttroll.backends.zmq:generate_keys"
+nameserver = "posttroll.ns:run"
 
 [project.urls]
 Homepage = "https://github.com/pytroll/posttroll"
