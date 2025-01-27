@@ -89,7 +89,7 @@ class AddressReceiver:
         self._subject = "/address"
         self._do_heartbeat = do_heartbeat
         self._multicast_enabled = multicast_enabled
-        self._last_age_check = dt.datetime(1900, 1, 1)
+        self._last_age_check = dt.datetime(1900, 1, 1, tzinfo=dt.timezone.utc)
         self._do_run = False
         self._is_running = False
         self._thread = threading.Thread(target=self._run)
@@ -128,11 +128,11 @@ class AddressReceiver:
 
     def _check_age(self, pub, min_interval=zero_seconds):
         """Check the age of the receiver."""
-        now = dt.datetime.utcnow()
+        now = dt.datetime.now(dt.timezone.utc)
         if (now - self._last_age_check) <= min_interval:
             return
 
-        logger.debug("%s - checking addresses", str(dt.datetime.utcnow()))
+        LOGGER.debug("%s - checking addresses", str(dt.datetime.now(dt.timezone.utc)))
         self._last_age_check = now
         to_del = []
         with self._address_lock:
@@ -232,7 +232,7 @@ class AddressReceiver:
     def _add(self, adr, metadata):
         """Add an address."""
         with self._address_lock:
-            metadata["receive_time"] = dt.datetime.utcnow()
+            metadata["receive_time"] = dt.datetime.now(dt.timezone.utc)
             self._addresses[adr] = metadata
 
 
