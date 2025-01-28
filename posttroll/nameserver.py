@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, 2014 Martin Raspaud
+# Copyright (c) 2012, 2014, 2025 Martin Raspaud
 
 # Author(s):
 
@@ -25,14 +25,18 @@
 # TODO: make port configurable.
 
 import logging
+import logging.handlers
 
 from posttroll.ns import NameServer
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
-if __name__ == "__main__":
 
+def run():
+    """Run the nameserver."""
     import argparse
+
+    global LOGGER
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--daemon", help="Run as a daemon",
@@ -53,6 +57,7 @@ if __name__ == "__main__":
                                                             "midnight",
                                                             backupCount=7)
     else:
+        import logging
         handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
                                            " %(name)s] %(message)s",
@@ -64,9 +69,9 @@ if __name__ == "__main__":
     handler.setLevel(loglevel)
     logging.getLogger("").setLevel(loglevel)
     logging.getLogger("").addHandler(handler)
-    logger = logging.getLogger("nameserver")
+    LOGGER = logging.getLogger("nameserver")
 
-    multicast_enabled = (opts.no_multicast == False)
+    multicast_enabled = (opts.no_multicast is False)
     local_only = (opts.local_only)
 
     ns = NameServer(multicast_enabled=multicast_enabled, restrict_to_localhost=local_only)
@@ -77,7 +82,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
         except:
-            logger.exception("Something wrong happened...")
+            LOGGER.exception("Something wrong happened...")
             raise
         finally:
             print("Thanks for using pytroll/nameserver. "
@@ -131,3 +136,7 @@ if __name__ == "__main__":
             sys.exit(angel.do_action())
         except ImportError:
             print("Cannot run as a daemon, you need python-daemon installed.")
+
+
+if __name__ == "__main__":
+    run()
