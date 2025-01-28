@@ -25,6 +25,7 @@
 # TODO: make port configurable.
 
 import logging
+import logging.handlers
 
 from posttroll.ns import NameServer
 
@@ -56,6 +57,7 @@ def run():
                                                             "midnight",
                                                             backupCount=7)
     else:
+        import logging
         handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
                                            " %(name)s] %(message)s",
@@ -69,7 +71,7 @@ def run():
     logging.getLogger("").addHandler(handler)
     LOGGER = logging.getLogger("nameserver")
 
-    multicast_enabled = (opts.no_multicast == False)
+    multicast_enabled = (opts.no_multicast is False)
     local_only = (opts.local_only)
 
     ns = NameServer(multicast_enabled=multicast_enabled, restrict_to_localhost=local_only)

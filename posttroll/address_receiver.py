@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012, 2014.
+# Copyright (c) 2010-2012, 2014, 2025.
 
 # Author(s):
 
@@ -44,7 +44,7 @@ from posttroll.publisher import Publish
 
 __all__ = ("AddressReceiver", "getaddress")
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 debug = os.environ.get("DEBUG", False)
 
@@ -123,7 +123,7 @@ class AddressReceiver:
                     mda = copy.copy(metadata)
                     mda["receive_time"] = mda["receive_time"].isoformat()
                     addrs.append(mda)
-        logger.debug("return address %s", str(addrs))
+        LOGGER.debug("return address %s", str(addrs))
         return addrs
 
     def _check_age(self, pub, min_interval=zero_seconds):
@@ -144,7 +144,7 @@ class AddressReceiver:
                            "service": metadata["service"]}
                     msg = Message("/address/" + metadata["name"], "info", mda)
                     to_del.append(addr)
-                    logger.info(f"publish remove '{msg}'")
+                    LOGGER.info(f"publish remove '{msg}'")
                     pub.send(str(msg.encode()))
             for addr in to_del:
                 del self._addresses[addr]
@@ -164,7 +164,7 @@ class AddressReceiver:
                     except TimeoutError:
                         if self._do_run:
                             if self._multicast_enabled:
-                                logger.debug("Multicast socket timed out on recv!")
+                                LOGGER.debug("Multicast socket timed out on recv!")
                             continue
                         else:
                             raise
@@ -178,9 +178,9 @@ class AddressReceiver:
                         ip_, port = fromaddr
                         if self._restrict_to_localhost and ip_ not in self._local_ips:
                             # discard external message
-                            logger.debug("Discard external message")
+                            LOGGER.debug("Discard external message")
                             continue
-                    logger.debug("data %s", data)
+                    LOGGER.debug("data %s", data)
                     msg = Message.decode(data)
                     name = msg.subject.split("/")[1]
                     if msg.type == "info" and msg.subject.lower().startswith(self._subject):
@@ -189,10 +189,10 @@ class AddressReceiver:
                         metadata = copy.copy(msg.data)
                         metadata["name"] = name
 
-                        logger.debug("receiving address %s %s %s", str(addr),
+                        LOGGER.debug("receiving address %s %s %s", str(addr),
                                      str(name), str(metadata))
                         if addr not in self._addresses:
-                            logger.info("nameserver: publish add '%s'",
+                            LOGGER.info("nameserver: publish add '%s'",
                                         str(msg))
                             pub.send(msg.encode())
                         self._add(addr, metadata)
@@ -209,7 +209,7 @@ class AddressReceiver:
                     recv = MulticastReceiver(port)
                 except IOError as err:
                     if err.errno == errno.ENODEV:
-                        logger.error("Receiver initialization failed "
+                        LOGGER.error("Receiver initialization failed "
                                      "(no such device). "
                                      "Trying again in %d s",
                                      10)
@@ -218,7 +218,7 @@ class AddressReceiver:
                         raise
                 else:
                     recv.settimeout(tout=2.0)
-                    logger.info("Receiver initialized.")
+                    LOGGER.info("Receiver initialized.")
                     break
 
         else:
