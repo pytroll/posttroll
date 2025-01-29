@@ -30,9 +30,11 @@ import logging
 import os
 import time
 import warnings
+from contextlib import suppress
 
 from posttroll import config
 from posttroll.address_receiver import AddressReceiver
+from posttroll.message import _VERSION as MESSAGE_VERSION
 from posttroll.message import Message
 
 # pylint: enable=E0611
@@ -94,13 +96,13 @@ def get_pub_address(name, timeout=10, nameserver="localhost"):
 # Server part.
 
 
-def get_active_address(name, arec):
+def get_active_address(name, arec, message_version=MESSAGE_VERSION):
     """Get the addresses of the active modules for a given publisher *name*."""
     addrs = arec.get(name)
     if addrs:
-        return Message("/oper/ns", "info", addrs)
+        return Message("/oper/ns", "info", addrs, version=message_version)
     else:
-        return Message("/oper/ns", "info", "")
+        return Message("/oper/ns", "info", "", version=message_version)
 
 
 class NameServer:
@@ -119,18 +121,18 @@ class NameServer:
         from posttroll.backends.zmq.ns import ZMQNameServer
         self._ns = ZMQNameServer()
 
-    def run(self, *args):
+    def run(self, address_receiver=None, nameserver_address=None):
         """Run the listener and answer to requests."""
-        del args
-
-        arec = AddressReceiver(max_age=self._max_age,
-                               multicast_enabled=self._multicast_enabled,
-                               restrict_to_localhost=self._restrict_to_localhost)
-        arec.start()
+        if address_receiver is None:
+            address_receiver = AddressReceiver(max_age=self._max_age,
+                                               multicast_enabled=self._multicast_enabled,
+                                               restrict_to_localhost=self._restrict_to_localhost)
+            address_receiver.start()
         try:
-            return self._ns.run(arec)
+            return self._ns.run(address_receiver, nameserver_address)
         finally:
-            arec.stop()
+            with suppress(AttributeError):
+                address_receiver.stop()
 
     def stop(self):
         """Stop the nameserver."""

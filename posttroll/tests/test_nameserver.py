@@ -11,8 +11,9 @@ from unittest import mock
 import pytest
 
 from posttroll import config
+from posttroll.backends.zmq.ns import create_nameserver_address
 from posttroll.message import Message
-from posttroll.ns import NameServer, get_pub_address
+from posttroll.ns import NameServer, get_configured_nameserver_port, get_pub_address
 from posttroll.publisher import Publish
 from posttroll.subscriber import Subscribe
 
@@ -59,6 +60,9 @@ def create_nameserver_instance(max_age=3, multicast_enabled=True):
         ns.stop()
         thr.join()
 
+def fake_nameserver():
+    config.set(nameserver_port=1111)
+    config.set(address_publish_port())
 
 class TestAddressReceiver(unittest.TestCase):
     """Test the AddressReceiver."""
@@ -255,3 +259,58 @@ def test_switch_backend_for_nameserver():
             NameServer()
         with pytest.raises(NotImplementedError):
             get_pub_address("some_name")
+
+
+def test_create_nameserver_address(tmp_path):
+    """Test creating the nameserver address."""
+    port = get_configured_nameserver_port()
+    res = create_nameserver_address("somehost")
+    assert res == f"tcp://somehost:{port}"
+
+    preformatted_address = f"ipc://{str(tmp_path)}"
+    res = create_nameserver_address(preformatted_address)
+    assert res == preformatted_address
+
+    tcp_without_port = "tcp://somehost"
+    res = create_nameserver_address(tcp_without_port)
+    assert res == f"tcp://somehost:{port}"
+
+
+def test_no_tcp_nameserver(tmp_path):
+    """Test running a nameserver without tcp and multicast."""
+    nserver = NameServer()
+    ns_address = f"ipc://{str(tmp_path)}/ns1"
+    service_addresses = ["some", "addresses"]
+    thr = Thread(target=nserver.run,
+                 args=(dict(cool_service=service_addresses),
+                       ns_address))
+    thr.start()
+    try:
+        addrs = get_pub_address("cool_service", nameserver=ns_address)
+        assert addrs == service_addresses
+    finally:
+        nserver.stop()
+        thr.join()
+
+
+@pytest.mark.parametrize("version", ["v1.01", "v1.2"])
+def test_message_version_compatibility(tmp_path, version):
+    """Ensure the message version of nameserver responses."""
+    from posttroll.backends.zmq.ns import zmq_request_to_nameserver
+    nserver = NameServer()
+    ns_address = f"ipc://{str(tmp_path)}/ns1"
+    service_addresses = ["some", "addresses"]
+    thr = Thread(target=nserver.run,
+                 args=(dict(cool_service=service_addresses),
+                       ns_address))
+    thr.start()
+
+    try:
+        request = Message("/oper/ns", "request", {"service": "cool_service"}, version=version)
+        response = zmq_request_to_nameserver(ns_address, request, 1)
+        assert response.version == version
+    finally:
+        nserver.stop()
+        thr.join()
+    print(response)
+
