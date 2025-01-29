@@ -24,10 +24,10 @@
 """Test module for the message class."""
 
 import copy
+import datetime as dt
 import os
 import sys
 import unittest
-from datetime import datetime
 
 from posttroll.message import _MAGICK, Message
 
@@ -36,7 +36,7 @@ sys.path = [os.path.abspath(HOME + "/../.."), ] + sys.path
 
 
 DATADIR = HOME + "/data"
-SOME_METADATA = {"timestamp": datetime(2010, 12, 3, 16, 28, 39),
+SOME_METADATA = {"timestamp": dt.datetime(2010, 12, 3, 16, 28, 39),
                  "satellite": "metop2",
                  "uri": "file://data/my/path/to/hrpt/files/myfile",
                  "orbit": 1222,
@@ -154,3 +154,39 @@ class Test(unittest.TestCase):
         msg = json.loads(local_dump)
         for key, val in msg.items():
             assert val == metadata.get(key)
+
+
+def test_message_can_take_version():
+    """Ensure version info is used by message constructor."""
+    version = "v1.01"
+    msg = Message("a", "b", "c", version=version)
+    assert msg.version == version
+    rawmsg = str(msg)
+    assert version in rawmsg
+    msg = Message(rawstr=rawmsg)
+    assert msg.version == version
+
+
+def test_message_can_generate_v1_01():
+    """Ensure old message does not contain time zone info."""
+    version = "v1.01"
+    msg = Message("a", "b",
+                  data=dict(start_time=dt.datetime.now(dt.timezone.utc)),
+                  version=version)
+    rawmsg = str(msg)
+    assert "+00:00" not in rawmsg
+    msg = Message(rawstr=rawmsg)
+    assert "+00:00" not in str(msg)
+    assert str(msg) == rawmsg
+
+
+def test_message_has_timezone_by_default():
+    """Ensure message contain time zone info."""
+    msg = Message("a", "b",
+                  data=dict(start_time=dt.datetime.now(dt.timezone.utc)))
+    rawmsg = str(msg)
+    assert "+00:00" in rawmsg
+    msg = Message(rawstr=rawmsg)
+    assert "+00:00" in str(msg)
+    assert str(msg) == rawmsg
+
