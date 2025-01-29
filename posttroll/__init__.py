@@ -24,9 +24,7 @@
 
 """Posttroll packages."""
 
-import datetime as dt
 import logging
-import sys
 
 from donfig import Config
 
@@ -46,6 +44,3 @@ def get_context():
         return get_context()
     else:
         raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
-
-
-

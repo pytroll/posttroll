@@ -50,7 +50,7 @@ def get_configured_nameserver_port():
     try:
         port = int(os.environ["NAMESERVER_PORT"])
         warnings.warn("NAMESERVER_PORT is pending deprecation, please use POSTTROLL_NAMESERVER_PORT instead.",
-                    PendingDeprecationWarning)
+                      PendingDeprecationWarning, stacklevel=2)
     except KeyError:
         port = DEFAULT_NAMESERVER_PORT
     return config.get("nameserver_port", port)
@@ -70,8 +70,8 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     if names is None:
         names = ["", ]
     for name in names:
-        then = dt.datetime.now() + dt.timedelta(seconds=timeout)
-        while dt.datetime.now() < then:
+        then = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=timeout)
+        while dt.datetime.now(dt.timezone.utc) < then:
             addrs += get_pub_address(name, nameserver=nameserver, timeout=timeout)
             if addrs:
                 break

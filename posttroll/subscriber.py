@@ -196,8 +196,8 @@ class NSSubscriber:
         """Start the subscriber."""
         def _get_addr_loop(service, timeout):
             """Try to get the address of *service* until for *timeout* seconds."""
-            then = dt.datetime.now() + dt.timedelta(seconds=timeout)
-            while dt.datetime.now() < then:
+            then = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=timeout)
+            while dt.datetime.now(dt.timezone.utc) < then:
                 addrs = get_pub_address(service, self._timeout, nameserver=self._nameserver)
                 if addrs:
                     return [addr["URI"] for addr in addrs]

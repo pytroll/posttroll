@@ -23,6 +23,7 @@
 
 """Test the publishing and subscribing facilities."""
 
+import logging
 import time
 import unittest
 from contextlib import contextmanager
@@ -198,6 +199,11 @@ def _get_port_from_publish_instance(min_port=None, max_port=None):
 class TestListenerContainerNoNameserver(unittest.TestCase):
     """Testing listener container without nameserver."""
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        """Inject fixtures."""
+        self._caplog = caplog
+
     def setUp(self):
         """Set up the testing class."""
         test_lock.acquire()
@@ -215,20 +221,25 @@ class TestListenerContainerNoNameserver(unittest.TestCase):
         pub = Publisher(pub_addr, name="test")
         pub.start()
         time.sleep(2)
-        sub = ListenerContainer(topics=["/counter"], nameserver=False, addresses=[pub_addr])
-        time.sleep(2)
-        for counter in range(5):
-            tested = False
-            msg_out = Message("/counter", "info", str(counter))
-            pub.send(str(msg_out))
+        with self._caplog.at_level(logging.DEBUG):
+            sub = ListenerContainer(topics=["/counter"], nameserver=False, addresses=[pub_addr])
+            time.sleep(2)
+            for counter in range(5):
+                tested = False
+                msg_out = Message("/counter", "info", str(counter))
+                pub.send(str(msg_out))
 
-            msg_in = sub.output_queue.get(True, 1)
-            if msg_in is not None:
-                assert str(msg_in) == str(msg_out)
-                tested = True
-            assert tested
-        pub.stop()
-        sub.stop()
+                msg_in = sub.output_queue.get(True, 1)
+                if msg_in is not None:
+                    assert str(msg_in) == str(msg_out)
+                    tested = True
+                assert tested
+            pub.stop()
+            sub.stop()
+
+        assert "posttroll.listener.ListenerContainer" in self._caplog.text
+        assert sub.logger.name == "posttroll.listener.ListenerContainer"
+        assert sub.listener.logger.name == "posttroll.listener.Listener"
 
 
 # Test create_publisher_from_config

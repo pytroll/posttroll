@@ -1,10 +1,10 @@
 """Tests for communication involving the nameserver for service discovery."""
 
+import datetime as dt
 import os
 import time
 import unittest
 from contextlib import contextmanager
-from datetime import timedelta
 from threading import Thread
 from unittest import mock
 
@@ -50,7 +50,7 @@ def create_nameserver_instance(max_age=3, multicast_enabled=True):
     """Create a nameserver instance."""
     config.set(nameserver_port=free_port())
     config.set(address_publish_port=free_port())
-    ns = NameServer(max_age=timedelta(seconds=max_age), multicast_enabled=multicast_enabled)
+    ns = NameServer(max_age=dt.timedelta(seconds=max_age), multicast_enabled=multicast_enabled)
     thr = Thread(target=ns.run)
     thr.start()
 

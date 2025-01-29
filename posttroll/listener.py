@@ -34,7 +34,7 @@ from posttroll.subscriber import create_subscriber_from_dict_config
 class ListenerContainer:
     """Container for a listener instance."""
 
-    logger = logging.getLogger("ListenerContainer")
+    logger = logging.getLogger(__name__ + ".ListenerContainer")
 
     def __init__(self, topics=None, addresses=None, nameserver="localhost", services=""):
         """Initialize the class."""
@@ -82,7 +82,7 @@ class ListenerContainer:
 class Listener:
     """PyTroll listener class for reading messages for eg. operational product generation."""
 
-    logger = logging.getLogger("Listener")
+    logger = logging.getLogger(__name__ + ".Listener")
 
     def __init__(self, topics=None, queue=None, addresses=None,
                  nameserver="localhost", services=""):
