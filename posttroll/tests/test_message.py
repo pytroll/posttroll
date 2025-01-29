@@ -158,9 +158,9 @@ def test_serialization(mda, compare_file):
     for key, val in msg.items():
         assert val == metadata.get(key)
 
-        msg = json.loads(local_dump)
-        for key, val in msg.items():
-            assert val == metadata.get(key)
+    msg = json.loads(local_dump)
+    for key, val in msg.items():
+        assert val == metadata.get(key)
 
 
 def test_message_can_take_version():
