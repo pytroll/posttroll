@@ -27,6 +27,7 @@ Default port is 5557, if $POSTTROLL_NAMESERVER_PORT is not defined.
 """
 import datetime as dt
 import logging
+import logging.handlers
 import os
 import time
 import warnings
@@ -144,8 +145,6 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--daemon", help="Run as a daemon",
-                        choices=["start", "stop", "status", "restart"])
     parser.add_argument("-l", "--log", help="File to log to (defaults to stdout)",
                         default=None)
     parser.add_argument("-v", "--verbose", help="print debug messages too",
@@ -162,17 +161,12 @@ def main():
 
     ns = NameServer(multicast_enabled=multicast_enabled, restrict_to_localhost=local_only)
 
-    if opts.daemon is None:
-        run(ns, logger)
-
-    else:  # Running as a daemon
-        run_as_daemon(ns, opts)
+    run(ns, logger)
 
 
 def setup_logging(opts):
     """Set up logging."""
     if opts.log:
-        import logging.handlers
         handler = logging.handlers.TimedRotatingFileHandler(opts.log,
                                                             "midnight",
                                                             backupCount=7)
@@ -206,50 +200,4 @@ def run(ns, logger):
               "See you soon on www.pytroll.org!")
 
 
-def run_as_daemon(ns, opts):
-    """Run nameserver as a daemon."""
-    if opts.daemon == "status":
-        import os
-        import sys
-        if os.path.exists("/tmp/nameserver.pid"):
-            with open("/tmp/nameserver.pid") as fd_:
-                pid = int(fd_.read())
-                try:
-                    os.kill(pid, 0)
-                except OSError:
-                    sys.exit(1)
-                else:
-                    sys.exit(0)
-        else:
-            sys.exit(1)
-    try:
-        import signal
-        import sys
 
-        import daemon.runner
-
-        class App(object):
-            """App object for running the nameserver as daemon."""
-            stdin_path = "/dev/null"
-            stdout_path = "/dev/null"
-            stderr_path = "/dev/null"
-            run = ns.run
-            pidfile_path = "/tmp/nameserver.pid"
-            pidfile_timeout = 90
-
-        def _terminate(*args):
-            """Terminate the nameserver."""
-            del args
-            ns.stop()
-
-        signal.signal(signal.SIGTERM, _terminate)
-
-        APP = App()
-        sys.argv = [sys.argv[0], opts.daemon]
-        angel = daemon.runner.DaemonRunner(APP)
-        if opts.log:
-            angel.daemon_context.files_preserve = [handler.stream]
-        angel.parse_args([sys.argv[0], opts.daemon])
-        sys.exit(angel.do_action())
-    except ImportError:
-        print("Cannot run as a daemon, you need python-daemon installed.")
