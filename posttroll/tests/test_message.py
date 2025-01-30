@@ -143,8 +143,8 @@ def test_metadata(mda):
 
 
 @pytest.mark.parametrize(("mda", "compare_file"),
-                         ((TZ_UNAWARE_METADATA, "/message_metadata_unaware.dumps"),
-                         ((TZ_AWARE_METADATA, "/message_metadata_aware.dumps"))))
+                         [(TZ_UNAWARE_METADATA, "/message_metadata_unaware.dumps"),
+                          (TZ_AWARE_METADATA, "/message_metadata_aware.dumps")])
 def test_serialization(mda, compare_file):
     """Test json serialization."""
     import json
