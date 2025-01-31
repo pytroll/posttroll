@@ -60,9 +60,6 @@ def create_nameserver_instance(max_age=3, multicast_enabled=True):
         ns.stop()
         thr.join()
 
-def fake_nameserver():
-    config.set(nameserver_port=1111)
-    config.set(address_publish_port())
 
 class TestAddressReceiver(unittest.TestCase):
     """Test the AddressReceiver."""
