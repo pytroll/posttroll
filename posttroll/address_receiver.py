@@ -54,7 +54,7 @@ ten_minutes = dt.timedelta(minutes=10)
 zero_seconds = dt.timedelta(seconds=0)
 
 
-def get_configured_address_port():
+def get_configured_address_port() -> int:
     return config.get("address_publish_port", DEFAULT_ADDRESS_PUBLISH_PORT)
 
 
@@ -62,7 +62,7 @@ def get_local_ips():
     """Get local IP addresses."""
     inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
                   for iface in netifaces.interfaces()]
-    ips = []
+    ips:list[str] = []
     for addr in inet_addrs:
         if addr is not None:
             for add in addr:
@@ -132,7 +132,7 @@ class AddressReceiver:
         if (now - self._last_age_check) <= min_interval:
             return
 
-        LOGGER.debug("%s - checking addresses", str(dt.datetime.now(dt.timezone.utc)))
+        logger.debug("%s - checking addresses", str(dt.datetime.now(dt.timezone.utc)))
         self._last_age_check = now
         to_del = []
         with self._address_lock:

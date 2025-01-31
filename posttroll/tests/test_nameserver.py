@@ -18,7 +18,7 @@ from posttroll.publisher import Publish
 from posttroll.subscriber import Subscribe
 
 
-def free_port():
+def free_port() -> int:
     """Get a free port.
 
     From https://gist.github.com/bertjwregeer/0be94ced48383a42e70c3d9fff1f4ad0
@@ -39,7 +39,7 @@ def free_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(("0.0.0.0", 0))
-    portnum = s.getsockname()[1]
+    portnum:int = s.getsockname()[1]
     s.close()
 
     return portnum
@@ -242,6 +242,35 @@ def test_noisypublisher_heartbeat():
 
             with Subscribe("test", topics="/heartbeat/test", nameserver="localhost") as sub:
                 time.sleep(0.2)
+                pub.heartbeat(min_interval=min_interval)
+                msg = next(sub.recv(1))
+            assert msg.type == "beat"
+            assert msg.data == {"min_interval": min_interval}
+    finally:
+        pub.stop()
+        ns_.stop()
+        thr.join()
+
+
+def test_noisypublisher_heartbeat_no_multicast():
+    """Test that the heartbeat in the NoisyPublisher works with multicast disabled."""
+    from posttroll.publisher import NoisyPublisher
+    from posttroll.subscriber import Subscribe
+
+    min_interval = 10
+
+    try:
+        with config.set(address_publish_port=free_port(), nameserver_port=free_port()):
+            ns_ = NameServer(multicast_enabled=False)
+            thr = Thread(target=ns_.run)
+            thr.start()
+
+            pub = NoisyPublisher("test", nameservers=["localhost"])
+            pub.start()
+            time.sleep(0.1)
+
+            with Subscribe("test", topics="/heartbeat/test", nameserver="localhost") as sub:
+                time.sleep(0.1)
                 pub.heartbeat(min_interval=min_interval)
                 msg = next(sub.recv(1))
             assert msg.type == "beat"
