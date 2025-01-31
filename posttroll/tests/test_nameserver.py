@@ -18,6 +18,7 @@ from posttroll.message import Message
 from posttroll.ns import NameServer, get_configured_nameserver_port, get_pub_address
 from posttroll.publisher import Publish
 from posttroll.subscriber import Subscribe
+from posttroll.tests.test_bbmcast import random_valid_mc_address
 
 
 @pytest.fixture(autouse=True)
@@ -27,6 +28,15 @@ def new_context(monkeypatch):
     def get_context():
         return context
     monkeypatch.setattr(posttroll.backends.zmq, "get_context", get_context)
+
+
+@pytest.fixture(autouse=True)
+def new_mc_group():
+    """Create a unique mc group for each test."""
+    mc_group = random_valid_mc_address()
+    print(mc_group)
+    config.set(mc_group=mc_group)
+
 
 
 def free_port() -> int:
