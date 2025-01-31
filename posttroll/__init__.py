@@ -29,7 +29,7 @@ import logging
 from donfig import Config
 
 config = Config("posttroll", defaults=[dict(backend="unsecure_zmq")])
-# context = {}
+
 logger = logging.getLogger(__name__)
 
 

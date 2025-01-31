@@ -1,5 +1,6 @@
 """ZMQ socket handling functions."""
 
+from functools import cache
 from urllib.parse import urlsplit, urlunsplit
 
 import zmq
@@ -56,11 +57,11 @@ def create_secure_client_socket(socket_type):
     return subscriber
 
 
-def set_up_server_socket(socket_type, destination, options=None, port_interval=(None, None)):
+def set_up_server_socket(socket_type:int, destination, options=None, port_interval=(None, None)):
     """Set up a server (binding) socket."""
     if options is None:
         options = {}
-    backend = config["backend"]
+    backend:str = config["backend"]
     if backend == "unsecure_zmq":
         sock = create_unsecure_server_socket(socket_type)
         authenticator = None
@@ -73,7 +74,7 @@ def set_up_server_socket(socket_type, destination, options=None, port_interval=(
     return sock, port, authenticator
 
 
-def create_unsecure_server_socket(socket_type):
+def create_unsecure_server_socket(socket_type:int) -> zmq.Socket[int]:
     """Create an unsecure server socket."""
     return get_context().socket(socket_type)
 
@@ -101,6 +102,12 @@ def bind(sock, destination, port_interval):
         port_number = port
     return port_number
 
+@cache
+def get_auth_thread(ctx):
+    """Get the authenticator thread for the context."""
+    thr = ThreadAuthenticator(ctx)
+    thr.start()
+    return thr
 
 def create_secure_server_socket(socket_type):
     """Create a secure server socket."""
@@ -109,10 +116,8 @@ def create_secure_server_socket(socket_type):
     authorized_sub_addresses = config.get("authorized_client_addresses", [])
 
     ctx = get_context()
-
     # Start an authenticator for this context.
-    authenticator_thread = ThreadAuthenticator(ctx)
-    authenticator_thread.start()
+    authenticator_thread = get_auth_thread(ctx)
     authenticator_thread.allow(*authorized_sub_addresses)
     # Tell authenticator to use the certificate in a directory
     authenticator_thread.configure_curve(domain="*", location=clients_public_keys_directory)

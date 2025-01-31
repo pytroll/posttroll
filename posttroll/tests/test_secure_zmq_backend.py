@@ -6,8 +6,10 @@ import shutil
 import time
 from threading import Thread
 
+import pytest
 import zmq.auth
 
+import posttroll.backends.zmq
 from posttroll import config
 from posttroll.backends.zmq import generate_keys
 from posttroll.message import Message
@@ -15,6 +17,15 @@ from posttroll.ns import get_pub_address
 from posttroll.publisher import Publisher, create_publisher_from_dict_config
 from posttroll.subscriber import Subscriber, create_subscriber_from_dict_config
 from posttroll.tests.test_nameserver import create_nameserver_instance
+
+
+@pytest.fixture(autouse=True)
+def new_context(monkeypatch):
+    """Create a new context for each test."""
+    context = zmq.Context()
+    def get_context():
+        return context
+    monkeypatch.setattr(posttroll.backends.zmq, "get_context", get_context)
 
 
 def create_keys(tmp_path):
@@ -111,8 +122,6 @@ def test_switch_to_secure_zmq_backend(tmp_path):
 
 def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
     """Test pub-sub on a secure ipc socket."""
-    # create_keys(tmp_path)
-
     server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
     client_public_key_file, client_secret_key_file = zmq.auth.create_certificates(tmp_path, "client")
 
