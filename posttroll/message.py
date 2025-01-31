@@ -113,25 +113,19 @@ class Message:
       - It will make a Message pickleable.
     """
 
-    def __init__(self, subject="", atype="", data="", binary=False, rawstr=None, version=MESSAGE_VERSION):
+    def __init__(self, subject:str="", atype:str="", data="", binary:bool=False,
+                 rawstr:str|None=None, version:str=MESSAGE_VERSION):
         """Initialize a Message from a subject, type and data, or from a raw string."""
         if rawstr:
             self.__dict__ = _decode(rawstr)
         else:
-            try:
-                self.subject = subject.decode("utf-8")
-            except AttributeError:
-                self.subject = subject
-            try:
-                self.type = atype.decode("utf-8")
-            except AttributeError:
-                self.type = atype
-            self.type = atype
-            self.sender = _getsender()
+            self.subject:str = subject
+            self.type:str = atype
+            self.sender:str = _getsender()
             self.time = dt.datetime.now(dt.timezone.utc)
             self.data = data
-            self.binary = binary
-            self.version = version
+            self.binary:bool = binary
+            self.version:str = version
         self._validate()
 
     @property
@@ -176,10 +170,7 @@ class Message:
 
     def __str__(self):
         """Return the human readable representation of the Message."""
-        try:
-            return unicode(self).encode("utf-8")
-        except NameError:
-            return self.encode()
+        return self.encode()
 
     def _validate(self):
         """Validate a messages attributes."""
@@ -330,6 +321,7 @@ def _encode_dt_no_timezone(obj):
 
 
 def create_datetime_encoder_for_version(version=MESSAGE_VERSION):
+    """Create a datetime encoder depending on the message protocol version."""
     if version <= "v1.01":
         dt_coder = _encode_dt_no_timezone
     else:
@@ -338,6 +330,7 @@ def create_datetime_encoder_for_version(version=MESSAGE_VERSION):
 
 
 def create_datetime_json_encoder_for_version(version=MESSAGE_VERSION):
+    """Create a datetime json encoder depending on the message protocol version."""
     return partial(datetime_encoder,
                    encoder=create_datetime_encoder_for_version(version))
 

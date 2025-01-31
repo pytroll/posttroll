@@ -195,7 +195,7 @@ def run(ns, logger):
         logger.exception("Something wrong happened...")
         raise
     finally:
-        print("Thanks for using pytroll/nameserver. "
+        print("Thanks for using pytroll/nameserver. "  # noqa
               "See you soon on www.pytroll.org!")
 
 
