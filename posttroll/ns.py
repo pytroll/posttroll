@@ -35,8 +35,7 @@ from contextlib import suppress
 
 from posttroll import config
 from posttroll.address_receiver import AddressReceiver
-from posttroll.message import _VERSION as MESSAGE_VERSION
-from posttroll.message import Message
+from posttroll.message import MESSAGE_VERSION, Message
 
 # pylint: enable=E0611
 
@@ -46,7 +45,7 @@ DEFAULT_NAMESERVER_PORT = 5557
 logger = logging.getLogger(__name__)
 
 
-def get_configured_nameserver_port():
+def get_configured_nameserver_port() -> int:
     """Get the configured nameserver port."""
     try:
         port = int(os.environ["NAMESERVER_PORT"])
@@ -54,13 +53,13 @@ def get_configured_nameserver_port():
                       PendingDeprecationWarning, stacklevel=2)
     except KeyError:
         port = DEFAULT_NAMESERVER_PORT
-    return config.get("nameserver_port", port)
+    return int(config.get("nameserver_port", port))
 
 
 # Client functions.
 
 
-def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
+def get_pub_addresses(names:list[str] | None=None, timeout:float=10, nameserver:str="localhost"):
     """Get the addresses of the publishers.
 
     Kwargs:
@@ -80,7 +79,7 @@ def get_pub_addresses(names=None, timeout=10, nameserver="localhost"):
     return addrs
 
 
-def get_pub_address(name, timeout=10, nameserver="localhost"):
+def get_pub_address(name:str, timeout:float|int=10, nameserver:str="localhost"):
     """Get the address of the named publisher.
 
     Args:

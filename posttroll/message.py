@@ -44,7 +44,7 @@ import re
 from functools import partial
 
 _MAGICK = "pytroll:/"
-_VERSION = "v1.2"
+MESSAGE_VERSION = "v1.2"
 
 
 class MessageError(Exception):
@@ -84,7 +84,7 @@ def is_valid_sender(obj):
     return isinstance(obj, str) and bool(obj)
 
 
-def is_valid_data(obj, version=_VERSION):
+def is_valid_data(obj, version=MESSAGE_VERSION):
     """Check if data is JSON serializable."""
     if obj:
         encoder = create_datetime_json_encoder_for_version(version)
@@ -113,7 +113,7 @@ class Message:
       - It will make a Message pickleable.
     """
 
-    def __init__(self, subject="", atype="", data="", binary=False, rawstr=None, version=_VERSION):
+    def __init__(self, subject="", atype="", data="", binary=False, rawstr=None, version=MESSAGE_VERSION):
         """Initialize a Message from a subject, type and data, or from a raw string."""
         if rawstr:
             self.__dict__ = _decode(rawstr)
@@ -212,7 +212,7 @@ class Message:
 
 def _is_valid_version(version):
     """Check version."""
-    return version <= _VERSION
+    return version <= MESSAGE_VERSION
 
 
 def datetime_decoder(dct):
@@ -329,7 +329,7 @@ def _encode_dt_no_timezone(obj):
     return obj.replace(tzinfo=None).isoformat()
 
 
-def create_datetime_encoder_for_version(version=_VERSION):
+def create_datetime_encoder_for_version(version=MESSAGE_VERSION):
     if version <= "v1.01":
         dt_coder = _encode_dt_no_timezone
     else:
@@ -337,7 +337,7 @@ def create_datetime_encoder_for_version(version=_VERSION):
     return dt_coder
 
 
-def create_datetime_json_encoder_for_version(version=_VERSION):
+def create_datetime_json_encoder_for_version(version=MESSAGE_VERSION):
     return partial(datetime_encoder,
                    encoder=create_datetime_encoder_for_version(version))
 
