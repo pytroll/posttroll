@@ -28,15 +28,15 @@ def new_context(monkeypatch):
     def get_context():
         return context
     monkeypatch.setattr(posttroll.backends.zmq, "get_context", get_context)
+    yield
+    context.term()
 
 
 @pytest.fixture(autouse=True)
 def new_mc_group():
     """Create a unique mc group for each test."""
     mc_group = random_valid_mc_address()
-    print(mc_group)
     config.set(mc_group=mc_group)
-
 
 
 def free_port() -> int:
@@ -109,7 +109,8 @@ class TestAddressReceiver(unittest.TestCase):
 
 @pytest.mark.parametrize(
     "multicast_enabled",
-    [True, False]
+    [True, False],
+    ids=["mc on", "mc off"]
 )
 def test_pub_addresses(multicast_enabled):
     """Test retrieving addresses."""
@@ -148,7 +149,8 @@ def test_pub_addresses(multicast_enabled):
 
 @pytest.mark.parametrize(
     "multicast_enabled",
-    [True, False]
+    [True, False],
+    ids=["mc on", "mc off"]
 )
 def test_pub_sub_ctx(multicast_enabled):
     """Test publish and subscribe."""
@@ -176,7 +178,8 @@ def test_pub_sub_ctx(multicast_enabled):
 
 @pytest.mark.parametrize(
     "multicast_enabled",
-    [True, False]
+    [True, False],
+    ids=["mc on", "mc off"]
 )
 def test_pub_sub_add_rm(multicast_enabled):
     """Test adding and removing publishers."""
@@ -359,5 +362,4 @@ def test_message_version_compatibility(tmp_path, version):
     finally:
         nserver.stop()
         thr.join()
-    print(response)
 

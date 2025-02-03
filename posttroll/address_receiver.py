@@ -167,13 +167,14 @@ class AddressReceiver:
                                 logger.debug("Multicast socket timed out on recv!")
                             continue
                         else:
-                            raise
+                            return
                     except ZMQError:
                         return
                     finally:
-                        self._check_age(pub, min_interval=self._max_age / 20)
-                        if self._do_heartbeat:
-                            pub.heartbeat(min_interval=29)
+                        if self._do_run:
+                            self._check_age(pub, min_interval=self._max_age / 20)
+                            if self._do_heartbeat:
+                                pub.heartbeat(min_interval=29)
                     if self._multicast_enabled:
                         ip_, port = fromaddr
                         if self._restrict_to_localhost and ip_ not in self._local_ips:
@@ -204,7 +205,7 @@ class AddressReceiver:
         """Set up the address receiver depending on if it is multicast or not."""
         nameservers = False
         if self._multicast_enabled:
-            while True:
+            while True:  # should this really be tried forever? wouldn't it be enough with 3?
                 try:
                     recv = MulticastReceiver(port)
                 except IOError as err:
