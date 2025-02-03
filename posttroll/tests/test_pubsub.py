@@ -487,7 +487,7 @@ def test_subscriber_tcp_keepalive():
     sub = ZMQSubscriber(f"tcp://127.0.0.1:{str(free_port())}")
     assert len(sub.addr_sub.values()) == 1
     _assert_tcp_keepalive(list(sub.addr_sub.values())[0])
-    sub._stop()
+    sub.close()
 
 
 @pytest.mark.usefixtures("_tcp_keepalive_no_settings")

@@ -30,7 +30,6 @@ def new_context(monkeypatch):
     context.term()
 
 
-
 def create_keys(tmp_path):
     """Create keys."""
     base_dir = tmp_path
