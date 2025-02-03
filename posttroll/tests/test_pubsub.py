@@ -35,25 +35,12 @@ import zmq
 from donfig import Config
 
 import posttroll
-import posttroll.backends.zmq
 from posttroll import config
 from posttroll.message import Message
 from posttroll.publisher import Publish, Publisher, create_publisher_from_dict_config
 from posttroll.subscriber import Subscribe, Subscriber
 
 test_lock = Lock()
-
-
-@pytest.fixture(autouse=True)
-def new_context(monkeypatch):
-    """Create a new context for each test."""
-    context = zmq.Context()
-    def get_context():
-        return context
-    monkeypatch.setattr(posttroll.backends.zmq, "get_context", get_context)
-    yield
-    context.term()
-
 
 def free_port():
     """Get a free port.
@@ -501,7 +488,6 @@ def test_subscriber_tcp_keepalive_not_set():
 
 
 def _assert_tcp_keepalive(socket):
-    import zmq
 
     assert socket.getsockopt(zmq.TCP_KEEPALIVE) == 1
     assert socket.getsockopt(zmq.TCP_KEEPALIVE_CNT) == 10
@@ -510,7 +496,6 @@ def _assert_tcp_keepalive(socket):
 
 
 def _assert_no_tcp_keepalive(socket):
-    import zmq
 
     assert socket.getsockopt(zmq.TCP_KEEPALIVE) == -1
     assert socket.getsockopt(zmq.TCP_KEEPALIVE_CNT) == -1

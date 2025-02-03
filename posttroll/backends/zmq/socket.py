@@ -2,14 +2,18 @@
 
 from contextlib import suppress
 from functools import cache
+from threading import Lock
 from urllib.parse import urlsplit, urlunsplit
 
 import zmq
+from zmq.auth import load_certificate
 from zmq.auth.thread import ThreadAuthenticator
 
-from posttroll import config, get_context
+from posttroll import config
+from posttroll.backends.zmq import get_context
 from posttroll.message import Message
 
+authenticator_lock = Lock()
 
 def close_socket(sock):
     """Close a zmq socket."""
@@ -49,11 +53,11 @@ def create_secure_client_socket(socket_type):
 
     client_secret_key_file = config["client_secret_key_file"]
     server_public_key_file = config["server_public_key_file"]
-    client_public, client_secret = zmq.auth.load_certificate(client_secret_key_file)
+    client_public, client_secret = load_certificate(client_secret_key_file)
     subscriber.curve_secretkey = client_secret
     subscriber.curve_publickey = client_public
 
-    server_public, _ = zmq.auth.load_certificate(server_public_key_file)
+    server_public, _ = load_certificate(server_public_key_file)
     # The client must know the server's public key to make a CURVE connection.
     subscriber.curve_serverkey = server_public
     return subscriber
@@ -119,14 +123,15 @@ def create_secure_server_socket(socket_type):
 
     ctx = get_context()
     # Start an authenticator for this context.
-    authenticator_thread = get_auth_thread(ctx)
+    with authenticator_lock:
+        authenticator_thread = get_auth_thread(ctx)
     authenticator_thread.allow(*authorized_sub_addresses)
     # Tell authenticator to use the certificate in a directory
     authenticator_thread.configure_curve(domain="*", location=clients_public_keys_directory)
 
     server_socket = ctx.socket(socket_type)
 
-    server_public, server_secret = zmq.auth.load_certificate(server_secret_key)
+    server_public, server_secret = load_certificate(server_secret_key)
     server_socket.curve_secretkey = server_secret
     server_socket.curve_publickey = server_public
     server_socket.curve_server = True

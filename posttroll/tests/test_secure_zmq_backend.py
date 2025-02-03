@@ -6,10 +6,8 @@ import shutil
 import time
 from threading import Thread
 
-import pytest
 import zmq.auth
 
-import posttroll.backends.zmq
 from posttroll import config
 from posttroll.backends.zmq import generate_keys
 from posttroll.message import Message
@@ -17,17 +15,6 @@ from posttroll.ns import get_pub_address
 from posttroll.publisher import Publisher, create_publisher_from_dict_config
 from posttroll.subscriber import Subscriber, create_subscriber_from_dict_config
 from posttroll.tests.test_nameserver import create_nameserver_instance
-
-
-@pytest.fixture(autouse=True)
-def new_context(monkeypatch):
-    """Create a new context for each test."""
-    context = zmq.Context()
-    def get_context():
-        return context
-    monkeypatch.setattr(posttroll.backends.zmq, "get_context", get_context)
-    yield
-    context.term()
 
 
 def create_keys(tmp_path):

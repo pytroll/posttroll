@@ -9,9 +9,7 @@ from threading import Thread
 from unittest import mock
 
 import pytest
-import zmq
 
-import posttroll.backends.zmq
 from posttroll import config
 from posttroll.backends.zmq.ns import create_nameserver_address
 from posttroll.message import Message
@@ -19,17 +17,6 @@ from posttroll.ns import NameServer, get_configured_nameserver_port, get_pub_add
 from posttroll.publisher import Publish
 from posttroll.subscriber import Subscribe
 from posttroll.tests.test_bbmcast import random_valid_mc_address
-
-
-@pytest.fixture(autouse=True)
-def new_context(monkeypatch):
-    """Create a new context for each test."""
-    context = zmq.Context()
-    def get_context():
-        return context
-    monkeypatch.setattr(posttroll.backends.zmq, "get_context", get_context)
-    yield
-    context.term()
 
 
 @pytest.fixture(autouse=True)
