@@ -3,7 +3,6 @@
 import logging
 from contextlib import suppress
 from threading import Lock
-from typing import Any, Mapping
 from urllib.parse import urlsplit
 
 from zmq import LINGER, REP, REQ
@@ -87,7 +86,7 @@ class ZMQNameServer:
         self.listener:SocketReceiver|None = None
         self._authenticator = None
 
-    def run(self, address_receiver:Mapping[Any, Any], address:str|None=None):
+    def run(self, address_receiver, address:str|None=None):
         """Run the listener and answer to requests."""
         port = get_configured_nameserver_port()
 
