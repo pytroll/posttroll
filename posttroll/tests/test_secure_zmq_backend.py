@@ -26,6 +26,9 @@ def new_context(monkeypatch):
     def get_context():
         return context
     monkeypatch.setattr(posttroll.backends.zmq, "get_context", get_context)
+    yield
+    context.term()
+
 
 
 def create_keys(tmp_path):
