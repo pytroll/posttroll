@@ -219,7 +219,6 @@ class AddressReceiver:
                         raise
                 else:
                     recv.settimeout(tout=2.0)
-                    logger.info("Receiver initialized.")
                     break
 
         else:

@@ -158,6 +158,7 @@ class MulticastReceiver:
         # Note: a multicast receiver will also receive broadcast on same port.
         self.port = port
         self.socket, self.group = mcast_receiver(port, mcgroup)
+        logger.info("Receiver initialized.")
 
     def settimeout(self, tout=None):
         """Set timeout.
