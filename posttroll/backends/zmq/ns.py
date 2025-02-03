@@ -16,7 +16,7 @@ logger = logging.getLogger("__name__")
 nslock = Lock()
 
 
-def zmq_get_pub_address(name:str, timeout:float|int=10, nameserver:str="localhost"):
+def zmq_get_pub_address(name: str, timeout: float | int = 10, nameserver: str = "localhost"):
     """Get the address of the publisher.
 
     For a given publisher *name* from the nameserver on *nameserver* (localhost by default).
@@ -82,8 +82,8 @@ class ZMQNameServer:
 
     def __init__(self):
         """Set up the nameserver."""
-        self.running:bool = True
-        self.listener:SocketReceiver|None = None
+        self.running: bool = True
+        self.listener: SocketReceiver | None = None
         self._authenticator = None
 
     def run(self, address_receiver, address:str|None=None):

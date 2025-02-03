@@ -62,7 +62,7 @@ def get_local_ips():
     """Get local IP addresses."""
     inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
                   for iface in netifaces.interfaces()]
-    ips:list[str] = []
+    ips: list[str] = []
     for addr in inet_addrs:
         if addr is not None:
             for add in addr:
@@ -204,22 +204,23 @@ class AddressReceiver:
         """Set up the address receiver depending on if it is multicast or not."""
         nameservers = False
         if self._multicast_enabled:
-            while True:  # should this really be tried forever? wouldn't it be enough with 3?
+            retries_left = 3
+            while retries_left:
                 try:
                     recv = MulticastReceiver(port)
                 except IOError as err:
-                    if err.errno == errno.ENODEV:
+                    if err.errno == errno.ENODEV and retries_left:
+                        retry_interval = 10
                         logger.error("Receiver initialization failed "
                                      "(no such device). "
-                                     "Trying again in %d s",
-                                     10)
-                        time.sleep(10)
+                                     f"Trying again in {retry_interval} s")
+                        time.sleep(retry_interval)
+                        retries_left -= 1
                     else:
                         raise
                 else:
                     recv.settimeout(tout=2.0)
                     break
-
         else:
             if config["backend"] not in ["unsecure_zmq", "secure_zmq"]:
                 raise NotImplementedError
