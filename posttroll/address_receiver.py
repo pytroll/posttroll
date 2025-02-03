@@ -180,25 +180,29 @@ class AddressReceiver:
                         if self._restrict_to_localhost and ip_ not in self._local_ips:
                             logger.debug("Discard external message")
                             continue
-                    logger.debug("data %s", data)
-                    msg = Message.decode(data)
-                    name = msg.subject.split("/")[1]
-                    if msg.type == "info" and msg.subject.lower().startswith(self._subject):
-                        addr = msg.data["URI"]
-                        msg.data["status"] = True
-                        metadata = copy.copy(msg.data)
-                        metadata["name"] = name
-
-                        logger.debug("receiving address %s %s %s", str(addr),
-                                     str(name), str(metadata))
-                        if addr not in self._addresses:
-                            logger.info("nameserver: publish add '%s'",
-                                        str(msg))
-                            pub.send(msg.encode())
-                        self._add(addr, metadata)
+                    self.process_address_message(data, pub)
             finally:
                 self._is_running = False
                 recv.close()
+
+    def process_address_message(self, data, pub):
+        """Process a new address message."""
+        logger.debug("data %s", data)
+        msg = Message.decode(data)
+        name = msg.subject.split("/")[1]
+        if msg.type == "info" and msg.subject.lower().startswith(self._subject):
+            addr = msg.data["URI"]
+            msg.data["status"] = True
+            metadata = copy.copy(msg.data)
+            metadata["name"] = name
+
+            logger.debug("receiving address %s %s %s", str(addr),
+                         str(name), str(metadata))
+            if addr not in self._addresses:
+                logger.info("nameserver: publish add '%s'",
+                            str(msg))
+                pub.send(msg.encode())
+            self._add(addr, metadata)
 
     def set_up_address_receiver(self, port):
         """Set up the address receiver depending on if it is multicast or not."""
