@@ -1,5 +1,6 @@
 """ZMQ socket handling functions."""
 
+from contextlib import suppress
 from functools import cache
 from urllib.parse import urlsplit, urlunsplit
 
@@ -12,8 +13,9 @@ from posttroll.message import Message
 
 def close_socket(sock):
     """Close a zmq socket."""
-    sock.setsockopt(zmq.LINGER, 1)
-    sock.close()
+    with suppress(zmq.ContextTerminated):
+        sock.setsockopt(zmq.LINGER, 1)
+        sock.close()
 
 
 def set_up_client_socket(socket_type, address, options=None):

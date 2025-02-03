@@ -15,7 +15,7 @@ import posttroll.backends.zmq
 from posttroll import config
 from posttroll.backends.zmq.ns import create_nameserver_address
 from posttroll.message import Message
-from posttroll.ns import NameServer, get_configured_nameserver_port, get_pub_address
+from posttroll.ns import NameServer, get_configured_nameserver_port, get_pub_address, get_pub_addresses
 from posttroll.publisher import Publish
 from posttroll.subscriber import Subscribe
 from posttroll.tests.test_bbmcast import random_valid_mc_address
@@ -114,9 +114,6 @@ class TestAddressReceiver(unittest.TestCase):
 )
 def test_pub_addresses(multicast_enabled):
     """Test retrieving addresses."""
-    from posttroll.ns import get_pub_addresses
-    from posttroll.publisher import Publish
-
     if multicast_enabled:
         if os.getenv("DISABLED_MULTICAST"):
             pytest.skip("Multicast tests disabled.")

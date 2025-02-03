@@ -178,7 +178,6 @@ class AddressReceiver:
                     if self._multicast_enabled:
                         ip_, port = fromaddr
                         if self._restrict_to_localhost and ip_ not in self._local_ips:
-                            # discard external message
                             logger.debug("Discard external message")
                             continue
                     logger.debug("data %s", data)

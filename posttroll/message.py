@@ -43,8 +43,10 @@ import json
 import re
 from functools import partial
 
+from posttroll import config
+
 _MAGICK = "pytroll:/"
-MESSAGE_VERSION = "v1.2"
+MESSAGE_VERSION = config.get("message_version", "v1.2")
 
 
 class MessageError(Exception):
