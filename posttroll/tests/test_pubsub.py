@@ -31,6 +31,7 @@ from threading import Lock
 from unittest import mock
 
 import pytest
+import zmq
 from donfig import Config
 
 import posttroll
@@ -40,7 +41,6 @@ from posttroll.publisher import Publish, Publisher, create_publisher_from_dict_c
 from posttroll.subscriber import Subscribe, Subscriber
 
 test_lock = Lock()
-
 
 def free_port():
     """Get a free port.
@@ -426,7 +426,7 @@ def test_dict_config_full_subscriber():
     _ = create_subscriber_from_dict_config(settings)
 
 
-@pytest.fixture()
+@pytest.fixture
 def _tcp_keepalive_settings(monkeypatch):
     """Set TCP Keepalive settings."""
     with config.set(tcp_keepalive=1, tcp_keepalive_cnt=10, tcp_keepalive_idle=1, tcp_keepalive_intvl=1):
@@ -442,7 +442,7 @@ def reset_config_for_tests():
     posttroll.config = old_config
 
 
-@pytest.fixture()
+@pytest.fixture
 def _tcp_keepalive_no_settings():
     """Set TCP Keepalive settings."""
     with config.set(tcp_keepalive=None, tcp_keepalive_cnt=None, tcp_keepalive_idle=None, tcp_keepalive_intvl=None):
@@ -474,7 +474,7 @@ def test_subscriber_tcp_keepalive():
     sub = ZMQSubscriber(f"tcp://127.0.0.1:{str(free_port())}")
     assert len(sub.addr_sub.values()) == 1
     _assert_tcp_keepalive(list(sub.addr_sub.values())[0])
-    sub.stop()
+    sub.close()
 
 
 @pytest.mark.usefixtures("_tcp_keepalive_no_settings")
@@ -488,7 +488,6 @@ def test_subscriber_tcp_keepalive_not_set():
 
 
 def _assert_tcp_keepalive(socket):
-    import zmq
 
     assert socket.getsockopt(zmq.TCP_KEEPALIVE) == 1
     assert socket.getsockopt(zmq.TCP_KEEPALIVE_CNT) == 10
@@ -497,7 +496,6 @@ def _assert_tcp_keepalive(socket):
 
 
 def _assert_no_tcp_keepalive(socket):
-    import zmq
 
     assert socket.getsockopt(zmq.TCP_KEEPALIVE) == -1
     assert socket.getsockopt(zmq.TCP_KEEPALIVE_CNT) == -1

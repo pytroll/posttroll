@@ -11,13 +11,22 @@ from unittest import mock
 import pytest
 
 from posttroll import config
+from posttroll.backends.zmq.ns import create_nameserver_address
 from posttroll.message import Message
-from posttroll.ns import NameServer, get_pub_address
+from posttroll.ns import NameServer, get_configured_nameserver_port, get_pub_address, get_pub_addresses
 from posttroll.publisher import Publish
 from posttroll.subscriber import Subscribe
+from posttroll.tests.test_bbmcast import random_valid_mc_address
 
 
-def free_port():
+@pytest.fixture(autouse=True)
+def new_mc_group():
+    """Create a unique mc group for each test."""
+    mc_group = random_valid_mc_address()
+    config.set(mc_group=mc_group)
+
+
+def free_port() -> int:
     """Get a free port.
 
     From https://gist.github.com/bertjwregeer/0be94ced48383a42e70c3d9fff1f4ad0
@@ -38,7 +47,7 @@ def free_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(("0.0.0.0", 0))
-    portnum = s.getsockname()[1]
+    portnum:int = s.getsockname()[1]
     s.close()
 
     return portnum
@@ -87,13 +96,11 @@ class TestAddressReceiver(unittest.TestCase):
 
 @pytest.mark.parametrize(
     "multicast_enabled",
-    [True, False]
+    [True, False],
+    ids=["mc on", "mc off"]
 )
 def test_pub_addresses(multicast_enabled):
     """Test retrieving addresses."""
-    from posttroll.ns import get_pub_addresses
-    from posttroll.publisher import Publish
-
     if multicast_enabled:
         if os.getenv("DISABLED_MULTICAST"):
             pytest.skip("Multicast tests disabled.")
@@ -126,7 +133,8 @@ def test_pub_addresses(multicast_enabled):
 
 @pytest.mark.parametrize(
     "multicast_enabled",
-    [True, False]
+    [True, False],
+    ids=["mc on", "mc off"]
 )
 def test_pub_sub_ctx(multicast_enabled):
     """Test publish and subscribe."""
@@ -154,7 +162,8 @@ def test_pub_sub_ctx(multicast_enabled):
 
 @pytest.mark.parametrize(
     "multicast_enabled",
-    [True, False]
+    [True, False],
+    ids=["mc on", "mc off"]
 )
 def test_pub_sub_add_rm(multicast_enabled):
     """Test adding and removing publishers."""
@@ -248,6 +257,35 @@ def test_noisypublisher_heartbeat():
         thr.join()
 
 
+def test_noisypublisher_heartbeat_no_multicast():
+    """Test that the heartbeat in the NoisyPublisher works with multicast disabled."""
+    from posttroll.publisher import NoisyPublisher
+    from posttroll.subscriber import Subscribe
+
+    min_interval = 10
+
+    try:
+        with config.set(address_publish_port=free_port(), nameserver_port=free_port()):
+            ns_ = NameServer(multicast_enabled=False)
+            thr = Thread(target=ns_.run)
+            thr.start()
+
+            pub = NoisyPublisher("test", nameservers=["localhost"])
+            pub.start()
+            time.sleep(0.1)
+
+            with Subscribe("test", topics="/heartbeat/test", nameserver="localhost") as sub:
+                time.sleep(0.1)
+                pub.heartbeat(min_interval=min_interval)
+                msg = next(sub.recv(1))
+            assert msg.type == "beat"
+            assert msg.data == {"min_interval": min_interval}
+    finally:
+        pub.stop()
+        ns_.stop()
+        thr.join()
+
+
 def test_switch_backend_for_nameserver():
     """Test switching backend for nameserver."""
     with config.set(backend="spurious_backend"):
@@ -255,3 +293,57 @@ def test_switch_backend_for_nameserver():
             NameServer()
         with pytest.raises(NotImplementedError):
             get_pub_address("some_name")
+
+
+def test_create_nameserver_address(tmp_path):
+    """Test creating the nameserver address."""
+    port = get_configured_nameserver_port()
+    res = create_nameserver_address("somehost")
+    assert res == f"tcp://somehost:{port}"
+
+    preformatted_address = f"ipc://{str(tmp_path)}"
+    res = create_nameserver_address(preformatted_address)
+    assert res == preformatted_address
+
+    tcp_without_port = "tcp://somehost"
+    res = create_nameserver_address(tcp_without_port)
+    assert res == f"tcp://somehost:{port}"
+
+
+def test_no_tcp_nameserver(tmp_path):
+    """Test running a nameserver without tcp and multicast."""
+    nserver = NameServer()
+    ns_address = f"ipc://{str(tmp_path)}/ns1"
+    service_addresses = ["some", "addresses"]
+    thr = Thread(target=nserver.run,
+                 args=(dict(cool_service=service_addresses),
+                       ns_address))
+    thr.start()
+    try:
+        addrs = get_pub_address("cool_service", nameserver=ns_address)
+        assert addrs == service_addresses
+    finally:
+        nserver.stop()
+        thr.join()
+
+
+@pytest.mark.parametrize("version", ["v1.01", "v1.2"])
+def test_message_version_compatibility(tmp_path, version):
+    """Ensure the message version of nameserver responses."""
+    from posttroll.backends.zmq.ns import zmq_request_to_nameserver
+    nserver = NameServer()
+    ns_address = f"ipc://{str(tmp_path)}/ns1"
+    service_addresses = ["some", "addresses"]
+    thr = Thread(target=nserver.run,
+                 args=(dict(cool_service=service_addresses),
+                       ns_address))
+    thr.start()
+
+    try:
+        request = Message("/oper/ns", "request", {"service": "cool_service"}, version=version)
+        response = zmq_request_to_nameserver(ns_address, request, 1)
+        assert response.version == version
+    finally:
+        nserver.stop()
+        thr.join()
+

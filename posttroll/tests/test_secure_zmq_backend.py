@@ -111,8 +111,6 @@ def test_switch_to_secure_zmq_backend(tmp_path):
 
 def test_ipc_pubsub_with_sec_and_factory_sub(tmp_path):
     """Test pub-sub on a secure ipc socket."""
-    # create_keys(tmp_path)
-
     server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
     client_public_key_file, client_secret_key_file = zmq.auth.create_certificates(tmp_path, "client")
 

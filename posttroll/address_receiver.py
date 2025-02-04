@@ -54,7 +54,7 @@ ten_minutes = dt.timedelta(minutes=10)
 zero_seconds = dt.timedelta(seconds=0)
 
 
-def get_configured_address_port():
+def get_configured_address_port() -> int:
     return config.get("address_publish_port", DEFAULT_ADDRESS_PUBLISH_PORT)
 
 
@@ -62,7 +62,7 @@ def get_local_ips():
     """Get local IP addresses."""
     inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
                   for iface in netifaces.interfaces()]
-    ips = []
+    ips: list[str] = []
     for addr in inet_addrs:
         if addr is not None:
             for add in addr:
@@ -132,7 +132,7 @@ class AddressReceiver:
         if (now - self._last_age_check) <= min_interval:
             return
 
-        LOGGER.debug("%s - checking addresses", str(dt.datetime.now(dt.timezone.utc)))
+        logger.debug("%s - checking addresses", str(dt.datetime.now(dt.timezone.utc)))
         self._last_age_check = now
         to_del = []
         with self._address_lock:
@@ -167,60 +167,64 @@ class AddressReceiver:
                                 logger.debug("Multicast socket timed out on recv!")
                             continue
                         else:
-                            raise
+                            return
                     except ZMQError:
                         return
                     finally:
-                        self._check_age(pub, min_interval=self._max_age / 20)
-                        if self._do_heartbeat:
-                            pub.heartbeat(min_interval=29)
+                        if self._do_run:
+                            self._check_age(pub, min_interval=self._max_age / 20)
+                            if self._do_heartbeat:
+                                pub.heartbeat(min_interval=29)
                     if self._multicast_enabled:
                         ip_, port = fromaddr
                         if self._restrict_to_localhost and ip_ not in self._local_ips:
-                            # discard external message
                             logger.debug("Discard external message")
                             continue
-                    logger.debug("data %s", data)
-                    msg = Message.decode(data)
-                    name = msg.subject.split("/")[1]
-                    if msg.type == "info" and msg.subject.lower().startswith(self._subject):
-                        addr = msg.data["URI"]
-                        msg.data["status"] = True
-                        metadata = copy.copy(msg.data)
-                        metadata["name"] = name
-
-                        logger.debug("receiving address %s %s %s", str(addr),
-                                     str(name), str(metadata))
-                        if addr not in self._addresses:
-                            logger.info("nameserver: publish add '%s'",
-                                        str(msg))
-                            pub.send(msg.encode())
-                        self._add(addr, metadata)
+                    self.process_address_message(data, pub)
             finally:
                 self._is_running = False
                 recv.close()
+
+    def process_address_message(self, data, pub):
+        """Process a new address message."""
+        logger.debug("data %s", data)
+        msg = Message.decode(data)
+        name = msg.subject.split("/")[1]
+        if msg.type == "info" and msg.subject.lower().startswith(self._subject):
+            addr = msg.data["URI"]
+            msg.data["status"] = True
+            metadata = copy.copy(msg.data)
+            metadata["name"] = name
+
+            logger.debug("receiving address %s %s %s", str(addr),
+                         str(name), str(metadata))
+            if addr not in self._addresses:
+                logger.info("nameserver: publish add '%s'",
+                            str(msg))
+                pub.send(msg.encode())
+            self._add(addr, metadata)
 
     def set_up_address_receiver(self, port):
         """Set up the address receiver depending on if it is multicast or not."""
         nameservers = False
         if self._multicast_enabled:
-            while True:
+            retries_left = 3
+            while retries_left:
                 try:
                     recv = MulticastReceiver(port)
                 except IOError as err:
-                    if err.errno == errno.ENODEV:
+                    if err.errno == errno.ENODEV and retries_left:
+                        retry_interval = 10
                         logger.error("Receiver initialization failed "
                                      "(no such device). "
-                                     "Trying again in %d s",
-                                     10)
-                        time.sleep(10)
+                                     f"Trying again in {retry_interval} s")
+                        time.sleep(retry_interval)
+                        retries_left -= 1
                     else:
                         raise
                 else:
                     recv.settimeout(tout=2.0)
-                    logger.info("Receiver initialized.")
                     break
-
         else:
             if config["backend"] not in ["unsecure_zmq", "secure_zmq"]:
                 raise NotImplementedError

@@ -232,6 +232,22 @@ call::
 This means that the subjects of the messages you are interested in should start
 with "data_type1" though...
 
+Handling timezone-aware datetime objects
+----------------------------------------
+
+Timezone-aware datetime object were historically unsupported in posttroll, such as encoding or decoding them was
+leading to problems. Recent versions of posttroll were fixed to address the problem, however message sent with these
+versions are not backwards compatible. To ensure backwards compatibility, it is possible to configure posttroll to send
+message that drop the timezone information on encoding. This can be done with an environment variable::
+
+  POSTTROLL_MESSAGE_VERSION=v1.01
+
+or within python code::
+
+   >>> from posttroll import config
+   >>> with config.set(message_version="v1.01"):
+   ...
+
 
 API
 ---

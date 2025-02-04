@@ -125,7 +125,7 @@ class Subscriber:
 
     def stop(self):
         """Stop the subscriber."""
-        return self._subscriber.stop()
+        return self._subscriber.close()
 
     def close(self):
         """Close the subscriber: stop it and close the local subscribers."""

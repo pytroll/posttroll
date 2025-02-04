@@ -3,6 +3,7 @@
 import logging
 from contextlib import suppress
 from threading import Lock
+from urllib.parse import urlsplit
 
 from zmq import LINGER, REP, REQ
 
@@ -15,39 +16,55 @@ logger = logging.getLogger("__name__")
 nslock = Lock()
 
 
-def zmq_get_pub_address(name, timeout=10, nameserver="localhost"):
+def zmq_get_pub_address(name: str, timeout: float | int = 10, nameserver: str = "localhost"):
     """Get the address of the publisher.
 
     For a given publisher *name* from the nameserver on *nameserver* (localhost by default).
     """
     nameserver_address = create_nameserver_address(nameserver)
-    # Socket to talk to server
-    logger.debug(f"Connecting to {nameserver_address}")
-    socket = create_req_socket(timeout, nameserver_address)
-    return _fetch_address_using_socket(socket, name, timeout)
+    return _fetch_address_using_socket(nameserver_address, name, timeout)
 
 
-def create_nameserver_address(nameserver):
-    """Create the nameserver address."""
+def create_nameserver_address(nameserver:str):
+    """Create the nameserver address.
+
+    If `nameserver` is already preformatted and complete, the address is returned without change.
+    """
+    url_parts = urlsplit(nameserver)
     port = get_configured_nameserver_port()
-    nameserver_address = "tcp://" + nameserver + ":" + str(port)
+
+    if not url_parts.scheme:
+        nameserver_address = "tcp://" + nameserver + ":" + str(port)
+    elif url_parts.scheme == "tcp" and url_parts.port is None:
+        nameserver_address = nameserver + ":" + str(port)
+    else:
+        nameserver_address = nameserver
     return nameserver_address
 
 
-def _fetch_address_using_socket(socket, name, timeout):
+def _fetch_address_using_socket(nameserver_address, name, timeout):
     try:
-        socket_receiver = SocketReceiver()
+        request = Message("/oper/ns", "request", {"service": name})
+        response = zmq_request_to_nameserver(nameserver_address, request, timeout)
+        return response.data
+    except TimeoutError:
+        raise TimeoutError(f"Didn't get an address after {timeout} seconds.")
+
+
+def zmq_request_to_nameserver(nameserver_address, message, timeout):
+    """Send a request to the nameserver."""
+    # Socket to talk to server
+    logger.debug(f"Connecting to {nameserver_address}")
+    socket = create_req_socket(timeout, nameserver_address)
+    socket_receiver = SocketReceiver()
+    try:
         socket_receiver.register(socket)
 
-        message = Message("/oper/ns", "request", {"service": name})
         socket.send_string(str(message))
 
         # Get the reply.
         for message, _ in socket_receiver.receive(socket, timeout=timeout):
-            return message.data
-    except TimeoutError:
-        raise TimeoutError("Didn't get an address after %d seconds."
-                            % timeout)
+            return message
     finally:
         socket_receiver.unregister(socket)
         close_socket(socket)
@@ -65,10 +82,11 @@ class ZMQNameServer:
 
     def __init__(self):
         """Set up the nameserver."""
-        self.running = True
-        self.listener = None
+        self.running: bool = True
+        self.listener: SocketReceiver | None = None
+        self._authenticator = None
 
-    def run(self, address_receiver):
+    def run(self, address_receiver, address:str|None=None):
         """Run the listener and answer to requests."""
         port = get_configured_nameserver_port()
 
@@ -76,7 +94,9 @@ class ZMQNameServer:
             # stop was called before we could start running, exit
             if not self.running:
                 return
-            address = "tcp://*:" + str(port)
+            if address is None:
+                address = "*"
+            address = create_nameserver_address(address)
             self.listener, _, self._authenticator = set_up_server_socket(REP, address)
             logger.debug(f"Nameserver listening on port {port}")
             socket_receiver = SocketReceiver()
@@ -85,7 +105,8 @@ class ZMQNameServer:
                 try:
                     for msg, _ in socket_receiver.receive(self.listener, timeout=1):
                         logger.debug("Replying to request: " + str(msg))
-                        active_address = get_active_address(msg.data["service"], address_receiver)
+                        active_address = get_active_address(msg.data["service"],
+                                                            address_receiver, msg.version)
                         self.listener.send_unicode(str(active_address))
                 except TimeoutError:
                     continue

@@ -39,15 +39,14 @@ Note: the Message class is not optimized for BIG messages.
 """
 
 import datetime as dt
+import json
 import re
+from functools import partial
 
-try:
-    import json
-except ImportError:
-    import simplejson as json
+from posttroll import config
 
 _MAGICK = "pytroll:/"
-_VERSION = "v1.01"
+MESSAGE_VERSION = config.get("message_version", "v1.2")
 
 
 class MessageError(Exception):
@@ -58,7 +57,7 @@ class MessageError(Exception):
 
 # -----------------------------------------------------------------------------
 #
-# Utillities.
+# Utilities.
 #
 # -----------------------------------------------------------------------------
 
@@ -87,11 +86,12 @@ def is_valid_sender(obj):
     return isinstance(obj, str) and bool(obj)
 
 
-def is_valid_data(obj):
+def is_valid_data(obj, version=MESSAGE_VERSION):
     """Check if data is JSON serializable."""
     if obj:
+        encoder = create_datetime_json_encoder_for_version(version)
         try:
-            _ = json.dumps(obj, default=datetime_encoder)
+            _ = json.dumps(obj, default=encoder)
         except (TypeError, UnicodeDecodeError):
             return False
     return True
@@ -104,7 +104,7 @@ def is_valid_data(obj):
 # -----------------------------------------------------------------------------
 
 
-class Message(object):
+class Message:
     """A Message.
 
     - Has to be initialized with a *rawstr* (encoded message to decode) OR
@@ -115,25 +115,19 @@ class Message(object):
       - It will make a Message pickleable.
     """
 
-    def __init__(self, subject="", atype="", data="", binary=False, rawstr=None):
+    def __init__(self, subject:str="", atype:str="", data="", binary:bool=False,
+                 rawstr:str|None=None, version:str=MESSAGE_VERSION):
         """Initialize a Message from a subject, type and data, or from a raw string."""
         if rawstr:
             self.__dict__ = _decode(rawstr)
         else:
-            try:
-                self.subject = subject.decode("utf-8")
-            except AttributeError:
-                self.subject = subject
-            try:
-                self.type = atype.decode("utf-8")
-            except AttributeError:
-                self.type = atype
-            self.type = atype
-            self.sender = _getsender()
+            self.subject:str = subject
+            self.type:str = atype
+            self.sender:str = _getsender()
             self.time = dt.datetime.now(dt.timezone.utc)
             self.data = data
-            self.binary = binary
-        self.version = _VERSION
+            self.binary:bool = binary
+            self.version:str = version
         self._validate()
 
     @property
@@ -178,10 +172,7 @@ class Message(object):
 
     def __str__(self):
         """Return the human readable representation of the Message."""
-        try:
-            return unicode(self).encode("utf-8")
-        except NameError:
-            return self.encode()
+        return self.encode()
 
     def _validate(self):
         """Validate a messages attributes."""
@@ -191,7 +182,7 @@ class Message(object):
             raise MessageError("Invalid type: '%s'" % self.type)
         if not is_valid_sender(self.sender):
             raise MessageError("Invalid sender: '%s'" % self.sender)
-        if not self.binary and not is_valid_data(self.data):
+        if not self.binary and not is_valid_data(self.data, self.version):
             raise MessageError("Invalid data: data is not JSON serializable: %s"
                                % str(self.data))
 
@@ -214,7 +205,7 @@ class Message(object):
 
 def _is_valid_version(version):
     """Check version."""
-    return version == _VERSION
+    return version <= MESSAGE_VERSION
 
 
 def datetime_decoder(dct):
@@ -256,9 +247,10 @@ def _decode(rawstr):
     # Data part
     try:
         mimetype = raw[5].lower()
-        data = raw[6]
     except IndexError:
         mimetype = None
+    else:
+        data = raw[6]
 
     if mimetype is None:
         msg["data"] = ""
@@ -282,7 +274,7 @@ def _decode(rawstr):
 
 
 def _check_for_version(raw):
-    version = raw[4][:len(_VERSION)]
+    version = raw[4]
     if not _is_valid_version(version):
         raise MessageError("Invalid Message version: '%s'" % str(version))
     return version
@@ -314,27 +306,53 @@ def _check_for_magic_word(rawstr):
     return rawstr[len(_MAGICK):]
 
 
-def datetime_encoder(obj):
+def datetime_encoder(obj, encoder):
     """Encode datetimes into iso format."""
     try:
-        return obj.isoformat()
+        return encoder(obj)
     except AttributeError:
         raise TypeError(repr(obj) + " is not JSON serializable")
 
 
+def _encode_dt(obj):
+    return obj.isoformat()
+
+
+def _encode_dt_no_timezone(obj):
+    return obj.replace(tzinfo=None).isoformat()
+
+
+def create_datetime_encoder_for_version(version=MESSAGE_VERSION):
+    """Create a datetime encoder depending on the message protocol version."""
+    if version <= "v1.01":
+        dt_coder = _encode_dt_no_timezone
+    else:
+        dt_coder = _encode_dt
+    return dt_coder
+
+
+def create_datetime_json_encoder_for_version(version=MESSAGE_VERSION):
+    """Create a datetime json encoder depending on the message protocol version."""
+    return partial(datetime_encoder,
+                   encoder=create_datetime_encoder_for_version(version))
+
+
 def _encode(msg, head=False, binary=False):
     """Convert a Message to a raw string."""
-    rawstr = str(_MAGICK) + u"{0:s} {1:s} {2:s} {3:s} {4:s}".format(
-        msg.subject, msg.type, msg.sender, msg.time.isoformat(), msg.version)
+    json_dt_encoder = create_datetime_json_encoder_for_version(msg.version)
+    dt_encoder = create_datetime_encoder_for_version(msg.version)
 
+    rawstr = str(_MAGICK) + u"{0:s} {1:s} {2:s} {3:s} {4:s}".format(
+        msg.subject, msg.type, msg.sender, dt_encoder(msg.time), msg.version)
     if not head and msg.data:
+
         if not binary and isinstance(msg.data, str):
             return (rawstr + " " +
                     "text/ascii" + " " + msg.data)
         elif not binary:
             return (rawstr + " " +
                     "application/json" + " " +
-                    json.dumps(msg.data, default=datetime_encoder))
+                    json.dumps(msg.data, default=json_dt_encoder))
         else:
             return (rawstr + " " +
                     "binary/octet-stream" + " " + msg.data)

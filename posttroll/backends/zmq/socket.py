@@ -1,18 +1,25 @@
 """ZMQ socket handling functions."""
 
+from contextlib import suppress
+from functools import cache
+from threading import Lock
 from urllib.parse import urlsplit, urlunsplit
 
 import zmq
+from zmq.auth import load_certificate
 from zmq.auth.thread import ThreadAuthenticator
 
-from posttroll import config, get_context
+from posttroll import config
+from posttroll.backends.zmq import get_context
 from posttroll.message import Message
 
+authenticator_lock = Lock()
 
 def close_socket(sock):
     """Close a zmq socket."""
-    sock.setsockopt(zmq.LINGER, 1)
-    sock.close()
+    with suppress(zmq.ContextTerminated):
+        sock.setsockopt(zmq.LINGER, 1)
+        sock.close()
 
 
 def set_up_client_socket(socket_type, address, options=None):
@@ -46,21 +53,21 @@ def create_secure_client_socket(socket_type):
 
     client_secret_key_file = config["client_secret_key_file"]
     server_public_key_file = config["server_public_key_file"]
-    client_public, client_secret = zmq.auth.load_certificate(client_secret_key_file)
+    client_public, client_secret = load_certificate(client_secret_key_file)
     subscriber.curve_secretkey = client_secret
     subscriber.curve_publickey = client_public
 
-    server_public, _ = zmq.auth.load_certificate(server_public_key_file)
+    server_public, _ = load_certificate(server_public_key_file)
     # The client must know the server's public key to make a CURVE connection.
     subscriber.curve_serverkey = server_public
     return subscriber
 
 
-def set_up_server_socket(socket_type, destination, options=None, port_interval=(None, None)):
+def set_up_server_socket(socket_type:int, destination, options=None, port_interval=(None, None)):
     """Set up a server (binding) socket."""
     if options is None:
         options = {}
-    backend = config["backend"]
+    backend:str = config["backend"]
     if backend == "unsecure_zmq":
         sock = create_unsecure_server_socket(socket_type)
         authenticator = None
@@ -73,7 +80,7 @@ def set_up_server_socket(socket_type, destination, options=None, port_interval=(
     return sock, port, authenticator
 
 
-def create_unsecure_server_socket(socket_type):
+def create_unsecure_server_socket(socket_type:int) -> zmq.Socket[int]:
     """Create an unsecure server socket."""
     return get_context().socket(socket_type)
 
@@ -101,6 +108,12 @@ def bind(sock, destination, port_interval):
         port_number = port
     return port_number
 
+@cache
+def get_auth_thread(ctx):
+    """Get the authenticator thread for the context."""
+    thr = ThreadAuthenticator(ctx)
+    thr.start()
+    return thr
 
 def create_secure_server_socket(socket_type):
     """Create a secure server socket."""
@@ -109,17 +122,16 @@ def create_secure_server_socket(socket_type):
     authorized_sub_addresses = config.get("authorized_client_addresses", [])
 
     ctx = get_context()
-
     # Start an authenticator for this context.
-    authenticator_thread = ThreadAuthenticator(ctx)
-    authenticator_thread.start()
+    with authenticator_lock:
+        authenticator_thread = get_auth_thread(ctx)
     authenticator_thread.allow(*authorized_sub_addresses)
     # Tell authenticator to use the certificate in a directory
     authenticator_thread.configure_curve(domain="*", location=clients_public_keys_directory)
 
     server_socket = ctx.socket(socket_type)
 
-    server_public, server_secret = zmq.auth.load_certificate(server_secret_key)
+    server_public, server_secret = load_certificate(server_secret_key)
     server_socket.curve_secretkey = server_secret
     server_socket.curve_publickey = server_public
     server_socket.curve_server = True

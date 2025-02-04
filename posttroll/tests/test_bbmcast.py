@@ -32,12 +32,24 @@ import pytest
 from posttroll import bbmcast
 
 
+def random_valid_mc_address():
+    """Generate a random valid multicast id."""
+    current_test = os.environ.get("PYTEST_CURRENT_TEST", "")
+    current_run = os.environ.get("GITHUB_RUN_ID", "")
+    current_job = os.environ.get("GITHUB_JOB_ID", "")
+    random.seed(hash((current_test,
+                      current_job,
+                      current_run)))
+
+    return (str(random.randint(224, 239)) + "." +
+            str(random.randint(0, 255)) + "." +
+            str(random.randint(0, 255)) + "." +
+            str(random.randint(0, 255)))
+
+
 def test_mcast_sender_works_with_valid_addresses():
     """Unit test for mcast_sender."""
-    mcgroup = (str(random.randint(224, 239)) + "." +
-                str(random.randint(0, 255)) + "." +
-                str(random.randint(0, 255)) + "." +
-                str(random.randint(0, 255)))
+    mcgroup = random_valid_mc_address()
     socket, group = bbmcast.mcast_sender(mcgroup)
     if mcgroup in ("0.0.0.0", "255.255.255.255"):
         assert group == "<broadcast>"
@@ -67,7 +79,7 @@ def test_mcast_sender_uses_broadcast_for_255s():
     socket.close()
 
 
-def test_mcast_sender_raises_for_invalit_adresses():
+def test_mcast_sender_raises_for_invalid_adresses():
     """Test mcast_sender uses broadcast for 0.0.0.0."""
     mcgroup = (str(random.randint(0, 223)) + "." +
                 str(random.randint(0, 255)) + "." +
@@ -98,10 +110,7 @@ def test_mcast_receiver_works_with_valid_addresses():
     socket.close()
 
     # Valid multicast range is 224.0.0.0 to 239.255.255.255
-    mcgroup = (str(random.randint(224, 239)) + "." +
-                str(random.randint(0, 255)) + "." +
-                str(random.randint(0, 255)) + "." +
-                str(random.randint(0, 255)))
+    mcgroup = random_valid_mc_address()
     socket, group = bbmcast.mcast_receiver(mcport, mcgroup)
     assert group == mcgroup
     socket.close()

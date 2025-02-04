@@ -108,7 +108,8 @@ class ZMQSubscriber:
         specified subscription. Good for pushed 'inproc' messages from another thread.
         """
         LOGGER.info("Subscriber adding PULL hook %s", str(address))
-        socket = self._create_socket(PULL, address)
+        options = get_tcp_keepalive_options()
+        socket = self._create_socket(PULL, address, options)
         if self._sock_receiver:
             self._sock_receiver.register(socket)
         self._add_hook(socket, callback)
@@ -167,13 +168,13 @@ class ZMQSubscriber:
         """Handle calls with class instance."""
         return self.recv(**kwargs)
 
-    def stop(self):
+    def _stop(self):
         """Stop the subscriber."""
         self._loop = False
 
     def close(self):
         """Close the subscriber: stop it and close the local subscribers."""
-        self.stop()
+        self._stop()
         for sub in list(self.subscribers) + self._hooks:
             try:
                 close_socket(sub)

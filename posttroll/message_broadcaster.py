@@ -43,6 +43,8 @@ class DesignatedReceiversSender:
         if backend == "unsecure_zmq":
             from posttroll.backends.zmq.message_broadcaster import ZMQDesignatedReceiversSender
             self._sender = ZMQDesignatedReceiversSender(default_port, receivers)
+        else:
+            raise NotImplementedError()
 
     def __call__(self, data):
         """Send messages from all receivers."""
