@@ -1,3 +1,30 @@
+## Version 1.12.0 (2025/02/04)
+
+### Issues Closed
+
+* [Issue 67](https://github.com/pytroll/posttroll/issues/67) - posttroll.listener should use hierarchical logger custom ([PR 68](https://github.com/pytroll/posttroll/pull/68) by [@pnuu](https://github.com/pnuu))
+* [Issue 64](https://github.com/pytroll/posttroll/issues/64) - Timezone aware datetimes ([PR 69](https://github.com/pytroll/posttroll/pull/69) by [@pnuu](https://github.com/pnuu))
+* [Issue 44](https://github.com/pytroll/posttroll/issues/44) - Delegate the environment variable reading to donfig
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 72](https://github.com/pytroll/posttroll/pull/72) - Fix timezone aware datetimes backwards compatibility ([71](https://github.com/pytroll/posttroll/issues/71))
+* [PR 66](https://github.com/pytroll/posttroll/pull/66) - Fix typo in secure backend documentation
+
+#### Features added
+
+* [PR 69](https://github.com/pytroll/posttroll/pull/69) - Switch to timezone aware datetimes ([64](https://github.com/pytroll/posttroll/issues/64))
+* [PR 68](https://github.com/pytroll/posttroll/pull/68) - Fix `Listener` and `ListenerContainer` logger names ([67](https://github.com/pytroll/posttroll/issues/67))
+* [PR 65](https://github.com/pytroll/posttroll/pull/65) - Fix Flake8 complaints and datetime imports
+* [PR 56](https://github.com/pytroll/posttroll/pull/56) - Introduce authentication for zmq communications
+
+In this release 6 pull requests were closed.
+
+
 ## Version 1.11.0 (2024/02/26)
 
 
