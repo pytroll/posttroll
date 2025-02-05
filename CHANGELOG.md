@@ -1,3 +1,14 @@
+## Version 1.12.1 (2025/02/05)
+
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 73](https://github.com/pytroll/posttroll/pull/73) - Reintroduce global get_context
+
+In this release 1 pull request was closed.
+
 ## Version 1.12.0 (2025/02/04)
 
 ### Issues Closed
