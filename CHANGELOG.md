@@ -1,3 +1,15 @@
+## Version 1.13.0 (2025/09/24)
+
+
+### Pull Requests Merged
+
+#### Features added
+
+* [PR 76](https://github.com/pytroll/posttroll/pull/76) - Relicense to Apache v2
+
+In this release 1 pull request was closed.
+
+
 ## Version 1.12.1 (2025/02/05)
 
 
