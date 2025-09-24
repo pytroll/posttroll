@@ -1,4 +1,3 @@
-
 """Test the curve-based zmq backend."""
 
 import os
