@@ -1,3 +1,15 @@
+## Version 1.13.1 (2025/09/24)
+
+
+### Pull Requests Merged
+
+#### Features added
+
+* [PR 77](https://github.com/pytroll/posttroll/pull/77) - Add deploy dist
+
+In this release 1 pull request was closed.
+
+
 ## Version 1.13.0 (2025/09/24)
 
 
