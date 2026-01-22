@@ -158,11 +158,14 @@ def enable_auth_curve(ctx):
         clients_public_keys_directory = config["clients_public_keys_directory"]
     except KeyError:
         raise ConfigurationError("Missing config parameter 'clients_public_keys_directory'")
-    authorized_sub_addresses = config.get("authorized_client_addresses", [])
+    allowed_hosts = config.get("authorized_client_addresses", [])
 
     # Start an authenticator for this context.
     authenticator_thread = get_auth_thread(ctx)
-    authenticator_thread.allow(*authorized_sub_addresses)
+    if allowed_hosts:
+        ips = resolve_to_ips(allowed_hosts)
+        if ips:
+            authenticator.allow(*ips)
     # Tell authenticator to use the certificate in a directory
     authenticator_thread.configure_curve(domain="*", location=clients_public_keys_directory)
     return authenticator_thread
