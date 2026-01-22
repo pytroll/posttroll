@@ -1,13 +1,12 @@
 """Simple library to subscribe to messages."""
 
-import datetime as dt
 import logging
-import time
 
 from posttroll import config
 from posttroll.address_receiver import get_configured_address_port
+from posttroll.backends.zmq.subscriber import ensure_address_is_dict
 from posttroll.message import _MAGICK
-from posttroll.ns import get_pub_address
+from posttroll.ns import get_pub_addresses
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,15 +35,20 @@ class Subscriber:
 
     """
 
-    def __init__(self, addresses, topics="", message_filter=None, translate=False):
+    def __init__(self, addresses: list[str|dict[str, str]], topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
         topics = self._magickfy_topics(topics)
-        backend = config.get("backend", "unsecure_zmq")
+        backend = config["backend"]
         if backend not in ["unsecure_zmq", "secure_zmq"]:
             raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
 
         from posttroll.backends.zmq.subscriber import ZMQSubscriber
-        self._subscriber = ZMQSubscriber(addresses, topics=topics,
+        addrs = []
+        if isinstance(addresses, (str, dict)):
+            addresses = [addresses, ]
+        for addr in addresses:
+            addrs.append(ensure_address_is_dict(addr))
+        self._subscriber = ZMQSubscriber(*addresses, topics=topics,
                                          message_filter=message_filter, translate=translate)
 
     def add(self, address, topics=None):
@@ -170,35 +174,24 @@ class NSSubscriber:
 
     def start(self):
         """Start the subscriber."""
-        def _get_addr_loop(service, timeout):
-            """Try to get the address of *service* until for *timeout* seconds."""
-            then = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=timeout)
-            while dt.datetime.now(dt.timezone.utc) < then:
-                addrs = get_pub_address(service, self._timeout, nameserver=self._nameserver)
-                if addrs:
-                    return [addr["URI"] for addr in addrs]
-                time.sleep(1)
-            return []
-
         # Subscribe to those services and topics.
         LOGGER.debug("Subscribing to topics %s", str(self._topics))
         self._subscriber = Subscriber(self._addresses,
                                       self._topics,
                                       translate=self._translate)
-
         if self._addr_listener:
             self._addr_listener = _AddressListener(self._subscriber,
                                                    self._services,
                                                    nameserver=self._nameserver)
-
         # Search for addresses corresponding to service.
         for service in self._services:
-            addresses = _get_addr_loop(service, self._timeout)
+            # addresses = _get_addr_loop(service, self._timeout)
+            addresses = get_pub_addresses(service, self._timeout, self._nameserver)
             if not addresses:
                 LOGGER.warning("Can't get any address for %s", service)
                 continue
             else:
-                LOGGER.debug("Got address for %s: %s",
+                LOGGER.debug("Got addresses for %s: %s",
                              str(service), str(addresses))
             for addr in addresses:
                 self._subscriber.add(addr)
@@ -285,6 +278,7 @@ class _AddressListener:
 
     def handle_msg(self, msg):
         """Handle the message *msg*."""
+        addr_dict = msg.data
         addr_ = msg.data["URI"]
         status = msg.data.get("status", True)
         if status:
@@ -293,7 +287,7 @@ class _AddressListener:
                 if not service or service in msg_services:
                     LOGGER.debug("Adding address %s %s", str(addr_),
                                  str(service))
-                    self.subscriber.add(addr_)
+                    self.subscriber.add(addr_dict)
                     break
         else:
             LOGGER.debug("Removing address %s", str(addr_))

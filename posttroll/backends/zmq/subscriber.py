@@ -5,10 +5,12 @@ from threading import Lock
 from time import sleep
 from urllib.parse import urlsplit
 
-from zmq import PULL, SUB, SUBSCRIBE, ZMQError
+from zmq import PULL, SUB, SUBSCRIBE, ContextTerminated, ZMQError
 
+from posttroll import config
 from posttroll.backends.zmq import get_tcp_keepalive_options
 from posttroll.backends.zmq.socket import SocketReceiver, close_socket, set_up_client_socket
+from posttroll.message import MESSAGE_VERSION
 
 LOGGER = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 class ZMQSubscriber:
     """A ZMQ subscriber class."""
 
-    def __init__(self, addresses, topics="", message_filter=None, translate=False):
+    def __init__(self, *addresses, topics="", message_filter=None, translate=False):
         """Initialize the subscriber."""
         self._topics = topics
         self._filter = message_filter
@@ -30,8 +32,8 @@ class ZMQSubscriber:
 
         self._sock_receiver = SocketReceiver()
         self._lock = Lock()
-
-        self.update(addresses)
+        dict_addresses = [ensure_address_is_dict(addr) for addr in addresses]
+        self.update(dict_addresses)
 
         self._loop = None
 
@@ -40,23 +42,27 @@ class ZMQSubscriber:
         """Check if suscriber is running."""
         return self._loop
 
-    def add(self, address, topics=None):
+    def add(self, address: dict[str, str], topics=None):
         """Add *address* to the subscribing list for *topics*.
 
         It topics is None we will subscribe to already specified topics.
         """
         with self._lock:
-            if address in self.addresses:
+            addr = ensure_address_is_dict(address)
+            if addr.get("supported_message_version", MESSAGE_VERSION) > MESSAGE_VERSION:
+                LOGGER.warning(f"Will not connect to {str(addr)}, message version mismatch")
+                return
+            if addr["URI"] in self.address_keys:
                 return
 
             topics = topics or self._topics
             LOGGER.info("Subscriber adding address %s with topics %s",
                         str(address), str(topics))
-            subscriber = self._add_sub_socket(address, topics)
-            self.sub_addr[subscriber] = address
-            self.addr_sub[address] = subscriber
+            subscriber = self._add_sub_socket(addr, topics)
+            self.sub_addr[subscriber] = addr
+            self.addr_sub[addr["URI"]] = subscriber
 
-    def remove(self, address):
+    def remove(self, address: str):
         """Remove *address* from the subscribing list for *topics*."""
         with self._lock:
             try:
@@ -73,17 +79,20 @@ class ZMQSubscriber:
             self._sock_receiver.unregister(subscriber)
         subscriber.close()
 
+    @property
+    def address_keys(self) -> list[str]:
+        return [addr["URI"] for addr in self.addresses]
+
     def update(self, addresses):
         """Update with a set of addresses."""
-        if isinstance(addresses, str):
-            addresses = [addresses, ]
-        current_addresses, new_addresses = set(self.addresses), set(addresses)
+        uri_dict = uri_keys(addresses)
+        current_addresses, new_addresses = set(self.address_keys), set(uri_dict.keys())
         addresses_to_remove = current_addresses.difference(new_addresses)
         addresses_to_add = new_addresses.difference(current_addresses)
         for addr in addresses_to_remove:
             self.remove(addr)
         for addr in addresses_to_add:
-            self.add(addr)
+            self.add(uri_dict[addr])
         return bool(addresses_to_remove or addresses_to_add)
 
     def add_hook_sub(self, address, topics, callback):
@@ -160,6 +169,8 @@ class ZMQSubscriber:
                     self._hooks_cb[sock](m__)
         except TimeoutError:
             yield None
+        except ContextTerminated:
+            raise
         except ZMQError as err:
             if self._loop:
                 LOGGER.exception("Receive failed: %s", str(err))
@@ -189,20 +200,45 @@ class ZMQSubscriber:
             except Exception:  # noqa: E722
                 pass
 
-    def _add_sub_socket(self, address, topics):
+    def _add_sub_socket(self, address: dict[str, str], topics):
 
         options = get_tcp_keepalive_options()
+        try:
+            backend = address.get("backend", "unsecure_zmq")
+            uri = address["URI"]
+        except AttributeError:
+            backend = config["backend"]
+            uri = address
 
-        subscriber = self._create_socket(SUB, address, options)
+        subscriber = self._create_socket(SUB, uri, options, backend)
         add_subscriptions(subscriber, topics)
 
         if self._sock_receiver:
             self._sock_receiver.register(subscriber)
         return subscriber
 
-    def _create_socket(self, socket_type, address, options):
-        return set_up_client_socket(socket_type, address, options)
+    def _create_socket(self, socket_type: int, address: str, options, backend: str|None = None):
+        return set_up_client_socket(socket_type, address, options, backend)
 
+
+def ensure_address_is_dict(addr: dict[str, str]|str) -> dict[str, str]:
+    """Ensure the passed address is in dict form."""
+    if isinstance(addr, dict):
+        res = addr.copy()
+    elif isinstance(addr, str):
+        res = dict(URI=addr)
+    else:
+        NotImplementedError(f"Don't know how to handle {type(addr)} addresses")
+    res.setdefault("backend", config["backend"])
+    return res
+
+
+def uri_keys(addresses) -> list[str]:
+    res = dict()
+    for addr in addresses:
+        new_addr = ensure_address_is_dict(addr)
+        res[new_addr["URI"]] = new_addr
+    return res
 
 def add_subscriptions(socket, topics):
     """Add subscriptions to a socket."""

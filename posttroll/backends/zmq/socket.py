@@ -1,7 +1,9 @@
 """ZMQ socket handling functions."""
 
+import logging
 from contextlib import suppress
 from functools import cache
+from socket import AF_INET, gaierror, getaddrinfo
 from threading import Lock
 from urllib.parse import urlsplit, urlunsplit
 
@@ -11,30 +13,35 @@ from zmq.auth.thread import ThreadAuthenticator
 
 from posttroll import config
 from posttroll.backends.zmq import get_context
-from posttroll.message import Message
+from posttroll.message import Message, MessageError
 
 authenticator_lock = Lock()
+logger = logging.getLogger(__name__)
 
-def close_socket(sock):
+def close_socket(sock: zmq.Socket[int]):
     """Close a zmq socket."""
     with suppress(zmq.ContextTerminated):
         sock.setsockopt(zmq.LINGER, 1)
         sock.close()
 
 
-def set_up_client_socket(socket_type, address, options=None):
+def set_up_client_socket(socket_type: int, address: str,
+                         options: dict[int|str, str]|None = None, backend: str|None = None) -> zmq.Socket[int]:
     """Set up a client (connecting) zmq socket."""
-    backend = config["backend"]
+    options = options or dict()
+    backend = backend or config["backend"]
     if backend == "unsecure_zmq":
         sock = create_unsecure_client_socket(socket_type)
     elif backend == "secure_zmq":
         sock = create_secure_client_socket(socket_type)
+    else:
+        raise NotImplementedError()
     add_options(sock, options)
     sock.connect(address)
     return sock
 
 
-def create_unsecure_client_socket(socket_type):
+def create_unsecure_client_socket(socket_type: int) -> zmq.Socket[int]:
     """Create an unsecure client socket."""
     return get_context().socket(socket_type)
 
@@ -47,12 +54,21 @@ def add_options(sock, options=None):
         sock.setsockopt(param, val)
 
 
-def create_secure_client_socket(socket_type):
-    """Create a secure client socket."""
-    subscriber = get_context().socket(socket_type)
+class ConfigurationError(Exception):
+    """Error when something is not configured correctly."""
 
-    client_secret_key_file = config["client_secret_key_file"]
-    server_public_key_file = config["server_public_key_file"]
+def create_secure_client_socket(socket_type: int) -> zmq.Socket[int]:
+    """Create a secure client socket."""
+    subscriber: zmq.Socket[int] = get_context().socket(socket_type)
+
+    try:
+        client_secret_key_file = config["client_secret_key_file"]
+    except KeyError:
+        raise ConfigurationError("Missing config parameter 'client_secret_key_file'")
+    try:
+        server_public_key_file = config["server_public_key_file"]
+    except KeyError:
+        raise ConfigurationError("Missing config parameter 'server_public_key_file'")
     client_public, client_secret = load_certificate(client_secret_key_file)
     subscriber.curve_secretkey = client_secret
     subscriber.curve_publickey = client_public
@@ -63,16 +79,19 @@ def create_secure_client_socket(socket_type):
     return subscriber
 
 
-def set_up_server_socket(socket_type:int, destination, options=None, port_interval=(None, None)):
+def set_up_server_socket(socket_type: int, destination: str, options: dict[int, str]|None = None,
+                         port_interval: tuple[int|None, int|None] = (None, None),
+                         backend: str|None = None) -> tuple[zmq.Socket[int], ThreadAuthenticator|None]:
     """Set up a server (binding) socket."""
     if options is None:
         options = {}
-    backend:str = config["backend"]
-    if backend == "unsecure_zmq":
-        sock = create_unsecure_server_socket(socket_type)
-        authenticator = None
-    elif backend == "secure_zmq":
+    _backend:str = backend or config["backend"]
+    if _backend == "unsecure_zmq":
+        sock, authenticator = create_unsecure_server_socket(socket_type)
+    elif _backend == "secure_zmq":
         sock, authenticator = create_secure_server_socket(socket_type)
+    else:
+        raise NotImplementedError()
 
     add_options(sock, options)
 
@@ -80,55 +99,96 @@ def set_up_server_socket(socket_type:int, destination, options=None, port_interv
     return sock, port, authenticator
 
 
-def create_unsecure_server_socket(socket_type:int) -> zmq.Socket[int]:
+def create_unsecure_server_socket(socket_type: int) -> zmq.Socket[int]:
     """Create an unsecure server socket."""
-    return get_context().socket(socket_type)
+    ctx = get_context()
+    sock = ctx.socket(socket_type)
+    authenticator = get_auth_thread(ctx)
+    allowed_hosts = config.get("authorized_client_addresses", None)
+    if allowed_hosts:
+        ips = resolve_to_ips(allowed_hosts)
+        if ips:
+            authenticator.allow(*ips)
+
+    sock.setsockopt_string(zmq.ZAP_DOMAIN, "global")
+
+    return sock, authenticator
 
 
-def bind(sock, destination, port_interval):
+def resolve_to_ips(hosts: list[str]) -> list[str]:
+    """Resolve hostnames to ips."""
+    ips: set[str] = set()
+    for host in hosts:
+        try:
+            results = getaddrinfo(host, None, AF_INET)
+            for result in results:
+                ips.add(result[4][0])
+        except gaierror:
+            logger.warning(f"Could not resolve hostname {host}")
+    return list(ips)
+
+
+def bind(sock, destination: str, port_interval: tuple[int, int]) -> int:
     """Bind the socket to a destination.
 
     If a random port is to be chosen, the port_interval is used.
     """
     # Check for port 0 (random port)
     min_port, max_port = port_interval
-    u__ = urlsplit(destination)
-    port = u__.port
+    url = urlsplit(destination)
+    port = url.port
     if port == 0:
-        dest = urlunsplit((u__.scheme, u__.hostname,
-                            u__.path, u__.query, u__.fragment))
-        port_number = sock.bind_to_random_port(dest,
-                                               min_port=min_port,
-                                               max_port=max_port)
-        netloc = u__.hostname + ":" + str(port_number)
-        destination = urlunsplit((u__.scheme, netloc, u__.path,
-                                  u__.query, u__.fragment))
+        dest = urlunsplit((url.scheme, url.hostname,
+                           url.path, url.query, url.fragment))
+        port_number: int = sock.bind_to_random_port(dest,
+                                                    min_port=min_port,
+                                                    max_port=max_port)
+        netloc = url.hostname + ":" + str(port_number)
+        destination = urlunsplit((url.scheme, netloc, url.path,
+                                  url.query, url.fragment))
     else:
         sock.bind(destination)
         port_number = port
     return port_number
 
-@cache
+
+def enable_auth_curve(ctx):
+    """Enable curve on the authenticator."""
+    try:
+        clients_public_keys_directory = config["clients_public_keys_directory"]
+    except KeyError:
+        raise ConfigurationError("Missing config parameter 'clients_public_keys_directory'")
+    authorized_sub_addresses = config.get("authorized_client_addresses", [])
+
+    # Start an authenticator for this context.
+    authenticator_thread = get_auth_thread(ctx)
+    authenticator_thread.allow(*authorized_sub_addresses)
+    # Tell authenticator to use the certificate in a directory
+    authenticator_thread.configure_curve(domain="*", location=clients_public_keys_directory)
+    return authenticator_thread
+
+
 def get_auth_thread(ctx):
+    with authenticator_lock:
+        return _get_auth_thread(ctx)
+
+@cache
+def _get_auth_thread(ctx):
     """Get the authenticator thread for the context."""
     thr = ThreadAuthenticator(ctx)
     thr.start()
     return thr
 
-def create_secure_server_socket(socket_type):
+def create_secure_server_socket(socket_type: int) -> tuple[zmq.Socket[int], ThreadAuthenticator]:
     """Create a secure server socket."""
-    server_secret_key = config["server_secret_key_file"]
-    clients_public_keys_directory = config["clients_public_keys_directory"]
-    authorized_sub_addresses = config.get("authorized_client_addresses", [])
+    try:
+        server_secret_key = config["server_secret_key_file"]
+    except KeyError:
+        raise ConfigurationError("Missing config parameter 'server_secret_key_file'")
 
     ctx = get_context()
     # Start an authenticator for this context.
-    with authenticator_lock:
-        authenticator_thread = get_auth_thread(ctx)
-    authenticator_thread.allow(*authorized_sub_addresses)
-    # Tell authenticator to use the certificate in a directory
-    authenticator_thread.configure_curve(domain="*", location=clients_public_keys_directory)
-
+    authenticator_thread = enable_auth_curve(ctx)
     server_socket = ctx.socket(socket_type)
 
     server_public, server_secret = load_certificate(server_secret_key)
@@ -162,6 +222,9 @@ class SocketReceiver:
             for sock in sockets:
                 if socks.get(sock) == zmq.POLLIN:
                     received = sock.recv_string(zmq.NOBLOCK)
-                    yield Message.decode(received), sock
+                    try:
+                        yield Message.decode(received), sock
+                    except MessageError:
+                        logger.debug(f"Invalid message received, dropping: {received}")
         else:
             raise TimeoutError("Did not receive anything on sockets.")

@@ -7,9 +7,21 @@ from urllib.parse import urlsplit
 
 from zmq import LINGER, REP, REQ
 
-from posttroll.backends.zmq.socket import SocketReceiver, close_socket, set_up_client_socket, set_up_server_socket
+from posttroll import config
+from posttroll.address_receiver import AddressReceiver
+from posttroll.backends.zmq.socket import (
+    ConfigurationError,
+    SocketReceiver,
+    close_socket,
+    set_up_client_socket,
+    set_up_server_socket,
+)
 from posttroll.message import Message
-from posttroll.ns import get_active_address, get_configured_nameserver_port
+from posttroll.ns import (
+    get_active_address,
+    get_configured_secure_zmq_nameserver_port,
+    get_configured_unsecure_zmq_nameserver_port,
+)
 
 logger = logging.getLogger("__name__")
 
@@ -21,18 +33,26 @@ def zmq_get_pub_address(name: str, timeout: float | int = 10, nameserver: str = 
 
     For a given publisher *name* from the nameserver on *nameserver* (localhost by default).
     """
-    nameserver_address = create_nameserver_address(nameserver)
+    backend = config["backend"]
+    if backend == "unsecure_zmq":
+        nameserver_address = create_unsecure_zmq_nameserver_address(nameserver)
+    elif backend == "secure_zmq":
+        nameserver_address = create_secure_zmq_nameserver_address(nameserver)
+    else:
+        raise NotImplementedError()
     return _fetch_address_using_socket(nameserver_address, name, timeout)
 
 
-def create_nameserver_address(nameserver:str):
+def create_unsecure_zmq_nameserver_address(nameserver:str):
     """Create the nameserver address.
 
     If `nameserver` is already preformatted and complete, the address is returned without change.
     """
-    url_parts = urlsplit(nameserver)
-    port = get_configured_nameserver_port()
+    port = get_configured_unsecure_zmq_nameserver_port()
+    return _create_nameserver_address(nameserver, port)
 
+def _create_nameserver_address(nameserver:str, port:int):
+    url_parts = urlsplit(nameserver)
     if not url_parts.scheme:
         nameserver_address = "tcp://" + nameserver + ":" + str(port)
     elif url_parts.scheme == "tcp" and url_parts.port is None:
@@ -40,6 +60,15 @@ def create_nameserver_address(nameserver:str):
     else:
         nameserver_address = nameserver
     return nameserver_address
+
+
+def create_secure_zmq_nameserver_address(nameserver:str):
+    """Create the nameserver address.
+
+    If `nameserver` is already preformatted and complete, the address is returned without change.
+    """
+    port = get_configured_secure_zmq_nameserver_port()
+    return _create_nameserver_address(nameserver, port)
 
 
 def _fetch_address_using_socket(nameserver_address, name, timeout):
@@ -83,12 +112,13 @@ class ZMQNameServer:
     def __init__(self):
         """Set up the nameserver."""
         self.running: bool = True
-        self.listener: SocketReceiver | None = None
+        self.unsecure_listener: SocketReceiver | None = None
+        self.secure_listener: SocketReceiver | None = None
         self._authenticator = None
 
-    def run(self, address_receiver, address:str|None=None):
+    def run(self, address_receiver: AddressReceiver, address:str|None=None):
         """Run the listener and answer to requests."""
-        port = get_configured_nameserver_port()
+        unsecure_port = get_configured_unsecure_zmq_nameserver_port()
 
         try:
             # stop was called before we could start running, exit
@@ -96,31 +126,45 @@ class ZMQNameServer:
                 return
             if address is None:
                 address = "*"
-            address = create_nameserver_address(address)
-            self.listener, _, self._authenticator = set_up_server_socket(REP, address)
-            logger.debug(f"Nameserver listening on port {port}")
+            unsecure_address = create_unsecure_zmq_nameserver_address(address)
+            self.unsecure_listener, _, self._authenticator = set_up_server_socket(REP, unsecure_address, backend="unsecure_zmq")
+            socks = [self.unsecure_listener]
+            ports = [unsecure_port]
+            try:
+                secure_port = get_configured_secure_zmq_nameserver_port()
+                secure_address = create_secure_zmq_nameserver_address(address)
+                self.secure_listener, _, self._authenticator = set_up_server_socket(REP, secure_address, backend="secure_zmq")
+                socks.append(self.secure_listener)
+                ports.append(secure_port)
+            except ConfigurationError as err:
+                logger.warning(f"Cannot create secure access to nameserver: {str(err)}")
+
+            logger.debug(f"Nameserver listening on ports {ports}")
             socket_receiver = SocketReceiver()
-            socket_receiver.register(self.listener)
+            for sock in socks:
+                socket_receiver.register(sock)
             while self.running:
                 try:
-                    for msg, _ in socket_receiver.receive(self.listener, timeout=1):
+                    for msg, sock in socket_receiver.receive(*socks, timeout=1):
                         logger.debug("Replying to request: " + str(msg))
                         active_address = get_active_address(msg.data["service"],
                                                             address_receiver, msg.version)
-                        self.listener.send_unicode(str(active_address))
+                        sock.send_unicode(str(active_address))
                 except TimeoutError:
                     continue
         except KeyboardInterrupt:
             # Needed to stop the nameserver.
             pass
         finally:
-            socket_receiver.unregister(self.listener)
+            with suppress(UnboundLocalError):
+                for sock in socks:
+                    socket_receiver.unregister(sock)
             self.close_sockets_and_threads()
 
     def close_sockets_and_threads(self):
         """Close all sockets and threads."""
         with suppress(AttributeError):
-            close_socket(self.listener)
+            close_socket(self.unsecure_listener)
         with suppress(AttributeError):
             self._authenticator.stop()
 

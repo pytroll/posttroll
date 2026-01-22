@@ -71,7 +71,7 @@ class Publisher:
         # Initialize no heartbeat
         self._heartbeat = None
 
-        backend = config.get("backend", "unsecure_zmq")
+        backend = config["backend"]
         if backend not in ["unsecure_zmq", "secure_zmq"]:
             raise NotImplementedError(f"No support for backend {backend} implemented (yet?).")
         from posttroll.backends.zmq.publisher import ZMQPublisher

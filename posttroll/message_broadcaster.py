@@ -14,9 +14,9 @@ LOGGER = logging.getLogger(__name__)
 
 class DesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
-    def __init__(self, default_port, receivers):
+    def __init__(self, default_port: int, receivers: list[str]):
         """Set settings."""
-        backend = config.get("backend", "unsecure_zmq")
+        backend = config["backend"]
         if backend == "unsecure_zmq":
             from posttroll.backends.zmq.message_broadcaster import ZMQDesignatedReceiversSender
             self._sender = ZMQDesignatedReceiversSender(default_port, receivers)
@@ -130,11 +130,13 @@ sendaddress = AddressBroadcaster
 class AddressServiceBroadcaster(MessageBroadcaster):
     """Class to broadcast stuff."""
 
-    def __init__(self, name, address, data_type, interval=2, nameservers=None):
+    def __init__(self, name, address, data_type: str, interval: int = 2, nameservers: list[str] | None = None):
         """Initialize broadcaster."""
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
-                               "service": data_type}).encode()
+                               "service": data_type,
+                               "supported_message_version": message.MESSAGE_VERSION,
+                               "backend": config["backend"]}).encode()
         MessageBroadcaster.__init__(self, msg, get_configured_broadcast_port(), interval,
                                     nameservers)
 

@@ -17,20 +17,26 @@ from posttroll.message import MESSAGE_VERSION, Message
 # pylint: enable=E0611
 
 
-DEFAULT_NAMESERVER_PORT = 5557
+DEFAULT_UNSECURE_ZMQ_NAMESERVER_PORT = 5557
+DEFAULT_SECURE_ZMQ_NAMESERVER_PORT = 5558
 
 logger = logging.getLogger(__name__)
 
 
-def get_configured_nameserver_port() -> int:
-    """Get the configured nameserver port."""
+def get_configured_unsecure_zmq_nameserver_port() -> int:
+    """Get the configured unsecure zmq nameserver port."""
     try:
         port = int(os.environ["NAMESERVER_PORT"])
         warnings.warn("NAMESERVER_PORT is pending deprecation, please use POSTTROLL_NAMESERVER_PORT instead.",
                       PendingDeprecationWarning, stacklevel=2)
     except KeyError:
-        port = DEFAULT_NAMESERVER_PORT
+        port = DEFAULT_UNSECURE_ZMQ_NAMESERVER_PORT
     return int(config.get("nameserver_port", port))
+
+
+def get_configured_secure_zmq_nameserver_port() -> int:
+    """Get the configured secure zmq nameserver port."""
+    return int(config.get("secure_zmq_nameserver_port", DEFAULT_SECURE_ZMQ_NAMESERVER_PORT))
 
 
 # Client functions.
@@ -46,6 +52,8 @@ def get_pub_addresses(names:list[str] | None=None, timeout:float=10, nameserver:
     addrs = []
     if names is None:
         names = ["", ]
+    elif isinstance(names, str):
+        names = [names]
     for name in names:
         then = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=timeout)
         while dt.datetime.now(dt.timezone.utc) < then:
@@ -88,7 +96,6 @@ class NameServer:
     def __init__(self, max_age=None, multicast_enabled=True, restrict_to_localhost=False):
         """Initialize nameserver."""
         self.loop = True
-        self.listener = None
         self._max_age = max_age or dt.timedelta(minutes=10)
         self._multicast_enabled = multicast_enabled
         self._restrict_to_localhost = restrict_to_localhost
@@ -98,7 +105,7 @@ class NameServer:
         from posttroll.backends.zmq.ns import ZMQNameServer
         self._ns = ZMQNameServer()
 
-    def run(self, address_receiver=None, nameserver_address=None):
+    def run(self, address_receiver: AddressReceiver|None =None, nameserver_address: str|None = None):
         """Run the listener and answer to requests."""
         if address_receiver is None:
             address_receiver = AddressReceiver(max_age=self._max_age,

@@ -20,8 +20,8 @@ from functools import partial
 
 from posttroll import config
 
-_MAGICK = "pytroll:/"
-MESSAGE_VERSION = config.get("message_version", "v1.2")
+_MAGICK : str = "pytroll:/"
+MESSAGE_VERSION : str = config.get("message_version", "v1.2")
 
 
 class MessageError(Exception):
@@ -37,7 +37,7 @@ class MessageError(Exception):
 # -----------------------------------------------------------------------------
 
 
-def is_valid_subject(obj):
+def is_valid_subject(obj: object):
     """Check that the message subject is valid.
 
     Currently we only check for empty strings.
@@ -45,7 +45,7 @@ def is_valid_subject(obj):
     return isinstance(obj, str) and bool(obj)
 
 
-def is_valid_type(obj):
+def is_valid_type(obj: object):
     """Check that the message type is valid.
 
     Currently we only check for empty strings.
@@ -53,7 +53,7 @@ def is_valid_type(obj):
     return isinstance(obj, str) and bool(obj)
 
 
-def is_valid_sender(obj):
+def is_valid_sender(obj: object):
     """Check that the sender is valid.
 
     Currently we only check for empty strings.
@@ -61,7 +61,7 @@ def is_valid_sender(obj):
     return isinstance(obj, str) and bool(obj)
 
 
-def is_valid_data(obj, version=MESSAGE_VERSION):
+def is_valid_data(obj:object, version:str = MESSAGE_VERSION):
     """Check if data is JSON serializable."""
     if obj:
         encoder = create_datetime_json_encoder_for_version(version)
@@ -264,7 +264,7 @@ def _check_for_element_count(rawstr):
     return raw
 
 
-def _check_for_magic_word(rawstr):
+def _check_for_magic_word(rawstr: str | bytes):
     """Check for the magick word."""
     try:
         rawstr = rawstr.decode("utf-8")
