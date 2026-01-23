@@ -1,4 +1,4 @@
-"""ZMQ implexentation of ns."""
+"""ZMQ implementation of ns."""
 
 import logging
 from contextlib import suppress
@@ -23,7 +23,7 @@ from posttroll.ns import (
     get_configured_unsecure_zmq_nameserver_port,
 )
 
-logger = logging.getLogger("__name__")
+logger = logging.getLogger(__name__)
 
 nslock = Lock()
 

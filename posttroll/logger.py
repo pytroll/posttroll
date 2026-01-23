@@ -20,7 +20,7 @@ class PytrollFormatter(logging.Formatter):
 
     def __init__(self, fmt, datefmt):
         """Initialize formatter."""
-        logging.Formatter.__init__(self, fmt, datefmt)
+        super().__init__(fmt, datefmt)
 
     def format(self, record):
         """Format the message."""
@@ -35,7 +35,7 @@ class PytrollHandler(logging.Handler):
 
     def __init__(self, name, port=0):
         """Initialize the handler."""
-        logging.Handler.__init__(self)
+        super().__init__()
         self._publisher = NoisyPublisher(name, port)
         self._publisher.start()
 
@@ -47,7 +47,7 @@ class PytrollHandler(logging.Handler):
     def close(self):
         """Close the handler."""
         self._publisher.stop()
-        logging.Handler.close(self)
+        super().close()
 
 
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)

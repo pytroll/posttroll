@@ -37,28 +37,33 @@ class MessageError(Exception):
 # -----------------------------------------------------------------------------
 
 
-def is_valid_subject(obj: object):
+def _is_valid_nonempty_string(obj: object) -> bool:
+    """Check that an object is a non-empty string."""
+    return isinstance(obj, str) and bool(obj)
+
+
+def is_valid_subject(obj: object) -> bool:
     """Check that the message subject is valid.
 
     Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return _is_valid_nonempty_string(obj)
 
 
-def is_valid_type(obj: object):
+def is_valid_type(obj: object) -> bool:
     """Check that the message type is valid.
 
     Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return _is_valid_nonempty_string(obj)
 
 
-def is_valid_sender(obj: object):
+def is_valid_sender(obj: object) -> bool:
     """Check that the sender is valid.
 
     Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return _is_valid_nonempty_string(obj)
 
 
 def is_valid_data(obj:object, version:str = MESSAGE_VERSION):
@@ -258,8 +263,7 @@ def _check_for_version(raw):
 def _check_for_element_count(rawstr):
     raw = re.split(r"\s+", rawstr, maxsplit=6)
     if len(raw) < 5:
-        raise MessageError("Could node decode raw string: '%s ...'"
-                           % str(rawstr[:36]))
+        raise MessageError(f"Could not decode raw string: '{rawstr[:36]} ...'")
 
     return raw
 

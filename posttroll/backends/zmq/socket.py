@@ -30,6 +30,9 @@ def set_up_client_socket(socket_type: int, address: str,
     """Set up a client (connecting) zmq socket."""
     options = options or dict()
     backend = backend or config["backend"]
+    # Skip secure setup for inproc (internal thread communication)
+    if address.startswith("inproc://"):
+        backend = "unsecure_zmq"
     if backend == "unsecure_zmq":
         sock = create_unsecure_client_socket(socket_type)
     elif backend == "secure_zmq":
@@ -81,13 +84,15 @@ def create_secure_client_socket(socket_type: int) -> zmq.Socket[int]:
 
 def set_up_server_socket(socket_type: int, destination: str, options: dict[int, str]|None = None,
                          port_interval: tuple[int|None, int|None] = (None, None),
-                         backend: str|None = None) -> tuple[zmq.Socket[int], ThreadAuthenticator|None]:
+                         backend: str|None = None) -> tuple[zmq.Socket[int], int, ThreadAuthenticator|None]:
     """Set up a server (binding) socket."""
     if options is None:
         options = {}
     _backend:str = backend or config["backend"]
+    # Skip ZAP for inproc (internal thread communication)
+    enable_zap = not destination.startswith("inproc://")
     if _backend == "unsecure_zmq":
-        sock, authenticator = create_unsecure_server_socket(socket_type)
+        sock, authenticator = create_unsecure_server_socket(socket_type, enable_zap=enable_zap)
     elif _backend == "secure_zmq":
         sock, authenticator = create_secure_server_socket(socket_type)
     else:
@@ -99,10 +104,14 @@ def set_up_server_socket(socket_type: int, destination: str, options: dict[int, 
     return sock, port, authenticator
 
 
-def create_unsecure_server_socket(socket_type: int) -> zmq.Socket[int]:
+def create_unsecure_server_socket(socket_type: int, enable_zap: bool = True) -> tuple[zmq.Socket[int], ThreadAuthenticator | None]:
     """Create an unsecure server socket."""
     ctx = get_context()
     sock = ctx.socket(socket_type)
+
+    if not enable_zap:
+        return sock, None
+
     authenticator = get_auth_thread(ctx)
     allowed_hosts = config.get("authorized_client_addresses", None)
     if allowed_hosts:

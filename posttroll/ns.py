@@ -175,7 +175,7 @@ def run(ns, logger):
         ns.run()
     except KeyboardInterrupt:
         pass
-    except:
+    except Exception:
         logger.exception("Something wrong happened...")
         raise
     finally:
