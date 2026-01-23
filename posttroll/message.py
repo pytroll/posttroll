@@ -20,8 +20,8 @@ from functools import partial
 
 from posttroll import config
 
-_MAGICK = "pytroll:/"
-MESSAGE_VERSION = config.get("message_version", "v1.2")
+_MAGICK : str = "pytroll:/"
+MESSAGE_VERSION : str = config.get("message_version", "v1.2")
 
 
 class MessageError(Exception):
@@ -37,31 +37,36 @@ class MessageError(Exception):
 # -----------------------------------------------------------------------------
 
 
-def is_valid_subject(obj):
+def _is_valid_nonempty_string(obj: object) -> bool:
+    """Check that an object is a non-empty string."""
+    return isinstance(obj, str) and bool(obj)
+
+
+def is_valid_subject(obj: object) -> bool:
     """Check that the message subject is valid.
 
     Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return _is_valid_nonempty_string(obj)
 
 
-def is_valid_type(obj):
+def is_valid_type(obj: object) -> bool:
     """Check that the message type is valid.
 
     Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return _is_valid_nonempty_string(obj)
 
 
-def is_valid_sender(obj):
+def is_valid_sender(obj: object) -> bool:
     """Check that the sender is valid.
 
     Currently we only check for empty strings.
     """
-    return isinstance(obj, str) and bool(obj)
+    return _is_valid_nonempty_string(obj)
 
 
-def is_valid_data(obj, version=MESSAGE_VERSION):
+def is_valid_data(obj:object, version:str = MESSAGE_VERSION):
     """Check if data is JSON serializable."""
     if obj:
         encoder = create_datetime_json_encoder_for_version(version)
@@ -258,13 +263,12 @@ def _check_for_version(raw):
 def _check_for_element_count(rawstr):
     raw = re.split(r"\s+", rawstr, maxsplit=6)
     if len(raw) < 5:
-        raise MessageError("Could node decode raw string: '%s ...'"
-                           % str(rawstr[:36]))
+        raise MessageError(f"Could not decode raw string: '{rawstr[:36]} ...'")
 
     return raw
 
 
-def _check_for_magic_word(rawstr):
+def _check_for_magic_word(rawstr: str | bytes):
     """Check for the magick word."""
     try:
         rawstr = rawstr.decode("utf-8")

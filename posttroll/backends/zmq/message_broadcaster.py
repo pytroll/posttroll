@@ -13,18 +13,18 @@ logger = logging.getLogger(__name__)
 class ZMQDesignatedReceiversSender:
     """Sends message to multiple *receivers* on *port*."""
 
-    def __init__(self, default_port, receivers):
+    def __init__(self, default_port: int, receivers: list[str]):
         """Set up the sender."""
         self.default_port = default_port
-        self.receivers = receivers
+        self.receivers: list[str] = receivers
         self._shutdown_event = threading.Event()
 
-    def __call__(self, data):
+    def __call__(self, data: str):
         """Send data."""
         for receiver in self.receivers:
             self._send_to_address(receiver, data)
 
-    def _send_to_address(self, address, data, timeout=10):
+    def _send_to_address(self, address: str, data: str, timeout: int = 10):
         """Send data to *address* and *port* without verification of response."""
         # Socket to talk to server
         if address.find(":") == -1:

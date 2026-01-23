@@ -81,6 +81,7 @@ class TestPubSub(unittest.TestCase):
 
             msg = next(sub.recv(2))
             if msg is not None:
+                assert isinstance(msg, Message)
                 assert str(msg) == str(message)
                 tested = True
         assert tested

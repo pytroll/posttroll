@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 class ZMQPublisher:
     """Unsecure ZMQ implementation of the publisher class."""
 
-    def __init__(self, address, name="", min_port=None, max_port=None):
+    def __init__(self, address:str, name="", min_port=None, max_port=None):
         """Set up the publisher.
 
         Args:

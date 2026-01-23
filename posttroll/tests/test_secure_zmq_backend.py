@@ -3,6 +3,7 @@
 import os
 import shutil
 import time
+from pathlib import Path
 from threading import Thread
 
 import zmq.auth
@@ -10,7 +11,7 @@ import zmq.auth
 from posttroll import config
 from posttroll.backends.zmq import generate_keys
 from posttroll.message import Message
-from posttroll.ns import get_pub_address
+from posttroll.ns import NameServer, get_pub_address
 from posttroll.publisher import Publisher, create_publisher_from_dict_config
 from posttroll.subscriber import Subscriber, create_subscriber_from_dict_config
 from posttroll.tests.test_nameserver import create_nameserver_instance
@@ -64,15 +65,15 @@ def test_ipc_pubsub_with_sec(tmp_path):
                     server_secret_key_file=server_secret_key_file):
         subscriber_settings = dict(addresses=ipc_address, topics="", nameserver=False, port=10202)
         sub = create_subscriber_from_dict_config(subscriber_settings)
-
         pub = Publisher(ipc_address)
 
         pub.start()
 
         def delayed_send(msg):
+            to_send = Message(subject="/hi", atype="string", data=msg)
             time.sleep(.2)
-            msg = Message(subject="/hi", atype="string", data=msg)
-            pub.send(str(msg))
+            pub.send(str(to_send))
+
         thr = Thread(target=delayed_send, args=["very sensitive message"])
         thr.start()
         try:
@@ -157,6 +158,35 @@ def test_switch_to_secure_backend_for_nameserver(tmp_path):
         with create_nameserver_instance():
             res = get_pub_address("some_name")
             assert res == ""
+
+
+def test_secure_tcp_nameserver(tmp_path: Path):
+    """Test nameserver can be queried on as secured port too."""
+    server_public_key_file, server_secret_key_file = zmq.auth.create_certificates(tmp_path, "server")
+    client_public_key_file, client_secret_key_file = zmq.auth.create_certificates(tmp_path, "client")
+    with config.set(backend="unsecure_zmq",
+                    client_secret_key_file=client_secret_key_file,
+                    clients_public_keys_directory=os.path.dirname(client_public_key_file),
+                    server_public_key_file=server_public_key_file,
+                    server_secret_key_file=server_secret_key_file):
+        nserver = NameServer()
+        ns_address = "tcp://localhost"
+        service_addresses = ["some", "addresses"]
+        thr = Thread(target=nserver.run,
+                     args=(dict(cool_unsecure_service=service_addresses,
+                                cool_secure_service=service_addresses),
+                           ns_address))
+        thr.start()
+        try:
+            with config.set(backend="secure_zmq"):
+                addrs = get_pub_address("cool_secure_service", nameserver=ns_address)
+                assert addrs == service_addresses
+            with config.set(backend="unsecure_zmq"):
+                addrs = get_pub_address("cool_unsecure_service", nameserver=ns_address)
+                assert addrs == service_addresses
+        finally:
+            nserver.stop()
+            thr.join()
 
 
 def test_create_certificates_cli(tmp_path):

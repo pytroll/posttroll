@@ -11,9 +11,14 @@ from unittest import mock
 import pytest
 
 from posttroll import config
-from posttroll.backends.zmq.ns import create_nameserver_address
-from posttroll.message import Message
-from posttroll.ns import NameServer, get_configured_nameserver_port, get_pub_address, get_pub_addresses
+from posttroll.backends.zmq.ns import create_unsecure_zmq_nameserver_address
+from posttroll.message import MESSAGE_VERSION, Message
+from posttroll.ns import (
+    NameServer,
+    get_configured_unsecure_zmq_nameserver_port,
+    get_pub_address,
+    get_pub_addresses,
+)
 from posttroll.publisher import Publish
 from posttroll.subscriber import Subscribe
 from posttroll.tests.test_bbmcast import random_valid_mc_address
@@ -57,11 +62,11 @@ def free_port() -> int:
 def create_nameserver_instance(max_age=3, multicast_enabled=True):
     """Create a nameserver instance."""
     config.set(nameserver_port=free_port())
+    config.set(secure_zmq_nameserver_port=free_port())
     config.set(address_publish_port=free_port())
     ns = NameServer(max_age=dt.timedelta(seconds=max_age), multicast_enabled=multicast_enabled)
     thr = Thread(target=ns.run)
     thr.start()
-
     try:
         yield
     finally:
@@ -115,7 +120,9 @@ def test_pub_addresses(multicast_enabled):
                 assert len(res) == 1
                 expected = {u"status": True,
                             u"service": [u"data_provider", u"this_data"],
-                            u"name": u"address"}
+                            u"name": u"address",
+                            "backend": "unsecure_zmq",
+                            "supported_message_version": MESSAGE_VERSION}
                 for key, val in expected.items():
                     assert res[0][key] == val
                 assert "receive_time" in res[0]
@@ -124,7 +131,9 @@ def test_pub_addresses(multicast_enabled):
                 assert len(res) == 1
                 expected = {u"status": True,
                             u"service": [u"data_provider", u"this_data"],
-                            u"name": u"address"}
+                            u"name": u"address",
+                            "backend": "unsecure_zmq",
+                            "supported_message_version": MESSAGE_VERSION}
                 for key, val in expected.items():
                     assert res[0][key] == val
                 assert "receive_time" in res[0]
@@ -165,7 +174,7 @@ def test_pub_sub_ctx(multicast_enabled):
     [True, False],
     ids=["mc on", "mc off"]
 )
-def test_pub_sub_add_rm(multicast_enabled):
+def test_pub_sub_add_rm(multicast_enabled: bool):
     """Test adding and removing publishers."""
     if multicast_enabled:
         if os.getenv("DISABLED_MULTICAST"):
@@ -297,16 +306,16 @@ def test_switch_backend_for_nameserver():
 
 def test_create_nameserver_address(tmp_path):
     """Test creating the nameserver address."""
-    port = get_configured_nameserver_port()
-    res = create_nameserver_address("somehost")
+    port = get_configured_unsecure_zmq_nameserver_port()
+    res = create_unsecure_zmq_nameserver_address("somehost")
     assert res == f"tcp://somehost:{port}"
 
     preformatted_address = f"ipc://{str(tmp_path)}"
-    res = create_nameserver_address(preformatted_address)
+    res = create_unsecure_zmq_nameserver_address(preformatted_address)
     assert res == preformatted_address
 
     tcp_without_port = "tcp://somehost"
-    res = create_nameserver_address(tcp_without_port)
+    res = create_unsecure_zmq_nameserver_address(tcp_without_port)
     assert res == f"tcp://somehost:{port}"
 
 
@@ -314,6 +323,24 @@ def test_no_tcp_nameserver(tmp_path):
     """Test running a nameserver without tcp and multicast."""
     nserver = NameServer()
     ns_address = f"ipc://{str(tmp_path)}/ns1"
+    service_addresses = ["some", "addresses"]
+    thr = Thread(target=nserver.run,
+                 args=(dict(cool_service=service_addresses),
+                       ns_address))
+    thr.start()
+    try:
+        addrs = get_pub_address("cool_service", nameserver=ns_address)
+        assert addrs == service_addresses
+    finally:
+        nserver.stop()
+        thr.join()
+
+
+def test_unsecure_tcp_nameserver(tmp_path):
+    """Test running a nameserver without tcp and multicast."""
+    nserver = NameServer()
+    port = get_configured_unsecure_zmq_nameserver_port()
+    ns_address = "tcp://localhost"
     service_addresses = ["some", "addresses"]
     thr = Thread(target=nserver.run,
                  args=(dict(cool_service=service_addresses),

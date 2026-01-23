@@ -56,8 +56,8 @@ def get_local_ips():
 class AddressReceiver:
     """General thread to receive broadcast addresses."""
 
-    def __init__(self, max_age=ten_minutes, port=None,
-                 do_heartbeat=True, multicast_enabled=True, restrict_to_localhost=False):
+    def __init__(self, max_age: dt.timedelta = ten_minutes, port: int|None =None,
+                 do_heartbeat: bool = True, multicast_enabled: bool = True, restrict_to_localhost: bool = False):
         """Set up the address receiver."""
         self._max_age = max_age
         self._port = port or get_configured_address_port()

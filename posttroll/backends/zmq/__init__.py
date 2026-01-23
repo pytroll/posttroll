@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 context = {}
 
 
-def get_context():
+def get_context() -> zmq.Context:
     """Provide the context to use.
 
     This function takes care of creating new contexts in case of forks.

@@ -178,6 +178,9 @@ These settings can also be set using the posttroll config object, for example::
 
 The posttroll configuration uses donfig, for more information, check https://donfig.readthedocs.io/en/latest/.
 
+Nameserver also now use both a secure and unsecure port for communicating. The port for secure connection can be set with
+the "secure_zmq_nameserver_port" config item, while the unsecure one use the known "nameserver_port" config item.
+
 
 Generating the public and secret key pairs
 ******************************************

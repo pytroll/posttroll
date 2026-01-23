@@ -1,8 +1,5 @@
 """Logger module for Posttroll."""
 
-
-# TODO: remove old hanging subscriptions
-
 import copy
 import logging
 import logging.handlers
@@ -20,7 +17,7 @@ class PytrollFormatter(logging.Formatter):
 
     def __init__(self, fmt, datefmt):
         """Initialize formatter."""
-        logging.Formatter.__init__(self, fmt, datefmt)
+        super().__init__(fmt, datefmt)
 
     def format(self, record):
         """Format the message."""
@@ -35,7 +32,7 @@ class PytrollHandler(logging.Handler):
 
     def __init__(self, name, port=0):
         """Initialize the handler."""
-        logging.Handler.__init__(self)
+        super().__init__()
         self._publisher = NoisyPublisher(name, port)
         self._publisher.start()
 
@@ -47,7 +44,7 @@ class PytrollHandler(logging.Handler):
     def close(self):
         """Close the handler."""
         self._publisher.stop()
-        logging.Handler.close(self)
+        super().close()
 
 
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
@@ -69,7 +66,7 @@ class ColoredFormatter(logging.Formatter):
 
     def __init__(self, msg, use_color=True):
         """Initialize the colored formatter."""
-        logging.Formatter.__init__(self, msg)
+        super().__init__(msg)
         self.use_color = use_color
 
     def format(self, record):
@@ -80,18 +77,17 @@ class ColoredFormatter(logging.Formatter):
                                + levelname + RESET_SEQ)
             record2 = copy.copy(record)
             record2.levelname = levelname_color
-        return logging.Formatter.format(self, record2)
+        return super().format(record2)
 
 
-class Logger(object):
+class Logger:
     """The logging machine.
 
-    Contains a thread listening to incomming messages, and a thread logging.
+    Contains a thread listening to incoming messages, and a thread logging.
     """
 
-    def __init__(self, nameserver_address="localhost", nameserver_port=16543):
+    def __init__(self, nameserver_address="localhost", nameserver_port=16543):  # noqa: ARG002
         """Initialize the logger."""
-        del nameserver_address, nameserver_port
         self.log_thread = Thread(target=self.log)
         self.loop = True
 
