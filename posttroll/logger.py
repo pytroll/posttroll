@@ -1,8 +1,5 @@
 """Logger module for Posttroll."""
 
-
-# TODO: remove old hanging subscriptions
-
 import copy
 import logging
 import logging.handlers
@@ -69,7 +66,7 @@ class ColoredFormatter(logging.Formatter):
 
     def __init__(self, msg, use_color=True):
         """Initialize the colored formatter."""
-        logging.Formatter.__init__(self, msg)
+        super().__init__(msg)
         self.use_color = use_color
 
     def format(self, record):
@@ -80,18 +77,17 @@ class ColoredFormatter(logging.Formatter):
                                + levelname + RESET_SEQ)
             record2 = copy.copy(record)
             record2.levelname = levelname_color
-        return logging.Formatter.format(self, record2)
+        return super().format(record2)
 
 
-class Logger(object):
+class Logger:
     """The logging machine.
 
-    Contains a thread listening to incomming messages, and a thread logging.
+    Contains a thread listening to incoming messages, and a thread logging.
     """
 
-    def __init__(self, nameserver_address="localhost", nameserver_port=16543):
+    def __init__(self, nameserver_address="localhost", nameserver_port=16543):  # noqa: ARG002
         """Initialize the logger."""
-        del nameserver_address, nameserver_port
         self.log_thread = Thread(target=self.log)
         self.loop = True
 

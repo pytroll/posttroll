@@ -174,7 +174,7 @@ def enable_auth_curve(ctx):
     if allowed_hosts:
         ips = resolve_to_ips(allowed_hosts)
         if ips:
-            authenticator.allow(*ips)
+            authenticator_thread.allow(*ips)
     # Tell authenticator to use the certificate in a directory
     authenticator_thread.configure_curve(domain="*", location=clients_public_keys_directory)
     return authenticator_thread
