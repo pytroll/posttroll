@@ -265,7 +265,7 @@ def _to_list(obj):
 class _AddressListener:
     """Listener for new addresses of interest."""
 
-    def __init__(self, subscriber, services="", nameserver="localhost"):
+    def __init__(self, subscriber: Subscriber, services: str|list[str] ="", nameserver: str|None ="localhost"):
         """Initialize address listener."""
         if isinstance(services, str):
             services = [services, ]

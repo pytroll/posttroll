@@ -102,9 +102,8 @@ class ZMQSubscriber:
         specified subscription.
 
         Good for operations, which is required to be done in the same thread as
-        the main recieve loop (e.q operations on the underlying sockets).
+        the main receive loop (e.q operations on the underlying sockets).
         """
-        topics = topics
         LOGGER.info("Subscriber adding SUB hook %s for topics %s",
                     str(address), str(topics))
         socket = self._add_sub_socket(address, topics)
@@ -242,5 +241,5 @@ def uri_keys(addresses) -> list[str]:
 
 def add_subscriptions(socket, topics):
     """Add subscriptions to a socket."""
-    for t__ in topics:
-        socket.setsockopt_string(SUBSCRIBE, str(t__))
+    for topic in topics:
+        socket.setsockopt_string(SUBSCRIBE, str(topic))
