@@ -7,6 +7,7 @@ import sys
 
 import pytest
 
+from posttroll import config
 from posttroll.message import _MAGICK, Message
 
 HOME = os.path.dirname(__file__) or "."
@@ -56,7 +57,7 @@ def test_encode():
     msg1 = Message(subject, atype, data=data)
     sender = "%s@%s" % (msg1.user, msg1.host)
     full_message = (_MAGICK + subject + " " + atype + " " + sender + " " +
-                    str(msg1.time.isoformat()) + " " + msg1.version + " " + "text/ascii" + " " + data)
+                    str(msg1.time.isoformat()) + " " + "v1.01" + " " + "text/ascii" + " " + data)
     assert full_message == msg1.encode()
 
 
@@ -152,9 +153,9 @@ def test_message_can_generate_v1_01():
                   data=dict(start_time=dt.datetime.now(dt.timezone.utc)),
                   version=version)
     rawmsg = str(msg)
-    assert "+00:00" not in rawmsg
+    assert "+00:00" not in rawmsg.split(" ", 6)[-1]
     msg = Message(rawstr=rawmsg)
-    assert "+00:00" not in str(msg)
+    assert "+00:00" not in rawmsg.split(" ", 6)[-1]
     assert str(msg) == rawmsg
 
 
@@ -168,3 +169,22 @@ def test_message_has_timezone_by_default():
     assert "+00:00" in str(msg)
     assert str(msg) == rawmsg
 
+
+def test_message_encoding_can_choose_version_automatically():
+    """Make sure the version number can be chosen automatically."""
+    msg1 = Message("/test/whatup/doc", "info", data=dict(time=dt.datetime.now()))
+
+    msg2 = Message.decode(msg1.encode())
+    assert msg2.version == "v1.2"
+
+    msg1 = Message("/test/whatup/doc", "info", data=dict(sting="Hi, Bugs"))
+
+    msg2 = Message.decode(msg1.encode())
+    assert msg2.version == "v1.01"
+
+def test_message_version_does_not_change_if_set():
+    with config.set(message_version="v1.2"):
+        msg1 = Message("/test/whatup/doc", "info", data=dict(sting="Hi, Bugs"))
+
+        msg2 = Message.decode(msg1.encode())
+        assert msg2.version == "v1.2"
