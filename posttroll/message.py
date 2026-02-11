@@ -339,7 +339,7 @@ def version_needed(data:str|bytes|dict[str,Any], binary:bool) -> str:
     if binary:
         return "v1.01"
     if _contains_datetime(data):
-        return "v1.2"
+        return CURRENT_MESSAGE_VERSION
     return "v1.01"
 
 

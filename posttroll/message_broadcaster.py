@@ -135,7 +135,7 @@ class AddressServiceBroadcaster(MessageBroadcaster):
         msg = message.Message("/address/%s" % name, "info",
                               {"URI": address,
                                "service": data_type,
-                               "supported_message_version": message.MESSAGE_VERSION,
+                               "supported_message_version": message.CURRENT_MESSAGE_VERSION,
                                "backend": config["backend"]}).encode()
         MessageBroadcaster.__init__(self, msg, get_configured_broadcast_port(), interval,
                                     nameservers)

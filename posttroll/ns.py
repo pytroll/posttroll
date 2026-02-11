@@ -12,7 +12,7 @@ from contextlib import suppress
 
 from posttroll import config
 from posttroll.address_receiver import AddressReceiver
-from posttroll.message import MESSAGE_VERSION, Message
+from posttroll.message import Message
 
 # pylint: enable=E0611
 
@@ -81,7 +81,7 @@ def get_pub_address(name:str, timeout:float|int=10, nameserver:str="localhost"):
 # Server part.
 
 
-def get_active_address(name, arec, message_version=MESSAGE_VERSION):
+def get_active_address(name, arec, message_version:str):
     """Get the addresses of the active modules for a given publisher *name*."""
     addrs = arec.get(name)
     if addrs:

@@ -10,7 +10,7 @@ from zmq import PULL, SUB, SUBSCRIBE, ContextTerminated, ZMQError
 from posttroll import config
 from posttroll.backends.zmq import get_tcp_keepalive_options
 from posttroll.backends.zmq.socket import SocketReceiver, close_socket, set_up_client_socket
-from posttroll.message import MESSAGE_VERSION
+from posttroll.message import CURRENT_MESSAGE_VERSION
 
 LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class ZMQSubscriber:
         """
         with self._lock:
             addr = ensure_address_is_dict(address)
-            if addr.get("supported_message_version", MESSAGE_VERSION) > MESSAGE_VERSION:
+            if addr.get("supported_message_version", CURRENT_MESSAGE_VERSION) > CURRENT_MESSAGE_VERSION:
                 LOGGER.warning(f"Will not connect to {str(addr)}, message version mismatch")
                 return
             if addr["URI"] in self.address_keys:
