@@ -251,6 +251,9 @@ or within python code::
    >>> with config.set(message_version="v1.01"):
    ...
 
+Note that if the message version is not set explicitly with the above configuration, or when creating a message
+object, the message version will be set to the lowest compatible version, that is v1.01 for messages not
+encoding a datetime object, v1.2 otherwise.
 
 API
 ---
