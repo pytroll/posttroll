@@ -6,7 +6,6 @@ from threading import Lock
 
 import zmq
 
-from posttroll.backends.zmq import get_tcp_keepalive_options
 from posttroll.backends.zmq.socket import close_socket, set_up_server_socket
 
 LOGGER = logging.getLogger(__name__)
@@ -42,12 +41,12 @@ class ZMQPublisher:
         return self
 
     def _create_socket(self):
-        options = get_tcp_keepalive_options()
-        self.publish_socket, port, self._authenticator = set_up_server_socket(zmq.PUB, self.destination, options,
-                                                                              (self.min_port, self.max_port))
+        self.publish_socket, port, self._authenticator = set_up_server_socket(zmq.PUB, self.destination,
+                                                                              port_interval=(self.min_port,
+                                                                                             self.max_port))
         self.port_number = port
 
-    def send(self, msg):
+    def send(self, msg: str):
         """Send the given message."""
         with self._pub_lock:
             self.publish_socket.send_string(msg)
