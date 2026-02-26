@@ -39,7 +39,7 @@ def test_encode_decode():
 
 
 @pytest.mark.parametrize("dstr", [r"2008-04-11T22:13:22.123000", r"2008-04-11T22:13:22.123000+00:00"])
-def test_decode(dstr):
+def test_decode(dstr: str):
     """Test the decoding of a message."""
     rawstr = (_MAGICK +
               r"/test/1/2/3 info ras@hawaii " + dstr + r" v1.2" +
@@ -62,26 +62,26 @@ def test_encode():
 
 
 @pytest.mark.parametrize("dstr", [r"2008-04-11T22:13:22.123000", r"2008-04-11T22:13:22.123000+00:00"])
-def test_unicode(dstr):
+def test_unicode(dstr: str):
     """Test handling of unicode."""
     msg = ("pytroll://PPS-monitorplot/3/norrköping/utv/polar/direct_readout/ file "
            "safusr.u@lxserv1096.smhi.se " + dstr + ' v1.2 application/json'
            ' {"start_time": "' + dstr + '"}')
-    assert msg == str(Message(rawstr=msg))
+    assert msg == str(Message.from_string(msg))
 
     msg = (u"pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN " + dstr +
            r' v1.2 application/json {"station": "norrk\u00f6ping"}')
-    assert msg == str(Message(rawstr=msg))
+    assert msg == str(Message.from_string(msg))
 
 
 @pytest.mark.parametrize("dstr", [r"2008-04-11T22:13:22.123000", r"2008-04-11T22:13:22.123000+00:00"])
-def test_iso(dstr):
+def test_iso(dstr: str):
     """Test handling of iso-8859-1."""
     msg = ("pytroll://oper/polar/direct_readout/norrköping pong sat@MERLIN " + dstr +
            ' v1.01 application/json {"station": "norrköping"}')
     iso_msg = msg.encode("iso-8859-1")
 
-    Message(rawstr=iso_msg)
+    Message.from_string(iso_msg)
 
 
 def test_pickle():
@@ -105,7 +105,7 @@ def test_pickle():
 
 
 @pytest.mark.parametrize("mda", [TZ_UNAWARE_METADATA, TZ_AWARE_METADATA])
-def test_metadata(mda):
+def test_metadata(mda: dict[str, dt.datetime|str|int|float]):
     """Test metadata encoding/decoding."""
     metadata = copy.copy(mda)
     msg = Message.decode(Message("/sat/polar/smb/level1", "file",
@@ -117,7 +117,7 @@ def test_metadata(mda):
 @pytest.mark.parametrize(("mda", "compare_file"),
                          [(TZ_UNAWARE_METADATA, "/message_metadata_unaware.dumps"),
                           (TZ_AWARE_METADATA, "/message_metadata_aware.dumps")])
-def test_serialization(mda, compare_file):
+def test_serialization(mda: dict[str, dt.datetime|str|int|float], compare_file: str):
     """Test json serialization."""
     import json
     metadata = copy.copy(mda)
@@ -142,7 +142,7 @@ def test_message_can_take_version():
     assert msg.version == version
     rawmsg = str(msg)
     assert version in rawmsg
-    msg = Message(rawstr=rawmsg)
+    msg = Message.from_string(rawmsg)
     assert msg.version == version
 
 
@@ -154,7 +154,7 @@ def test_message_can_generate_v1_01():
                   version=version)
     rawmsg = str(msg)
     assert "+00:00" not in rawmsg.split(" ", 6)[-1]
-    msg = Message(rawstr=rawmsg)
+    msg = Message.from_string(rawmsg)
     assert "+00:00" not in rawmsg.split(" ", 6)[-1]
     assert str(msg) == rawmsg
 
@@ -165,7 +165,7 @@ def test_message_has_timezone_by_default():
                   data=dict(start_time=dt.datetime.now(dt.timezone.utc)))
     rawmsg = str(msg)
     assert "+00:00" in rawmsg
-    msg = Message(rawstr=rawmsg)
+    msg = Message.from_string(rawmsg)
     assert "+00:00" in str(msg)
     assert str(msg) == rawmsg
 
