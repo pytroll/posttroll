@@ -1,3 +1,16 @@
+## Version 1.14.0 (2026/02/26)
+
+
+### Pull Requests Merged
+
+#### Features added
+
+* [PR 81](https://github.com/pytroll/posttroll/pull/81) - Make message version dynamic
+* [PR 80](https://github.com/pytroll/posttroll/pull/80) - Add more security and allow_lists, and type annotations
+
+In this release 2 pull requests were closed.
+
+
 ## Version 1.13.1 (2025/09/24)
 
 
