@@ -12,7 +12,7 @@ import pytest
 
 from posttroll import config
 from posttroll.backends.zmq.ns import create_unsecure_zmq_nameserver_address
-from posttroll.message import MESSAGE_VERSION, Message
+from posttroll.message import CURRENT_MESSAGE_VERSION, Message
 from posttroll.ns import (
     NameServer,
     get_configured_unsecure_zmq_nameserver_port,
@@ -122,7 +122,7 @@ def test_pub_addresses(multicast_enabled):
                             u"service": [u"data_provider", u"this_data"],
                             u"name": u"address",
                             "backend": "unsecure_zmq",
-                            "supported_message_version": MESSAGE_VERSION}
+                            "supported_message_version": CURRENT_MESSAGE_VERSION}
                 for key, val in expected.items():
                     assert res[0][key] == val
                 assert "receive_time" in res[0]
@@ -133,7 +133,7 @@ def test_pub_addresses(multicast_enabled):
                             u"service": [u"data_provider", u"this_data"],
                             u"name": u"address",
                             "backend": "unsecure_zmq",
-                            "supported_message_version": MESSAGE_VERSION}
+                            "supported_message_version": CURRENT_MESSAGE_VERSION}
                 for key, val in expected.items():
                     assert res[0][key] == val
                 assert "receive_time" in res[0]

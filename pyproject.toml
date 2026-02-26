@@ -76,3 +76,9 @@ convention = "google"
 [tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-reraise>=2.1.2",
+]

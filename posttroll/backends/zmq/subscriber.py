@@ -10,7 +10,7 @@ from zmq import PULL, SUB, SUBSCRIBE, ContextTerminated, ZMQError
 from posttroll import config
 from posttroll.backends.zmq import get_tcp_keepalive_options
 from posttroll.backends.zmq.socket import SocketReceiver, close_socket, set_up_client_socket
-from posttroll.message import MESSAGE_VERSION
+from posttroll.message import CURRENT_MESSAGE_VERSION
 
 LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class ZMQSubscriber:
         """
         with self._lock:
             addr = ensure_address_is_dict(address)
-            if addr.get("supported_message_version", MESSAGE_VERSION) > MESSAGE_VERSION:
+            if addr.get("supported_message_version", CURRENT_MESSAGE_VERSION) > CURRENT_MESSAGE_VERSION:
                 LOGGER.warning(f"Will not connect to {str(addr)}, message version mismatch")
                 return
             if addr["URI"] in self.address_keys:
@@ -102,9 +102,8 @@ class ZMQSubscriber:
         specified subscription.
 
         Good for operations, which is required to be done in the same thread as
-        the main recieve loop (e.q operations on the underlying sockets).
+        the main receive loop (e.q operations on the underlying sockets).
         """
-        topics = topics
         LOGGER.info("Subscriber adding SUB hook %s for topics %s",
                     str(address), str(topics))
         socket = self._add_sub_socket(address, topics)
@@ -242,5 +241,5 @@ def uri_keys(addresses) -> list[str]:
 
 def add_subscriptions(socket, topics):
     """Add subscriptions to a socket."""
-    for t__ in topics:
-        socket.setsockopt_string(SUBSCRIBE, str(t__))
+    for topic in topics:
+        socket.setsockopt_string(SUBSCRIBE, str(topic))
