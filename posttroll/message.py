@@ -136,10 +136,10 @@ class Message:
         self._validate()
         return _encode(self, head=True)
 
-    @staticmethod
-    def decode(rawstr:str|bytes):
+    @classmethod
+    def decode(cls, rawstr:str|bytes):
         """Decode a raw string into a Message."""
-        return Message.from_string(rawstr)
+        return cls.from_string(rawstr)
 
     def encode(self) -> str:
         """Encode a Message to a raw string."""
