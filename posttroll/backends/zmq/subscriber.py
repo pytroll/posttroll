@@ -212,7 +212,7 @@ class ZMQSubscriber:
             self._sock_receiver.register(subscriber)
         return subscriber
 
-    def _create_socket(self, socket_type: int, address: str, options: dict[int,int]|None, backend: str|None = None):
+    def _create_socket(self, socket_type: int, address: str, options: dict[int,int]|None=None, backend: str|None = None):
         return set_up_client_socket(socket_type, address, options, backend)
 
 
