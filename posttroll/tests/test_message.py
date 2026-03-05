@@ -57,7 +57,7 @@ def test_encode():
     msg1 = Message(subject, atype, data=data)
     sender = "%s@%s" % (msg1.user, msg1.host)
     full_message = (_MAGICK + subject + " " + atype + " " + sender + " " +
-                    str(msg1.time.isoformat()) + " " + "v1.01" + " " + "text/ascii" + " " + data)
+                    msg1.time.replace(tzinfo=None).isoformat() + " " + "v1.01" + " " + "text/ascii" + " " + data)
     assert full_message == msg1.encode()
 
 
@@ -157,6 +157,15 @@ def test_message_can_generate_v1_01():
     msg = Message.from_string(rawmsg)
     assert "+00:00" not in rawmsg.split(" ", 6)[-1]
     assert str(msg) == rawmsg
+
+
+def test_v1_01_header_timestamp_has_no_timezone():
+    """Ensure the header timestamp has no timezone info for v1.01 messages."""
+    version = "v1.01"
+    msg = Message("a", "b", data="hello", version=version)
+    rawmsg = str(msg)
+    header_timestamp = rawmsg.split(" ")[3]
+    assert "+00:00" not in header_timestamp
 
 
 def test_message_has_timezone_by_default():

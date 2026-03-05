@@ -369,7 +369,7 @@ def _encode(msg:Message, head:bool=False, binary:bool=False) -> str:
     version = render_version(msg.version, msg.data, binary)
 
     rawstr = str(_MAGICK) + u"{0:s} {1:s} {2:s} {3:s} {4:s}".format(
-        msg.subject, msg.type, msg.sender, msg.time.isoformat(), version)
+        msg.subject, msg.type, msg.sender, create_datetime_encoder_for_version(version)(msg.time), version)
     if not head and msg.data:
         mimetype, data = _encode_data(msg.data, binary, version)
         return " ".join((rawstr, mimetype, data))
