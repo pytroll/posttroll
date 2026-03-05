@@ -12,7 +12,7 @@ from zmq.auth import load_certificate
 from zmq.auth.thread import ThreadAuthenticator
 
 from posttroll import config
-from posttroll.backends.zmq import get_context
+from posttroll.backends.zmq import get_context, get_tcp_keepalive_options
 from posttroll.message import Message, MessageError
 
 authenticator_lock = Lock()
@@ -26,9 +26,8 @@ def close_socket(sock: zmq.Socket[int]):
 
 
 def set_up_client_socket(socket_type: int, address: str,
-                         options: dict[int|str, str]|None = None, backend: str|None = None) -> zmq.Socket[int]:
+                         options: dict[int, int]|None = None, backend: str|None = None) -> zmq.Socket[int]:
     """Set up a client (connecting) zmq socket."""
-    options = options or dict()
     backend = backend or config["backend"]
     # Skip secure setup for inproc (internal thread communication)
     if address.startswith("inproc://"):
@@ -39,7 +38,7 @@ def set_up_client_socket(socket_type: int, address: str,
         sock = create_secure_client_socket(socket_type)
     else:
         raise NotImplementedError()
-    add_options(sock, options)
+    _add_options(sock, options)
     sock.connect(address)
     return sock
 
@@ -49,11 +48,11 @@ def create_unsecure_client_socket(socket_type: int) -> zmq.Socket[int]:
     return get_context().socket(socket_type)
 
 
-def add_options(sock, options=None):
+def _add_options(sock: zmq.Socket[int], options: dict[int, int]|None = None):
     """Add options to a socket."""
-    if not options:
-        return
-    for param, val in options.items():
+    combined_options = get_tcp_keepalive_options()
+    combined_options.update(options or {})
+    for param, val in combined_options.items():
         sock.setsockopt(param, val)
 
 
@@ -82,12 +81,10 @@ def create_secure_client_socket(socket_type: int) -> zmq.Socket[int]:
     return subscriber
 
 
-def set_up_server_socket(socket_type: int, destination: str, options: dict[int, str]|None = None,
+def set_up_server_socket(socket_type: int, destination: str, options: dict[int, int]|None = None,
                          port_interval: tuple[int|None, int|None] = (None, None),
                          backend: str|None = None) -> tuple[zmq.Socket[int], int, ThreadAuthenticator|None]:
     """Set up a server (binding) socket."""
-    if options is None:
-        options = {}
     _backend:str = backend or config["backend"]
     # Skip ZAP for inproc (internal thread communication)
     enable_zap = not destination.startswith("inproc://")
@@ -98,7 +95,7 @@ def set_up_server_socket(socket_type: int, destination: str, options: dict[int, 
     else:
         raise NotImplementedError()
 
-    add_options(sock, options)
+    _add_options(sock, options)
 
     port = bind(sock, destination, port_interval)
     return sock, port, authenticator

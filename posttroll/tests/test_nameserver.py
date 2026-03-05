@@ -354,6 +354,26 @@ def test_unsecure_tcp_nameserver(tmp_path):
         thr.join()
 
 
+@pytest.mark.parametrize("received_version", ["v1.01", "v1.2"])
+def test_address_receiver_republishes_as_v1_01(received_version):
+    """Address re-publications must be v1.01 so old posttroll clients can decode the header timestamp."""
+    from unittest.mock import Mock
+
+    from posttroll.address_receiver import AddressReceiver
+
+    adr = AddressReceiver()
+    pub = Mock()
+    incoming = Message("/address/myservice", "info",
+                       {"URI": "tcp://host:1234", "service": ["myservice"]},
+                       version=received_version)
+    adr.process_address_message(incoming.encode(), pub)
+
+    published_raw = pub.send.call_args[0][0]
+    published = Message.decode(published_raw)
+    assert published.version == "v1.01"
+    assert "+00:00" not in published_raw.split(" ")[3]
+
+
 @pytest.mark.parametrize("version", ["v1.01", "v1.2"])
 def test_message_version_compatibility(tmp_path, version):
     """Ensure the message version of nameserver responses."""

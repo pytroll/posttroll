@@ -18,6 +18,7 @@ import json
 import re
 from functools import partial
 from typing import Any, Callable
+from warnings import warn
 
 from posttroll import config
 
@@ -98,9 +99,11 @@ class Message:
 
     def __init__(self, subject:str="", atype:str="", data:str|dict[str, Any]="", binary:bool=False,
                  rawstr:str|bytes|None=None, version:str|None=None):
-        """Initialize a Message from a subject, type and data, or from a raw string."""
+        """Initialize a Message from a subject, type and data."""
         if rawstr:
-            self.__dict__ = _decode(rawstr)
+            warn("The `rawstr` argument of `Message` instantiation is being depracated in favour of the class method"
+                 "`Message.from_string`.", PendingDeprecationWarning)
+            self._decode_string(rawstr)
         else:
             self.subject:str = subject
             self.type:str = atype
@@ -133,10 +136,10 @@ class Message:
         self._validate()
         return _encode(self, head=True)
 
-    @staticmethod
-    def decode(rawstr:str|bytes):
+    @classmethod
+    def decode(cls, rawstr:str|bytes):
         """Decode a raw string into a Message."""
-        return Message(rawstr=rawstr)
+        return cls.from_string(rawstr)
 
     def encode(self) -> str:
         """Encode a Message to a raw string."""
@@ -167,14 +170,58 @@ class Message:
             raise MessageError("Invalid data: data is not JSON serializable: %s"
                                % str(self.data))
 
-    def __getstate__(self):
+    def __getstate__(self) -> str:
         """Get the Message state for pickle()."""
         return self.encode()
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: str):
         """Set the Message when unpickling."""
-        self.__dict__.clear()
-        self.__dict__ = _decode(state)
+        self._decode_string(state)
+
+    def _decode_string(self, rawstr:str|bytes):
+        """Convert a raw string to a Message."""
+        rawstr = _check_for_magic_word(rawstr)
+
+        raw = _check_for_element_count(rawstr)
+        version = _check_for_version(raw)
+
+        # Start to build message
+        self.subject = raw[0].strip()
+        self.type = raw[1].strip()
+        self.sender = raw[2].strip()
+        self.time = dt.datetime.fromisoformat(raw[3].strip())
+        self.version = version
+
+        # Data part
+        try:
+            mimetype = raw[5].lower()
+        except IndexError:
+            mimetype = None
+            self.data = ""
+            self.binary = False
+            return
+        else:
+            data = raw[6]
+
+        if mimetype == "application/json":
+            try:
+                self.data = json.loads(raw[6], object_hook=datetime_decoder)
+                self.binary = False
+            except ValueError:
+                raise MessageError("JSON decode failed on '%s ...'" % raw[6][:36])
+        elif mimetype == "text/ascii":
+            self.data = str(data)
+            self.binary = False
+        elif mimetype == "binary/octet-stream":
+            self.data = data
+            self.binary = True
+        else:
+            raise MessageError("Unknown mime-type '%s'" % mimetype)
+
+    @classmethod
+    def from_string(cls, rawstr:str|bytes):
+        """Create a message from string."""
+        return cls(rawstr=rawstr)
 
 
 # -----------------------------------------------------------------------------
@@ -184,7 +231,7 @@ class Message:
 # -----------------------------------------------------------------------------
 
 
-def _is_valid_version(version):
+def _is_valid_version(version: str) -> bool:
     """Check version."""
     return version <= CURRENT_MESSAGE_VERSION
 
@@ -322,7 +369,7 @@ def _encode(msg:Message, head:bool=False, binary:bool=False) -> str:
     version = render_version(msg.version, msg.data, binary)
 
     rawstr = str(_MAGICK) + u"{0:s} {1:s} {2:s} {3:s} {4:s}".format(
-        msg.subject, msg.type, msg.sender, msg.time.isoformat(), version)
+        msg.subject, msg.type, msg.sender, create_datetime_encoder_for_version(version)(msg.time), version)
     if not head and msg.data:
         mimetype, data = _encode_data(msg.data, binary, version)
         return " ".join((rawstr, mimetype, data))
