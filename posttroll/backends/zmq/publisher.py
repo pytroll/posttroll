@@ -7,7 +7,7 @@ from threading import Lock
 import zmq
 
 from posttroll.backends.zmq import get_tcp_keepalive_options
-from posttroll.backends.zmq.socket import close_socket, set_up_server_socket
+from posttroll.backends.zmq.socket import authenticator_lock, close_socket, set_up_server_socket
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,4 +56,6 @@ class ZMQPublisher:
         """Stop the publisher."""
         close_socket(self.publish_socket)
         with suppress(AttributeError):
-            self._authenticator.stop()
+            with authenticator_lock:
+                if self._authenticator.is_alive():
+                    self._authenticator.stop()
