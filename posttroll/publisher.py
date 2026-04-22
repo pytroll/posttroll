@@ -12,17 +12,36 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_own_ip():
-    """Get the host's ip number."""
+    """Get the host's ip number.
+
+    Tries multiple methods to determine the host's IP address:
+    1. Connect to an external server (8.8.8.8:80) to determine the outgoing IP
+    2. Resolve the local hostname
+    3. Fall back to localhost (127.0.0.1)
+    """
+    # Method 1: Connect to external server to get outgoing IP
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.connect(("8.8.8.8", 80))
-    except socket.gaierror:
-        ip_ = "127.0.0.1"
-    else:
         ip_ = sock.getsockname()[0]
+        return ip_
+    except (socket.gaierror, OSError):
+        # Network not available or unreachable
+        pass
     finally:
         sock.close()
-    return ip_
+
+    # Method 2: Try to resolve local hostname
+    try:
+        hostname = socket.gethostname()
+        ip_ = socket.gethostbyname(hostname)
+        if ip_ and ip_ != "127.0.0.1":
+            return ip_
+    except (socket.gaierror, OSError):
+        pass
+
+    # Method 3: Fall back to localhost
+    return "127.0.0.1"
 
 
 class Publisher:
