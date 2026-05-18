@@ -8,7 +8,6 @@ from urllib.parse import urlsplit
 from zmq import PULL, SUB, SUBSCRIBE, ContextTerminated, ZMQError
 
 from posttroll import config
-from posttroll.backends.zmq import get_tcp_keepalive_options
 from posttroll.backends.zmq.socket import SocketReceiver, close_socket, set_up_client_socket
 from posttroll.message import CURRENT_MESSAGE_VERSION
 
@@ -116,8 +115,7 @@ class ZMQSubscriber:
         specified subscription. Good for pushed 'inproc' messages from another thread.
         """
         LOGGER.info("Subscriber adding PULL hook %s", str(address))
-        options = get_tcp_keepalive_options()
-        socket = self._create_socket(PULL, address, options)
+        socket = self._create_socket(PULL, address)
         if self._sock_receiver:
             self._sock_receiver.register(socket)
         self._add_hook(socket, callback)
@@ -200,8 +198,6 @@ class ZMQSubscriber:
                 pass
 
     def _add_sub_socket(self, address: dict[str, str], topics):
-
-        options = get_tcp_keepalive_options()
         try:
             backend = address.get("backend", "unsecure_zmq")
             uri = address["URI"]
@@ -209,14 +205,14 @@ class ZMQSubscriber:
             backend = config["backend"]
             uri = address
 
-        subscriber = self._create_socket(SUB, uri, options, backend)
+        subscriber = self._create_socket(SUB, uri, backend=backend)
         add_subscriptions(subscriber, topics)
 
         if self._sock_receiver:
             self._sock_receiver.register(subscriber)
         return subscriber
 
-    def _create_socket(self, socket_type: int, address: str, options, backend: str|None = None):
+    def _create_socket(self, socket_type: int, address: str, options: dict[int,int]|None=None, backend: str|None = None):
         return set_up_client_socket(socket_type, address, options, backend)
 
 
@@ -227,7 +223,7 @@ def ensure_address_is_dict(addr: dict[str, str]|str) -> dict[str, str]:
     elif isinstance(addr, str):
         res = dict(URI=addr)
     else:
-        NotImplementedError(f"Don't know how to handle {type(addr)} addresses")
+        raise NotImplementedError(f"Don't know how to handle {type(addr)} addresses")
     res.setdefault("backend", config["backend"])
     return res
 

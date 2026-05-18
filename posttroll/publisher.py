@@ -101,7 +101,7 @@ class Publisher:
         self._publisher.start()
         return self
 
-    def send(self, msg):
+    def send(self, msg: str):
         """Send the given message."""
         return self._publisher.send(msg)
 
@@ -200,7 +200,7 @@ class NoisyPublisher:
         self._broadcaster.start()
         return self
 
-    def send(self, msg):
+    def send(self, msg: str):
         """Send a *msg*."""
         return self._publisher.send(msg)
 
@@ -260,7 +260,7 @@ class Publish:
 
     """
 
-    def __init__(self, name, port=0, aliases=None, broadcast_interval=2, nameservers=None,
+    def __init__(self, name: str, port=0, aliases=None, broadcast_interval=2, nameservers=None,
                  min_port=None, max_port=None):
         """Initialize the class."""
         settings = {"name": name, "port": port, "min_port": min_port, "max_port": max_port,

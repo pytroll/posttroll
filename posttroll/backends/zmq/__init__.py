@@ -25,22 +25,15 @@ def get_context() -> zmq.Context:
     return context[pid]
 
 
-def destroy_context(linger=None):
+def destroy_context(linger: int|None = None):
     """Destroy the context."""
     pid = os.getpid()
     context.pop(pid).destroy(linger)
 
 
-def _set_tcp_keepalive(socket):
-    """Set the tcp keepalive parameters on *socket*."""
-    keepalive_options = get_tcp_keepalive_options()
-    for param, value in keepalive_options.items():
-        socket.setsockopt(param, value)
-
-
-def get_tcp_keepalive_options():
+def get_tcp_keepalive_options() -> dict[int, int]:
     """Get the tcp_keepalive options from config."""
-    keepalive_options = dict()
+    keepalive_options: dict[int, int] = dict()
     for opt in ("tcp_keepalive",
                 "tcp_keepalive_cnt",
                 "tcp_keepalive_idle",

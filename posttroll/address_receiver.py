@@ -16,7 +16,7 @@ from zmq import ZMQError
 
 from posttroll import config
 from posttroll.bbmcast import MulticastReceiver, get_configured_broadcast_port
-from posttroll.message import Message
+from posttroll.message import Message, version_needed
 from posttroll.publisher import Publish
 
 __all__ = ("AddressReceiver", "getaddress")
@@ -178,6 +178,7 @@ class AddressReceiver:
             if addr not in self._addresses:
                 logger.info("nameserver: publish add '%s'",
                             str(msg))
+                msg.version = version_needed(msg.data, False)
                 pub.send(msg.encode())
             self._add(addr, metadata)
 
