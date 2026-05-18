@@ -1,6 +1,7 @@
 """Test the publishing and subscribing facilities."""
 
 import logging
+import socket
 import time
 import unittest
 from contextlib import contextmanager
@@ -44,6 +45,68 @@ def free_port():
     s.close()
 
     return portnum
+
+
+def test_get_own_ip_uses_socket_outgoing_address():
+    """Use the outgoing socket address when external connect succeeds."""
+    from posttroll import publisher as publisher_module
+
+    mocked_sock = mock.Mock()
+    mocked_sock.getsockname.return_value = ("10.1.2.3", 12345)
+
+    with mock.patch("posttroll.publisher.socket.socket", return_value=mocked_sock):
+        assert publisher_module.get_own_ip() == "10.1.2.3"
+
+    mocked_sock.connect.assert_called_once_with(("8.8.8.8", 80))
+    mocked_sock.close.assert_called_once()
+
+
+def test_get_own_ip_falls_back_to_hostname_resolution_on_oserror():
+    """If external connect fails, use resolved hostname ip when available."""
+    from posttroll import publisher as publisher_module
+
+    mocked_sock = mock.Mock()
+    mocked_sock.connect.side_effect = OSError("network unreachable")
+
+    with (
+        mock.patch("posttroll.publisher.socket.socket", return_value=mocked_sock),
+        mock.patch("posttroll.publisher.socket.gethostname", return_value="my-host"),
+        mock.patch("posttroll.publisher.socket.gethostbyname", return_value="192.168.1.50"),
+    ):
+        assert publisher_module.get_own_ip() == "192.168.1.50"
+
+    mocked_sock.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "hostname_side_effect,hostname_ip",
+    [
+        (None, "127.0.0.1"),
+        (socket.gaierror("lookup failed"), None),
+    ],
+    ids=["hostname_returns_loopback", "hostname_lookup_raises"],
+)
+def test_get_own_ip_returns_localhost_when_no_non_loopback_ip(hostname_side_effect, hostname_ip):
+    """Return localhost when external lookup fails and no usable host ip exists."""
+    from posttroll import publisher as publisher_module
+
+    mocked_sock = mock.Mock()
+    mocked_sock.connect.side_effect = OSError("network unreachable")
+    gethostbyname_mock = mock.Mock()
+    if hostname_side_effect is not None:
+        gethostbyname_mock.side_effect = hostname_side_effect
+    else:
+        gethostbyname_mock.return_value = hostname_ip
+
+    with (
+        mock.patch("posttroll.publisher.socket.socket", return_value=mocked_sock),
+        mock.patch("posttroll.publisher.socket.gethostname", return_value="my-host"),
+        mock.patch("posttroll.publisher.socket.gethostbyname", gethostbyname_mock),
+    ):
+        assert publisher_module.get_own_ip() == "127.0.0.1"
+
+    gethostbyname_mock.assert_called_once_with("my-host")
+    mocked_sock.close.assert_called_once()
 
 
 class TestPubSub(unittest.TestCase):

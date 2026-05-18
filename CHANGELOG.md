@@ -1,3 +1,25 @@
+## Version 1.15.0 (2026/04/22)
+
+### Issues Closed
+
+* [Issue 86](https://github.com/pytroll/posttroll/issues/86) - Stopping the publisher hangs ([PR 87](https://github.com/pytroll/posttroll/pull/87) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 51](https://github.com/pytroll/posttroll/issues/51) - Nameserver is still running even if publisher fails to start ([PR 84](https://github.com/pytroll/posttroll/pull/84) by [@TAlonglong](https://github.com/TAlonglong))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 87](https://github.com/pytroll/posttroll/pull/87) - Stop authenticator gracefully ([86](https://github.com/pytroll/posttroll/issues/86))
+
+#### Features added
+
+* [PR 84](https://github.com/pytroll/posttroll/pull/84) - improve get_own_ip ([51](https://github.com/pytroll/posttroll/issues/51))
+
+In this release 2 pull requests were closed.
+
+
 ## Version 1.14.0 (2026/02/26)
 
 
