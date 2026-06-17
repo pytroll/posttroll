@@ -1,3 +1,15 @@
+## Version 1.16.0 (2026/06/17)
+
+
+### Pull Requests Merged
+
+#### Features added
+
+* [PR 82](https://github.com/pytroll/posttroll/pull/82) - Refactor message decoding, make keepalive universal
+
+In this release 1 pull request was closed.
+
+
 ## Version 1.15.0 (2026/04/22)
 
 ### Issues Closed
